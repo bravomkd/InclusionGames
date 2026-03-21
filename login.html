@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --ink:#1a1a2e;--ink2:#3d3d5c;--muted:#6b6b8a;
+  --bg:#fafaf8;--surface:#ffffff;--border:#e8e6f0;
+  --p1:#7c3aed;--p2:#a855f7;--p3:#ede9fe;
+  --g1:#10b981;--r1:#ef4444;--r3:#fee2e2;
+  --a1:#f59e0b;--a3:#fef3c7;
+  --font:'Nunito',sans-serif;--display:'Fredoka One',cursive;
+}
+body{font-family:var(--font);background:var(--bg);min-height:100vh;display:flex;flex-direction:column;}
+
+/* NAV */
+nav{padding:16px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:var(--surface);}
+.nav-logo{display:flex;align-items:center;gap:9px;text-decoration:none;}
+.nav-logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--p1),var(--p2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;}
+.nav-logo-text{font-family:var(--display);font-size:1.15rem;color:var(--ink);}
+.nav-logo-text span{color:var(--p1);}
+.nav-link{font-size:.88rem;font-weight:700;color:var(--muted);text-decoration:none;}
+.nav-link:hover{color:var(--p1);}
+
+/* MAIN LAYOUT */
+.main{flex:1;display:grid;grid-template-columns:1fr 1fr;min-height:calc(100vh - 65px);}
+@media(max-width:800px){.main{grid-template-columns:1fr;}.side-panel{display:none;}}
+
+/* LEFT PANEL */
+.side-panel{background:linear-gradient(160deg,var(--p1) 0%,#5b21b6 60%,#1e1b4b 100%);padding:60px 48px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;}
+.sp-bg1{position:absolute;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,.05);top:-80px;right:-80px;}
+.sp-bg2{position:absolute;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.04);bottom:40px;left:-60px;}
+.sp-content{position:relative;z-index:1;}
+.sp-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);color:#fff;font-size:.78rem;font-weight:700;padding:5px 14px;border-radius:100px;margin-bottom:28px;letter-spacing:.5px;}
+.sp-title{font-family:var(--display);font-size:2.4rem;color:#fff;line-height:1.25;margin-bottom:16px;}
+.sp-desc{font-size:.95rem;color:rgba(255,255,255,.75);line-height:1.7;margin-bottom:32px;}
+.sp-features{display:flex;flex-direction:column;gap:12px;}
+.sp-feat{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.85);font-size:.88rem;}
+.sp-feat-icon{width:28px;height:28px;background:rgba(255,255,255,.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;}
+.sp-testimonial{position:relative;z-index:1;background:rgba(255,255,255,.1);border-radius:16px;padding:20px;border:1px solid rgba(255,255,255,.15);}
+.sp-test-text{font-size:.88rem;color:rgba(255,255,255,.9);font-style:italic;line-height:1.6;margin-bottom:12px;}
+.sp-test-author{display:flex;align-items:center;gap:10px;}
+.sp-test-avatar{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;color:#fff;}
+.sp-test-name{font-size:.82rem;font-weight:700;color:#fff;}
+.sp-test-role{font-size:.75rem;color:rgba(255,255,255,.6);}
+
+/* RIGHT PANEL — FORM */
+.form-panel{display:flex;align-items:center;justify-content:center;padding:48px 40px;}
+.form-box{width:100%;max-width:420px;}
+.form-header{text-align:center;margin-bottom:32px;}
+.form-title{font-family:var(--display);font-size:2rem;color:var(--ink);margin-bottom:6px;}
+.form-sub{font-size:.9rem;color:var(--muted);}
+.form-sub a{color:var(--p1);font-weight:700;text-decoration:none;}
+.form-sub a:hover{text-decoration:underline;}
+
+/* SOCIAL BUTTONS */
+.social-btns{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+.social-btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 20px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface);font-size:.9rem;font-weight:700;color:var(--ink2);cursor:pointer;transition:border-color .15s,background .15s;width:100%;}
+.social-btn:hover{border-color:var(--p1);background:var(--p3);}
+.social-icon{width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:1rem;}
+
+/* DIVIDER */
+.divider{display:flex;align-items:center;gap:14px;margin-bottom:22px;}
+.div-line{flex:1;height:1px;background:var(--border);}
+.div-text{font-size:.78rem;color:var(--muted);font-weight:600;white-space:nowrap;}
+
+/* FORM FIELDS */
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+.field-label{font-size:.82rem;font-weight:700;color:var(--ink2);}
+.field-wrap{position:relative;}
+.field-input{width:100%;padding:12px 16px;border:1.5px solid var(--border);border-radius:12px;font-family:var(--font);font-size:.92rem;color:var(--ink);background:var(--surface);transition:border-color .15s,box-shadow .15s;outline:none;}
+.field-input:focus{border-color:var(--p1);box-shadow:0 0 0 3px rgba(124,58,237,.12);}
+.field-input.error{border-color:var(--r1);box-shadow:0 0 0 3px rgba(239,68,68,.1);}
+.field-input.ok{border-color:var(--g1);}
+.field-icon{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:1rem;cursor:pointer;user-select:none;}
+.field-error{font-size:.78rem;color:var(--r1);font-weight:600;display:none;}
+.field-error.show{display:block;}
+
+/* ROW */
+.row{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.remember{display:flex;align-items:center;gap:7px;cursor:pointer;}
+.remember input{accent-color:var(--p1);width:16px;height:16px;}
+.remember span{font-size:.82rem;color:var(--muted);font-weight:600;}
+.forgot{font-size:.82rem;font-weight:700;color:var(--p1);text-decoration:none;}
+.forgot:hover{text-decoration:underline;}
+
+/* SUBMIT */
+.submit-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:12px;font-family:var(--font);font-size:1rem;font-weight:700;cursor:pointer;transition:transform .15s,box-shadow .15s;position:relative;overflow:hidden;}
+.submit-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(124,58,237,.35);}
+.submit-btn:active{transform:translateY(0);}
+.submit-btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+.btn-spinner{display:none;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ALERT */
+.alert{border-radius:10px;padding:12px 14px;font-size:.85rem;font-weight:600;margin-bottom:18px;display:none;}
+.alert.show{display:flex;align-items:center;gap:8px;}
+.alert-error{background:var(--r3);color:#991b1b;border:1px solid #fca5a5;}
+.alert-success{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;}
+
+/* DIVIDER SIGNUP */
+.signup-row{text-align:center;margin-top:22px;font-size:.88rem;color:var(--muted);}
+.signup-row a{color:var(--p1);font-weight:700;text-decoration:none;}
+.signup-row a:hover{text-decoration:underline;}
+
+/* TRIAL STRIP */
+.trial-strip{background:linear-gradient(135deg,var(--p3),var(--a3));border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-top:20px;}
+.ts-text{font-size:.82rem;font-weight:700;color:var(--ink2);flex:1;}
+.ts-link{font-size:.8rem;font-weight:700;color:var(--p1);text-decoration:none;white-space:nowrap;}
+
+/* PASSWORD STRENGTH */
+.pwd-strength{margin-top:8px;display:none;}
+.pwd-strength.show{display:block;}
+.pwd-bars{display:flex;gap:4px;margin-bottom:4px;}
+.pwd-bar{flex:1;height:3px;border-radius:2px;background:var(--border);transition:background .2s;}
+.pwd-bar.weak{background:var(--r1);}
+.pwd-bar.medium{background:var(--a1);}
+.pwd-bar.strong{background:var(--g1);}
+.pwd-label{font-size:.72rem;color:var(--muted);}
+
+/* FOOTER */
+footer{padding:20px 32px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:.75rem;color:var(--muted);}
+footer a{color:var(--muted);text-decoration:none;margin:0 8px;}
+footer a:hover{color:var(--p1);}
+.footer-secure{display:flex;align-items:center;gap:6px;}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-icon">🎈</div>
+    <span class="nav-logo-text">Inclusion<span>Games</span></span>
+  </a>
+  <a href="signup.html" class="nav-link">No account? Sign up free →</a>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT PANEL -->
+  <div class="side-panel">
+    <div class="sp-bg1"></div><div class="sp-bg2"></div>
+    <div class="sp-content">
+      <div class="sp-badge">🎈 Welcome back</div>
+      <h2 class="sp-title">Your child is waiting to play</h2>
+      <p class="sp-desc">Sign in to access all 28 games, track your child's progress, and continue their learning journey.</p>
+      <div class="sp-features">
+        <div class="sp-feat"><div class="sp-feat-icon">🎮</div>28 games — all ages, all abilities</div>
+        <div class="sp-feat"><div class="sp-feat-icon">🌍</div>8 languages, instant switch</div>
+        <div class="sp-feat"><div class="sp-feat-icon">♿</div>Full accessibility modes</div>
+        <div class="sp-feat"><div class="sp-feat-icon">📊</div>Progress tracking per child</div>
+        <div class="sp-feat"><div class="sp-feat-icon">🆕</div>New games added regularly</div>
+      </div>
+    </div>
+    <div class="sp-testimonial">
+      <p class="sp-test-text">"My son played Letter Pop for 40 minutes and didn't want to stop. I cried happy tears."</p>
+      <div class="sp-test-author">
+        <div class="sp-test-avatar">MK</div>
+        <div><div class="sp-test-name">Maria K.</div><div class="sp-test-role">Parent, Munich</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL — FORM -->
+  <div class="form-panel">
+    <div class="form-box">
+      <div class="form-header">
+        <h1 class="form-title">Welcome back 👋</h1>
+        <p class="form-sub">New to InclusionGames? <a href="signup.html">Start your free trial</a></p>
+      </div>
+
+      <!-- ALERTS -->
+      <div class="alert alert-error" id="alert-error">
+        <span>⚠️</span><span id="alert-error-text">Invalid email or password. Please try again.</span>
+      </div>
+      <div class="alert alert-success" id="alert-success">
+        <span>✅</span><span id="alert-success-text">Signed in! Redirecting…</span>
+      </div>
+
+      <!-- SOCIAL LOGIN -->
+      <div class="social-btns">
+        <button class="social-btn" onclick="socialLogin('google')">
+          <span class="social-icon">🔵</span> Continue with Google
+        </button>
+        <button class="social-btn" onclick="socialLogin('microsoft')">
+          <span class="social-icon">🟦</span> Continue with Microsoft
+        </button>
+      </div>
+
+      <div class="divider">
+        <div class="div-line"></div>
+        <span class="div-text">or sign in with email</span>
+        <div class="div-line"></div>
+      </div>
+
+      <!-- EMAIL FORM -->
+      <form id="login-form" onsubmit="handleLogin(event)" novalidate>
+        <div class="field">
+          <label class="field-label" for="email">Email address</label>
+          <div class="field-wrap">
+            <input class="field-input" type="email" id="email" placeholder="you@example.com" autocomplete="email" required>
+            <span class="field-icon" id="email-icon"></span>
+          </div>
+          <span class="field-error" id="email-error">Please enter a valid email address.</span>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="password">Password</label>
+          <div class="field-wrap">
+            <input class="field-input" type="password" id="password" placeholder="Enter your password" autocomplete="current-password" required>
+            <span class="field-icon" id="pwd-toggle" onclick="togglePwd('password','pwd-toggle')" style="cursor:pointer;">👁</span>
+          </div>
+          <span class="field-error" id="pwd-error">Password is required.</span>
+        </div>
+
+        <div class="row">
+          <label class="remember">
+            <input type="checkbox" id="remember"> <span>Remember me</span>
+          </label>
+          <a href="forgot.html" class="forgot">Forgot password?</a>
+        </div>
+
+        <button class="submit-btn" type="submit" id="login-btn">
+          <span id="btn-text">Sign in to my account</span>
+          <div class="btn-spinner" id="btn-spinner"></div>
+        </button>
+      </form>
+
+      <div class="signup-row">
+        Don't have an account? <a href="signup.html">Sign up — first 3 days free</a>
+      </div>
+
+      <div class="trial-strip">
+        <span style="font-size:1.2rem;">🎁</span>
+        <span class="ts-text">New here? Start your free 3-day trial — no card needed.</span>
+        <a href="signup.html" class="ts-link">Try free →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>© 2026 InclusionGames — <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Cookie Policy</a></div>
+  <div class="footer-secure">🔒 Secured by Supabase · GDPR Compliant · EU Hosted</div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ── SUPABASE CONFIG ──────────────────────────────────────────
+const SUPABASE_URL = 'https://rgnnybvhrqfqlsphiobx.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_lLSk-8-Ll6RsRjpiqRCvsw_i-89_a01';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ────────────────────────────────────────────────────────────
+
+// Redirect if already logged in
+sb.auth.getSession().then(({ data: { session } }) => {
+  if (session) window.location.href = 'dashboard.html';
+});
+
+// Live email validation
+document.getElementById('email').addEventListener('input', function() {
+  const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.value);
+  this.className = 'field-input ' + (this.value ? (ok ? 'ok' : 'error') : '');
+  document.getElementById('email-icon').textContent = this.value ? (ok ? '✅' : '❌') : '';
+  document.getElementById('email-error').className = 'field-error' + (this.value && !ok ? ' show' : '');
+});
+
+function togglePwd(inputId, iconId) {
+  const input = document.getElementById(inputId);
+  const icon = document.getElementById(iconId);
+  if (input.type === 'password') { input.type = 'text'; icon.textContent = '🙈'; }
+  else { input.type = 'password'; icon.textContent = '👁'; }
+}
+
+function showAlert(type, msg) {
+  document.getElementById('alert-error').classList.remove('show');
+  document.getElementById('alert-success').classList.remove('show');
+  if (type === 'error') {
+    document.getElementById('alert-error-text').textContent = msg;
+    document.getElementById('alert-error').classList.add('show');
+  } else {
+    document.getElementById('alert-success-text').textContent = msg;
+    document.getElementById('alert-success').classList.add('show');
+  }
+}
+
+function setLoading(on) {
+  const btn = document.getElementById('login-btn');
+  const text = document.getElementById('btn-text');
+  const spin = document.getElementById('btn-spinner');
+  btn.disabled = on;
+  text.style.display = on ? 'none' : 'block';
+  spin.style.display = on ? 'block' : 'none';
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    document.getElementById('email-error').classList.add('show');
+    document.getElementById('email').focus(); return;
+  }
+  if (!password) {
+    document.getElementById('pwd-error').classList.add('show');
+    document.getElementById('password').focus(); return;
+  }
+
+  setLoading(true);
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    showAlert('success', 'Signed in! Redirecting to your games…');
+    setTimeout(() => window.location.href = 'dashboard.html', 1200);
+  } catch (err) {
+    const msg = err.message === 'Invalid login credentials'
+      ? 'Wrong email or password. Please try again.'
+      : (err.message || 'Something went wrong. Please try again.');
+    showAlert('error', msg);
+    setLoading(false);
+  }
+}
+
+async function socialLogin(provider) {
+  try {
+    const { error } = await sb.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: window.location.origin + '/dashboard.html' }
+    });
+    if (error) throw error;
+  } catch (err) {
+    showAlert('error', err.message || 'Social login failed. Please try again.');
+  }
+}
+
+// Keyboard shortcut — Enter submits
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.activeElement.tagName !== 'BUTTON') {
+    document.getElementById('login-form').requestSubmit();
+  }
+});
+</script>
+</body>
+</html>

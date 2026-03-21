@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Account — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --ink:#1a1a2e;--ink2:#3d3d5c;--muted:#6b6b8a;
+  --bg:#fafaf8;--surface:#ffffff;--border:#e8e6f0;
+  --p1:#7c3aed;--p2:#a855f7;--p3:#ede9fe;
+  --g1:#10b981;--r1:#ef4444;--r3:#fee2e2;
+  --a1:#f59e0b;--a3:#fef3c7;
+  --font:'Nunito',sans-serif;--display:'Fredoka One',cursive;
+}
+body{font-family:var(--font);background:var(--bg);min-height:100vh;display:flex;flex-direction:column;}
+nav{padding:16px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:var(--surface);}
+.nav-logo{display:flex;align-items:center;gap:9px;text-decoration:none;}
+.nav-logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--p1),var(--p2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;}
+.nav-logo-text{font-family:var(--display);font-size:1.15rem;color:var(--ink);}
+.nav-logo-text span{color:var(--p1);}
+.nav-link{font-size:.88rem;font-weight:700;color:var(--muted);text-decoration:none;}
+.nav-link:hover{color:var(--p1);}
+
+.main{flex:1;display:grid;grid-template-columns:1fr 1fr;min-height:calc(100vh - 65px);}
+@media(max-width:860px){.main{grid-template-columns:1fr;}.side-panel{display:none;}}
+
+/* LEFT PANEL */
+.side-panel{background:linear-gradient(160deg,#065f46 0%,#047857 40%,#0f766e 100%);padding:60px 48px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;}
+.sp-bg1{position:absolute;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,.05);top:-60px;left:-60px;}
+.sp-bg2{position:absolute;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.04);bottom:20px;right:-50px;}
+.sp-content{position:relative;z-index:1;}
+.sp-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);color:#fff;font-size:.78rem;font-weight:700;padding:5px 14px;border-radius:100px;margin-bottom:28px;letter-spacing:.5px;}
+.sp-title{font-family:var(--display);font-size:2.2rem;color:#fff;line-height:1.3;margin-bottom:16px;}
+.sp-desc{font-size:.92rem;color:rgba(255,255,255,.75);line-height:1.7;margin-bottom:28px;}
+
+.trial-cards{display:flex;flex-direction:column;gap:10px;}
+.trial-card{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px;}
+.tc-icon{width:36px;height:36px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
+.tc-title{font-size:.88rem;font-weight:700;color:#fff;margin-bottom:2px;}
+.tc-desc{font-size:.78rem;color:rgba(255,255,255,.65);line-height:1.4;}
+
+.sp-timeline{position:relative;z-index:1;margin-top:24px;}
+.tl-item{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px;}
+.tl-dot{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#065f46;flex-shrink:0;margin-top:2px;}
+.tl-text{font-size:.85rem;color:rgba(255,255,255,.85);line-height:1.5;}
+.tl-text strong{color:#fff;}
+
+/* FORM PANEL */
+.form-panel{display:flex;align-items:flex-start;justify-content:center;padding:40px 40px;overflow-y:auto;}
+.form-box{width:100%;max-width:440px;}
+.form-header{text-align:center;margin-bottom:24px;}
+.form-title{font-family:var(--display);font-size:1.9rem;color:var(--ink);margin-bottom:6px;}
+.form-sub{font-size:.88rem;color:var(--muted);}
+.form-sub a{color:var(--p1);font-weight:700;text-decoration:none;}
+
+/* TRIAL BANNER TOP */
+.trial-top{background:linear-gradient(135deg,#d1fae5,#a7f3d0);border:1px solid #6ee7b7;border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:22px;}
+.tt-text{font-size:.85rem;font-weight:700;color:#065f46;flex:1;}
+.tt-days{font-family:var(--display);font-size:1.2rem;color:var(--g1);}
+
+.social-btns{display:flex;flex-direction:column;gap:10px;margin-bottom:20px;}
+.social-btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 20px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface);font-size:.9rem;font-weight:700;color:var(--ink2);cursor:pointer;transition:border-color .15s,background .15s;width:100%;}
+.social-btn:hover{border-color:var(--p1);background:var(--p3);}
+
+.divider{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
+.div-line{flex:1;height:1px;background:var(--border);}
+.div-text{font-size:.78rem;color:var(--muted);font-weight:600;white-space:nowrap;}
+
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.field-label{font-size:.82rem;font-weight:700;color:var(--ink2);}
+.field-wrap{position:relative;}
+.field-input{width:100%;padding:11px 16px;border:1.5px solid var(--border);border-radius:12px;font-family:var(--font);font-size:.9rem;color:var(--ink);background:var(--surface);transition:border-color .15s,box-shadow .15s;outline:none;}
+.field-input:focus{border-color:var(--p1);box-shadow:0 0 0 3px rgba(124,58,237,.12);}
+.field-input.error{border-color:var(--r1);}
+.field-input.ok{border-color:var(--g1);}
+.field-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:.9rem;}
+.field-select{width:100%;padding:11px 16px;border:1.5px solid var(--border);border-radius:12px;font-family:var(--font);font-size:.9rem;color:var(--ink);background:var(--surface);outline:none;cursor:pointer;transition:border-color .15s;}
+.field-select:focus{border-color:var(--p1);}
+.field-error{font-size:.75rem;color:var(--r1);font-weight:600;display:none;}
+.field-error.show{display:block;}
+
+/* PASSWORD STRENGTH */
+.pwd-strength{margin-top:6px;}
+.pwd-bars{display:flex;gap:3px;margin-bottom:3px;}
+.pwd-bar{flex:1;height:3px;border-radius:2px;background:var(--border);transition:background .25s;}
+.pwd-bar.weak{background:var(--r1);}
+.pwd-bar.medium{background:var(--a1);}
+.pwd-bar.strong{background:var(--g1);}
+.pwd-label{font-size:.72rem;color:var(--muted);}
+
+/* ROLE SELECTOR */
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.role-card{border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;transition:border-color .15s,background .15s;display:flex;align-items:center;gap:8px;}
+.role-card:hover{border-color:var(--p1);}
+.role-card.sel{border-color:var(--p1);background:var(--p3);}
+.role-card input{display:none;}
+.role-icon{font-size:1.1rem;}
+.role-text{font-size:.82rem;font-weight:700;color:var(--ink2);}
+
+/* CHECKBOX */
+.check-row{display:flex;align-items:flex-start;gap:9px;margin-bottom:16px;}
+.check-row input{accent-color:var(--p1);width:16px;height:16px;margin-top:2px;flex-shrink:0;}
+.check-row label{font-size:.8rem;color:var(--muted);line-height:1.5;cursor:pointer;}
+.check-row label a{color:var(--p1);font-weight:700;text-decoration:none;}
+
+/* ALERT */
+.alert{border-radius:10px;padding:12px 14px;font-size:.85rem;font-weight:600;margin-bottom:16px;display:none;}
+.alert.show{display:flex;align-items:center;gap:8px;}
+.alert-error{background:var(--r3);color:#991b1b;border:1px solid #fca5a5;}
+.alert-success{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;}
+
+.submit-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:12px;font-family:var(--font);font-size:1rem;font-weight:700;cursor:pointer;transition:transform .15s,box-shadow .15s;}
+.submit-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(124,58,237,.35);}
+.submit-btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+.btn-spinner{display:none;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.signin-row{text-align:center;margin-top:18px;font-size:.88rem;color:var(--muted);}
+.signin-row a{color:var(--p1);font-weight:700;text-decoration:none;}
+
+footer{padding:18px 32px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:.75rem;color:var(--muted);}
+footer a{color:var(--muted);text-decoration:none;margin:0 8px;}
+footer a:hover{color:var(--p1);}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-icon">🎈</div>
+    <span class="nav-logo-text">Inclusion<span>Games</span></span>
+  </a>
+  <a href="login.html" class="nav-link">Already have an account? Sign in →</a>
+</nav>
+
+<div class="main">
+
+  <!-- LEFT PANEL -->
+  <div class="side-panel">
+    <div class="sp-bg1"></div><div class="sp-bg2"></div>
+    <div class="sp-content">
+      <div class="sp-badge">🎁 Free trial — no card needed</div>
+      <h2 class="sp-title">Join thousands of families making learning joyful</h2>
+      <p class="sp-desc">Start your free trial today and discover which games make your child light up.</p>
+      <div class="trial-cards">
+        <div class="trial-card"><div class="tc-icon">🎮</div><div><div class="tc-title">Day 1–3: Full access, free</div><div class="tc-desc">All 28 games, all languages, all accessibility modes — zero cost.</div></div></div>
+        <div class="trial-card"><div class="tc-icon">📩</div><div><div class="tc-title">Tell us about your child</div><div class="tc-desc">Send a short message and we extend your trial to 7 full days.</div></div></div>
+        <div class="trial-card"><div class="tc-icon">💳</div><div><div class="tc-title">Day 7: Choose a plan (or not)</div><div class="tc-desc">Pick the plan that fits. Cancel anytime. No pressure, ever.</div></div></div>
+      </div>
+    </div>
+    <div class="sp-timeline">
+      <div class="tl-item"><div class="tl-dot">1</div><div class="tl-text"><strong>Create your account</strong> — takes 30 seconds</div></div>
+      <div class="tl-item"><div class="tl-dot">2</div><div class="tl-text"><strong>Choose your child's age & language</strong></div></div>
+      <div class="tl-item"><div class="tl-dot">3</div><div class="tl-text"><strong>Play all 28 games</strong> — free for 3 days</div></div>
+    </div>
+  </div>
+
+  <!-- FORM PANEL -->
+  <div class="form-panel">
+    <div class="form-box">
+      <div class="form-header">
+        <h1 class="form-title">Create your account 🎈</h1>
+        <p class="form-sub">Already have an account? <a href="login.html">Sign in</a></p>
+      </div>
+
+      <div class="trial-top">
+        <span style="font-size:1.3rem;">🎁</span>
+        <span class="tt-text">3-day free trial — all games included. No credit card.</span>
+        <span class="tt-days">Free</span>
+      </div>
+
+      <div class="alert alert-error" id="alert-error"><span>⚠️</span><span id="alert-error-text">Something went wrong.</span></div>
+      <div class="alert alert-success" id="alert-success"><span>✅</span><span id="alert-success-text">Account created! Check your email to confirm.</span></div>
+
+      <div class="social-btns">
+        <button class="social-btn" onclick="socialSignup('google')">🔵 Sign up with Google</button>
+        <button class="social-btn" onclick="socialSignup('microsoft')">🟦 Sign up with Microsoft</button>
+      </div>
+      <div class="divider"><div class="div-line"></div><span class="div-text">or create account with email</span><div class="div-line"></div></div>
+
+      <form id="signup-form" onsubmit="handleSignup(event)" novalidate>
+
+        <!-- Name row -->
+        <div class="form-row">
+          <div class="field">
+            <label class="field-label">First name</label>
+            <input class="field-input" type="text" id="fname" placeholder="Maria" required autocomplete="given-name">
+            <span class="field-error" id="fname-error">Required</span>
+          </div>
+          <div class="field">
+            <label class="field-label">Last name</label>
+            <input class="field-input" type="text" id="lname" placeholder="Kowalski" required autocomplete="family-name">
+            <span class="field-error" id="lname-error">Required</span>
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="field">
+          <label class="field-label">Email address</label>
+          <div class="field-wrap">
+            <input class="field-input" type="email" id="email" placeholder="you@example.com" required autocomplete="email">
+            <span class="field-icon" id="email-icon"></span>
+          </div>
+          <span class="field-error" id="email-error">Please enter a valid email address.</span>
+        </div>
+
+        <!-- Password -->
+        <div class="field">
+          <label class="field-label">Password</label>
+          <div class="field-wrap">
+            <input class="field-input" type="password" id="password" placeholder="Minimum 8 characters" required autocomplete="new-password" oninput="checkStrength(this.value)">
+            <span class="field-icon" id="pwd-toggle" onclick="togglePwd('password','pwd-toggle')" style="cursor:pointer;">👁</span>
+          </div>
+          <div class="pwd-strength">
+            <div class="pwd-bars"><div class="pwd-bar" id="bar1"></div><div class="pwd-bar" id="bar2"></div><div class="pwd-bar" id="bar3"></div><div class="pwd-bar" id="bar4"></div></div>
+            <span class="pwd-label" id="pwd-label">Enter a password</span>
+          </div>
+          <span class="field-error" id="pwd-error">Password must be at least 8 characters.</span>
+        </div>
+
+        <!-- I am -->
+        <div class="field">
+          <label class="field-label">I am a…</label>
+          <div class="role-grid" id="role-grid">
+            <label class="role-card sel" onclick="selRole(this,'parent')"><input type="radio" name="role" value="parent" checked><span class="role-icon">👨‍👩‍👧</span><span class="role-text">Parent</span></label>
+            <label class="role-card" onclick="selRole(this,'teacher')"><input type="radio" name="role" value="teacher"><span class="role-icon">👩‍🏫</span><span class="role-text">Teacher</span></label>
+            <label class="role-card" onclick="selRole(this,'therapist')"><input type="radio" name="role" value="therapist"><span class="role-icon">🩺</span><span class="role-text">Therapist</span></label>
+            <label class="role-card" onclick="selRole(this,'other')"><input type="radio" name="role" value="other"><span class="role-icon">👤</span><span class="role-text">Other</span></label>
+          </div>
+        </div>
+
+        <!-- Language & Age -->
+        <div class="form-row">
+          <div class="field">
+            <label class="field-label">Child's language</label>
+            <select class="field-select" id="lang">
+              <option value="en">🇬🇧 English</option>
+              <option value="de">🇩🇪 Deutsch</option>
+              <option value="fr">🇫🇷 Français</option>
+              <option value="es">🇪🇸 Español</option>
+              <option value="nl">🇳🇱 Nederlands</option>
+              <option value="it">🇮🇹 Italiano</option>
+              <option value="pl">🇵🇱 Polski</option>
+              <option value="pt">🇵🇹 Português</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Child's age</label>
+            <select class="field-select" id="age">
+              <option>4–5 years</option>
+              <option>5–7 years</option>
+              <option>7–9 years</option>
+              <option>9–10 years</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Terms -->
+        <div class="check-row">
+          <input type="checkbox" id="terms" required>
+          <label for="terms">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>. I understand my child's data is protected under GDPR.</label>
+        </div>
+        <div class="check-row">
+          <input type="checkbox" id="marketing">
+          <label for="marketing">Send me updates about new games and features (optional).</label>
+        </div>
+
+        <button class="submit-btn" type="submit" id="signup-btn">
+          <span id="btn-text">Create my free account →</span>
+          <div class="btn-spinner" id="btn-spinner"></div>
+        </button>
+      </form>
+
+      <div class="signin-row">Already have an account? <a href="login.html">Sign in here</a></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div>© 2026 InclusionGames — <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Cookie Policy</a></div>
+  <div>🔒 Secured by Supabase · GDPR Compliant · EU Hosted · COPPA Safe</div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://rgnnybvhrqfqlsphiobx.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_lLSk-8-Ll6RsRjpiqRCvsw_i-89_a01';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Redirect if already logged in
+sb.auth.getSession().then(({ data: { session } }) => {
+  if (session) window.location.href = 'dashboard.html';
+});
+
+// Email validation
+document.getElementById('email').addEventListener('input', function() {
+  const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.value);
+  this.className = 'field-input ' + (this.value ? (ok ? 'ok' : 'error') : '');
+  document.getElementById('email-icon').textContent = this.value ? (ok ? '✅' : '') : '';
+  document.getElementById('email-error').className = 'field-error' + (this.value && !ok ? ' show' : '');
+});
+
+function togglePwd(id, iconId) {
+  const i = document.getElementById(id);
+  const icon = document.getElementById(iconId);
+  i.type = i.type === 'password' ? 'text' : 'password';
+  icon.textContent = i.type === 'password' ? '👁' : '🙈';
+}
+
+function checkStrength(val) {
+  const bars = ['bar1','bar2','bar3','bar4'];
+  const label = document.getElementById('pwd-label');
+  let score = 0;
+  if (val.length >= 8) score++;
+  if (/[A-Z]/.test(val)) score++;
+  if (/[0-9]/.test(val)) score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+  const classes = ['','weak','medium','medium','strong'];
+  const levels = ['Too short','Weak','Fair','Good','Strong 💪'];
+  bars.forEach((b, i) => {
+    document.getElementById(b).className = 'pwd-bar ' + (i < score ? classes[score] : '');
+  });
+  label.textContent = val.length ? levels[score] : 'Enter a password';
+  label.style.color = score >= 3 ? 'var(--g1)' : score >= 2 ? 'var(--a1)' : 'var(--r1)';
+}
+
+function selRole(el, val) {
+  document.querySelectorAll('.role-card').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+function showAlert(type, msg) {
+  ['alert-error','alert-success'].forEach(id => document.getElementById(id).classList.remove('show'));
+  const id = type === 'error' ? 'alert-error' : 'alert-success';
+  const textId = type === 'error' ? 'alert-error-text' : 'alert-success-text';
+  document.getElementById(textId).textContent = msg;
+  document.getElementById(id).classList.add('show');
+  document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function setLoading(on) {
+  document.getElementById('signup-btn').disabled = on;
+  document.getElementById('btn-text').style.display = on ? 'none' : 'block';
+  document.getElementById('btn-spinner').style.display = on ? 'block' : 'none';
+}
+
+async function handleSignup(e) {
+  e.preventDefault();
+  const fname = document.getElementById('fname').value.trim();
+  const lname = document.getElementById('lname').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const terms = document.getElementById('terms').checked;
+
+  let valid = true;
+  if (!fname) { document.getElementById('fname-error').classList.add('show'); valid = false; }
+  if (!lname) { document.getElementById('lname-error').classList.add('show'); valid = false; }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { document.getElementById('email-error').classList.add('show'); valid = false; }
+  if (password.length < 8) { document.getElementById('pwd-error').classList.add('show'); valid = false; }
+  if (!terms) { showAlert('error', 'Please agree to the Terms of Service to continue.'); valid = false; }
+  if (!valid) return;
+
+  setLoading(true);
+  try {
+    const { data, error } = await sb.auth.signUp({
+      email, password,
+      options: {
+        data: {
+          first_name: fname,
+          last_name: lname,
+          role: document.querySelector('input[name=role]:checked').value,
+          language: document.getElementById('lang').value,
+          child_age: document.getElementById('age').value,
+          marketing: document.getElementById('marketing').checked,
+          trial_start: new Date().toISOString()
+        }
+      }
+    });
+    if (error) throw error;
+    setLoading(false);
+    showAlert('success', `Welcome, ${fname}! 🎈 Check your email (${email}) to confirm your account. Your 3-day free trial starts immediately after confirmation!`);
+    setTimeout(() => { window.location.href = 'login.html'; }, 4000);
+  } catch (err) {
+    const msg = err.message === 'User already registered'
+      ? 'An account with this email already exists. Try signing in instead.'
+      : (err.message || 'Could not create account. Please try again.');
+    showAlert('error', msg);
+    setLoading(false);
+  }
+}
+
+async function socialSignup(provider) {
+  try {
+    const { error } = await sb.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: window.location.origin + '/dashboard.html' }
+    });
+    if (error) throw error;
+  } catch (err) {
+    showAlert('error', err.message || 'Social login failed. Please try again.');
+  }
+}
+</script>
+</body>
+</html>
