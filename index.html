@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InclusionGames — Every Child Deserves to Play</title>
+<meta name="description" content="Camera-powered educational games for children with disabilities, ages 4–10. No controller needed — just a webcam and joy. Start your free 3-day trial today.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & BASE ───────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --ink:#1a1a2e;--ink2:#3d3d5c;--muted:#6b6b8a;
+  --bg:#fafaf8;--surface:#ffffff;--surface2:#f4f3ff;
+  --border:#e8e6f0;
+  --p1:#7c3aed;--p2:#a855f7;--p3:#ede9fe;
+  --a1:#f59e0b;--a2:#fbbf24;--a3:#fef3c7;
+  --g1:#10b981;--g2:#34d399;--g3:#d1fae5;
+  --r1:#ef4444;--r2:#f87171;--r3:#fee2e2;
+  --b1:#3b82f6;--b2:#60a5fa;--b3:#dbeafe;
+  --font:'Nunito',sans-serif;--display:'Fredoka One',cursive;
+  --shadow:0 4px 24px rgba(124,58,237,.10);
+  --shadow-lg:0 12px 48px rgba(124,58,237,.16);
+  --radius:16px;--radius-sm:10px;--radius-xl:28px;
+}
+html{scroll-behavior:smooth;}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);line-height:1.6;overflow-x:hidden;}
+h1,h2,h3,h4{font-family:var(--display);line-height:1.2;}
+a{text-decoration:none;color:inherit;}
+img{max-width:100%;display:block;}
+button{cursor:pointer;font-family:var(--font);}
+
+/* ── UTILITY ────────────────────────────────────────────── */
+.container{max-width:1200px;margin:0 auto;padding:0 24px;}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;font-weight:700;letter-spacing:.5px;padding:4px 12px;border-radius:100px;}
+.badge-purple{background:var(--p3);color:var(--p1);}
+.badge-gold{background:var(--a3);color:#92400e;}
+.badge-green{background:var(--g3);color:#065f46;}
+.badge-blue{background:var(--b3);color:#1e40af;}
+.badge-red{background:var(--r3);color:#991b1b;}
+.section-tag{font-size:.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--p1);margin-bottom:12px;}
+.section-title{font-size:clamp(2rem,5vw,3rem);color:var(--ink);margin-bottom:14px;}
+.section-sub{font-size:1.05rem;color:var(--muted);max-width:580px;line-height:1.7;}
+.text-center{text-align:center;}
+.text-center .section-sub{margin:0 auto;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 28px;border-radius:100px;font-size:1rem;font-weight:700;border:none;transition:transform .2s,box-shadow .2s;}
+.btn:hover{transform:translateY(-2px);}
+.btn-primary{background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;box-shadow:0 6px 24px rgba(124,58,237,.35);}
+.btn-primary:hover{box-shadow:0 10px 36px rgba(124,58,237,.45);}
+.btn-outline{background:transparent;color:var(--p1);border:2px solid var(--p1);}
+.btn-outline:hover{background:var(--p3);}
+.btn-gold{background:linear-gradient(135deg,var(--a1),var(--a2));color:#fff;box-shadow:0 6px 20px rgba(245,158,11,.35);}
+.btn-gold:hover{box-shadow:0 10px 32px rgba(245,158,11,.45);}
+.btn-green{background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;box-shadow:0 6px 20px rgba(16,185,129,.35);}
+.btn-sm{padding:10px 20px;font-size:.9rem;}
+
+/* ── NAV ────────────────────────────────────────────────── */
+nav{position:sticky;top:0;z-index:100;background:rgba(250,250,248,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0;}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:68px;gap:20px;}
+.nav-logo{display:flex;align-items:center;gap:10px;}
+.nav-logo-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--p1),var(--p2));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;}
+.nav-logo-text{font-family:var(--display);font-size:1.3rem;color:var(--ink);}
+.nav-logo-text span{color:var(--p1);}
+.nav-links{display:flex;align-items:center;gap:28px;list-style:none;}
+.nav-links a{font-size:.9rem;font-weight:600;color:var(--muted);transition:color .2s;}
+.nav-links a:hover{color:var(--p1);}
+.nav-cta{display:flex;align-items:center;gap:10px;}
+.lang-sel{font-size:.85rem;font-weight:600;color:var(--muted);background:none;border:1.5px solid var(--border);padding:6px 12px;border-radius:100px;cursor:pointer;}
+.hamburger{display:none;flex-direction:column;gap:5px;background:none;border:none;padding:4px;}
+.hamburger span{width:22px;height:2px;background:var(--ink);border-radius:2px;transition:all .2s;}
+.mobile-nav{display:none;flex-direction:column;background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px 24px;}
+.mobile-nav a{display:block;padding:12px 0;font-weight:600;color:var(--ink2);border-bottom:1px solid var(--border);}
+.mobile-nav a:last-of-type{border-bottom:none;}
+
+/* ── HERO ───────────────────────────────────────────────── */
+#hero{padding:80px 0 60px;position:relative;overflow:hidden;}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(124,58,237,.07) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(245,158,11,.07) 0%,transparent 50%);pointer-events:none;}
+.hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;}
+.hero-tag{display:flex;align-items:center;gap:8px;margin-bottom:20px;}
+.hero-h1{font-size:clamp(2.6rem,6vw,4.2rem);color:var(--ink);margin-bottom:20px;leading-trim:both;}
+.hero-h1 em{font-style:normal;color:var(--p1);}
+.hero-desc{font-size:1.1rem;color:var(--muted);margin-bottom:32px;max-width:480px;line-height:1.8;}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:36px;}
+.hero-stats{display:flex;gap:28px;flex-wrap:wrap;}
+.stat-item{display:flex;flex-direction:column;}
+.stat-n{font-family:var(--display);font-size:1.8rem;color:var(--p1);}
+.stat-l{font-size:.8rem;color:var(--muted);font-weight:600;}
+.hero-visual{position:relative;}
+.hero-card{background:var(--surface);border-radius:var(--radius-xl);padding:28px;box-shadow:var(--shadow-lg);border:1px solid var(--border);}
+.hero-card-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.hc-avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--p1),var(--a2));display:flex;align-items:center;justify-content:center;font-size:1.4rem;}
+.hc-info h4{font-size:.95rem;font-weight:700;color:var(--ink);}
+.hc-info p{font-size:.8rem;color:var(--muted);}
+.game-preview-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.gp-card{background:var(--surface2);border-radius:12px;padding:14px;text-align:center;border:1px solid var(--border);}
+.gp-icon{font-size:1.8rem;margin-bottom:4px;}
+.gp-name{font-size:.75rem;font-weight:700;color:var(--ink2);}
+.hero-trial-strip{background:linear-gradient(135deg,var(--p3),var(--a3));border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.hts-text{font-size:.85rem;font-weight:700;color:var(--ink2);}
+.hts-btn{font-size:.8rem;font-weight:700;padding:8px 16px;background:var(--p1);color:#fff;border:none;border-radius:100px;cursor:pointer;white-space:nowrap;}
+.floating-badge{position:absolute;background:var(--surface);border-radius:12px;padding:10px 14px;box-shadow:0 8px 32px rgba(0,0,0,.12);border:1px solid var(--border);font-size:.8rem;font-weight:700;}
+.fb1{top:-10px;right:-10px;color:var(--g1);}
+.fb2{bottom:30px;left:-24px;color:var(--a1);}
+
+/* ── TRIAL BANNER ───────────────────────────────────────── */
+#trial-banner{background:linear-gradient(135deg,var(--p1),#6d28d9);padding:18px 0;color:#fff;}
+.tb-inner{display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap;text-align:center;}
+.tb-text{font-size:1rem;font-weight:700;}
+.tb-text em{font-style:normal;background:rgba(255,255,255,.2);padding:2px 10px;border-radius:100px;margin:0 4px;}
+.tb-btn{background:#fff;color:var(--p1);font-size:.9rem;font-weight:700;padding:9px 22px;border-radius:100px;border:none;cursor:pointer;transition:transform .2s;}
+.tb-btn:hover{transform:scale(1.04);}
+
+/* ── LOGOS / TRUST ──────────────────────────────────────── */
+#trust{padding:50px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.trust-label{font-size:.75rem;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:20px;text-align:center;}
+.trust-logos{display:flex;align-items:center;justify-content:center;gap:40px;flex-wrap:wrap;}
+.trust-logo{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.9rem;font-weight:700;opacity:.6;}
+.trust-logo span{font-size:1.4rem;}
+
+/* ── HOW IT WORKS ───────────────────────────────────────── */
+#how{padding:90px 0;}
+.how-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:28px;margin-top:52px;}
+.how-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px;position:relative;transition:box-shadow .2s;}
+.how-card:hover{box-shadow:var(--shadow);}
+.how-num{font-family:var(--display);font-size:3.5rem;color:var(--p3);line-height:1;margin-bottom:12px;}
+.how-icon{font-size:2rem;margin-bottom:12px;}
+.how-card h4{font-size:1.1rem;margin-bottom:8px;color:var(--ink);}
+.how-card p{font-size:.9rem;color:var(--muted);line-height:1.6;}
+.how-connector{display:none;}
+
+/* ── GAMES SECTION ──────────────────────────────────────── */
+#games{padding:90px 0;background:var(--surface2);}
+.games-header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:36px;}
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:36px;}
+.fc{font-size:.82rem;font-weight:700;padding:8px 16px;border-radius:100px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.fc.on{background:var(--p1);color:#fff;border-color:var(--p1);}
+.fc:hover:not(.on){border-color:var(--p1);color:var(--p1);}
+.age-group-label{font-family:var(--display);font-size:1.1rem;color:var(--ink2);margin:32px 0 16px;display:flex;align-items:center;gap:10px;}
+.age-group-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.games-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;}
+.game-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:20px;transition:transform .2s,box-shadow .2s,border-color .2s;cursor:pointer;position:relative;}
+.game-card:hover{transform:translateY(-4px);box-shadow:var(--shadow);border-color:var(--p1);}
+.game-card.locked::after{content:'🔒';position:absolute;top:10px;right:10px;font-size:.85rem;}
+.gc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+.gc-icon{font-size:2.2rem;line-height:1;}
+.cat-pill{font-size:.68rem;font-weight:700;padding:3px 8px;border-radius:100px;}
+.gc-title{font-size:.95rem;font-weight:700;color:var(--ink);margin-bottom:5px;}
+.gc-desc{font-size:.8rem;color:var(--muted);line-height:1.5;margin-bottom:10px;}
+.gc-tags{display:flex;gap:5px;flex-wrap:wrap;}
+.gc-tag{font-size:.68rem;padding:2px 7px;background:var(--surface2);color:var(--ink2);border-radius:4px;border:1px solid var(--border);}
+.gc-age{position:absolute;bottom:14px;right:14px;font-size:.7rem;font-weight:700;color:var(--muted);}
+.coming-soon-card{background:var(--surface);border:2px dashed var(--border);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:160px;color:var(--muted);text-align:center;gap:8px;}
+.coming-soon-card .cs-icon{font-size:2rem;opacity:.4;}
+.coming-soon-card .cs-text{font-size:.8rem;font-weight:600;}
+.coming-soon-card .cs-sub{font-size:.72rem;}
+
+/* ── ACCESSIBILITY ──────────────────────────────────────── */
+#accessibility{padding:90px 0;}
+.acc-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;margin-top:52px;}
+.acc-features{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.acc-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:18px;}
+.acc-card .ac-icon{font-size:1.6rem;margin-bottom:8px;}
+.acc-card h4{font-size:.9rem;font-weight:700;color:var(--ink);margin-bottom:4px;}
+.acc-card p{font-size:.8rem;color:var(--muted);line-height:1.5;}
+.acc-visual{background:linear-gradient(135deg,var(--p3),var(--a3));border-radius:var(--radius-xl);padding:36px;display:flex;flex-direction:column;gap:14px;}
+.av-row{background:var(--surface);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;}
+.av-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.av-text{font-size:.85rem;font-weight:700;color:var(--ink2);}
+.av-toggle{margin-left:auto;width:36px;height:20px;border-radius:10px;display:flex;align-items:center;padding:2px 3px;cursor:pointer;}
+.av-toggle.on{background:var(--g1);justify-content:flex-end;}
+.av-toggle.off{background:var(--border);}
+.av-toggle-dot{width:16px;height:16px;background:#fff;border-radius:50%;}
+
+/* ── TESTIMONIALS ───────────────────────────────────────── */
+#testimonials{padding:90px 0;background:var(--surface2);}
+.test-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px;margin-top:52px;}
+.test-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;}
+.test-quote{font-size:1.6rem;color:var(--p1);margin-bottom:12px;font-family:Georgia,serif;line-height:1;}
+.test-text{font-size:.92rem;color:var(--ink2);line-height:1.7;margin-bottom:20px;font-style:italic;}
+.test-author{display:flex;align-items:center;gap:12px;}
+.ta-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;color:#fff;flex-shrink:0;}
+.ta-name{font-size:.88rem;font-weight:700;color:var(--ink);}
+.ta-role{font-size:.78rem;color:var(--muted);}
+.stars{color:var(--a1);font-size:.85rem;margin-bottom:12px;}
+
+/* ── PRICING ────────────────────────────────────────────── */
+#pricing{padding:90px 0;}
+.trial-box{background:linear-gradient(135deg,var(--p1),#5b21b6);border-radius:var(--radius-xl);padding:44px;color:#fff;margin-bottom:60px;text-align:center;position:relative;overflow:hidden;}
+.trial-box::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:rgba(255,255,255,.06);border-radius:50%;}
+.trial-box::after{content:'';position:absolute;bottom:-60px;left:-30px;width:180px;height:180px;background:rgba(255,255,255,.05);border-radius:50%;}
+.tb-content{position:relative;z-index:1;}
+.tb-title{font-size:clamp(1.8rem,4vw,2.8rem);margin-bottom:12px;}
+.tb-desc{font-size:1rem;opacity:.85;max-width:500px;margin:0 auto 28px;}
+.tb-days{display:flex;gap:16px;justify-content:center;margin-bottom:28px;flex-wrap:wrap;}
+.tb-day{background:rgba(255,255,255,.15);border-radius:12px;padding:14px 22px;text-align:center;border:1px solid rgba(255,255,255,.2);}
+.tb-day-n{font-family:var(--display);font-size:2rem;line-height:1;}
+.tb-day-l{font-size:.78rem;opacity:.8;}
+.tb-arrow{font-size:1.5rem;display:flex;align-items:center;color:rgba(255,255,255,.5);}
+.tb-note{font-size:.82rem;opacity:.65;margin-top:14px;}
+
+.plans-toggle{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:44px;}
+.pt-label{font-size:.9rem;font-weight:700;color:var(--muted);}
+.pt-label.on{color:var(--p1);}
+.toggle-btn{width:50px;height:26px;background:var(--p1);border-radius:13px;display:flex;align-items:center;padding:3px;cursor:pointer;transition:background .2s;}
+.toggle-btn .dot{width:20px;height:20px;background:#fff;border-radius:50%;transition:transform .2s;}
+.toggle-btn.monthly .dot{transform:translateX(0);}
+.toggle-btn.annual .dot{transform:translateX(24px);}
+.save-chip{background:var(--g3);color:#065f46;font-size:.72rem;font-weight:700;padding:3px 8px;border-radius:100px;}
+
+.plans-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px;align-items:stretch;}
+.plan-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:32px 28px;display:flex;flex-direction:column;transition:box-shadow .2s;}
+.plan-card.popular{border-color:var(--p1);box-shadow:0 0 0 3px rgba(124,58,237,.15);}
+.plan-card:hover{box-shadow:var(--shadow-lg);}
+.popular-tag{background:var(--p1);color:#fff;font-size:.72rem;font-weight:700;padding:4px 14px;border-radius:100px;display:inline-block;margin-bottom:16px;align-self:flex-start;}
+.plan-name{font-family:var(--display);font-size:1.5rem;color:var(--ink);margin-bottom:6px;}
+.plan-for{font-size:.82rem;color:var(--muted);margin-bottom:20px;}
+.plan-price{margin-bottom:24px;}
+.plan-amt{font-family:var(--display);font-size:2.8rem;color:var(--ink);line-height:1;}
+.plan-amt sup{font-size:1.2rem;vertical-align:top;margin-top:8px;}
+.plan-per{font-size:.82rem;color:var(--muted);}
+.plan-features{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:28px;flex:1;}
+.plan-features li{display:flex;align-items:flex-start;gap:8px;font-size:.88rem;color:var(--ink2);}
+.plan-features li::before{content:'✓';color:var(--g1);font-weight:700;font-size:.9rem;flex-shrink:0;margin-top:1px;}
+.plan-features li.no::before{content:'✗';color:var(--border);}
+.plan-features li.no{color:var(--muted);}
+.plan-btn{width:100%;padding:14px;border-radius:100px;font-size:.95rem;font-weight:700;border:none;cursor:pointer;transition:transform .2s,box-shadow .2s;}
+.plan-btn:hover{transform:translateY(-2px);}
+.plan-btn-primary{background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;box-shadow:0 4px 16px rgba(124,58,237,.3);}
+.plan-btn-outline{background:transparent;color:var(--p1);border:2px solid var(--p1);}
+.plan-btn-outline:hover{background:var(--p3);}
+.plan-divider{height:1px;background:var(--border);margin:20px 0;}
+
+/* ── PAYMENT ────────────────────────────────────────────── */
+#payment-modal{display:none;position:fixed;inset:0;z-index:200;background:rgba(26,26,46,.65);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;}
+#payment-modal.show{display:flex;}
+.pm-box{background:var(--surface);border-radius:var(--radius-xl);padding:36px;max-width:460px;width:100%;position:relative;box-shadow:0 24px 80px rgba(0,0,0,.2);}
+.pm-close{position:absolute;top:16px;right:16px;background:var(--surface2);border:1px solid var(--border);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;color:var(--ink2);}
+.pm-title{font-size:1.4rem;margin-bottom:6px;}
+.pm-sub{font-size:.85rem;color:var(--muted);margin-bottom:24px;}
+.pm-selected{background:var(--p3);border-radius:12px;padding:14px 16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:center;}
+.pm-sel-name{font-weight:700;font-size:.95rem;color:var(--p1);}
+.pm-sel-price{font-family:var(--display);font-size:1.3rem;color:var(--p1);}
+.pm-methods{display:flex;flex-direction:column;gap:12px;margin-bottom:20px;}
+.pm-method{display:flex;align-items:center;gap:14px;border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;transition:border-color .15s;}
+.pm-method:hover,.pm-method.sel{border-color:var(--p1);background:var(--p3);}
+.pm-method-icon{width:44px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:.85rem;font-weight:700;}
+.pm-stripe .pm-method-icon{background:#635bff;color:#fff;}
+.pm-paypal .pm-method-icon{background:#003087;color:#fff;}
+.pm-method-text{font-size:.9rem;font-weight:600;color:var(--ink2);}
+.pm-trial-note{background:var(--g3);border-radius:10px;padding:12px 14px;font-size:.82rem;color:#065f46;font-weight:600;margin-bottom:20px;}
+.pm-footer{font-size:.75rem;color:var(--muted);text-align:center;}
+.pm-footer a{color:var(--p1);}
+.pm-proceed-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:100px;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:14px;transition:box-shadow .2s;}
+.pm-proceed-btn:hover{box-shadow:0 8px 24px rgba(124,58,237,.4);}
+
+/* ── MISSION ────────────────────────────────────────────── */
+#mission{padding:90px 0;background:var(--surface2);}
+.mission-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;}
+.mission-quote-block{position:relative;padding-left:28px;}
+.mission-quote-block::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--p1),var(--a2));border-radius:2px;}
+.mission-quote{font-family:var(--display);font-size:clamp(1.3rem,3vw,1.8rem);color:var(--ink);line-height:1.5;margin-bottom:24px;}
+.mission-author{font-size:.88rem;color:var(--muted);}
+.mission-values{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:36px;}
+.mv-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;}
+.mv-icon{font-size:1.4rem;margin-bottom:6px;}
+.mv-title{font-size:.88rem;font-weight:700;color:var(--ink);margin-bottom:3px;}
+.mv-desc{font-size:.78rem;color:var(--muted);line-height:1.5;}
+.mission-img-block{position:relative;}
+.mission-main-img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:var(--radius-xl);background:linear-gradient(135deg,var(--p3),var(--a3));}
+.mission-img-card{position:absolute;bottom:-20px;left:-20px;background:var(--surface);border-radius:var(--radius);padding:16px 20px;box-shadow:var(--shadow-lg);border:1px solid var(--border);}
+.mic-number{font-family:var(--display);font-size:2rem;color:var(--p1);}
+.mic-text{font-size:.8rem;color:var(--muted);}
+
+/* ── CUSTOM GAMES ───────────────────────────────────────── */
+#custom{padding:90px 0;}
+.custom-inner{background:linear-gradient(135deg,#f8faff,#fdf6ff);border:1px solid var(--border);border-radius:var(--radius-xl);padding:60px;display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;}
+.custom-steps{display:flex;flex-direction:column;gap:16px;margin-top:28px;}
+.cs-step{display:flex;gap:14px;align-items:flex-start;}
+.cs-num{width:32px;height:32px;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;}
+.cs-text h4{font-size:.92rem;font-weight:700;color:var(--ink);margin-bottom:2px;}
+.cs-text p{font-size:.8rem;color:var(--muted);}
+.custom-form{background:var(--surface);border-radius:var(--radius);padding:28px;border:1px solid var(--border);}
+.cf-title{font-size:1.1rem;font-weight:700;margin-bottom:16px;color:var(--ink);}
+.cf-row{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.cf-label{font-size:.82rem;font-weight:700;color:var(--ink2);}
+.cf-input,.cf-select,.cf-textarea{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:var(--font);font-size:.88rem;color:var(--ink);background:var(--surface);transition:border-color .15s;}
+.cf-input:focus,.cf-select:focus,.cf-textarea:focus{outline:none;border-color:var(--p1);}
+.cf-textarea{resize:vertical;min-height:80px;}
+.cf-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:100px;font-size:.95rem;font-weight:700;cursor:pointer;margin-top:4px;}
+
+/* ── FAQ ────────────────────────────────────────────────── */
+#faq{padding:90px 0;background:var(--surface2);}
+.faq-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:52px;}
+.faq-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;cursor:pointer;}
+.faq-item.open{border-color:var(--p1);}
+.faq-q{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;font-weight:700;font-size:.92rem;color:var(--ink);}
+.faq-icon{font-size:1.2rem;flex-shrink:0;transition:transform .2s;margin-top:1px;}
+.faq-item.open .faq-icon{transform:rotate(45deg);}
+.faq-a{font-size:.87rem;color:var(--muted);line-height:1.6;max-height:0;overflow:hidden;transition:max-height .3s,margin-top .3s;}
+.faq-item.open .faq-a{max-height:200px;margin-top:12px;}
+
+/* ── CTA FINAL ──────────────────────────────────────────── */
+#cta-final{padding:90px 0;}
+.cta-box{background:linear-gradient(135deg,var(--p1) 0%,#7c3aed 50%,var(--a1) 100%);border-radius:var(--radius-xl);padding:72px 60px;text-align:center;color:#fff;position:relative;overflow:hidden;}
+.cta-box::before{content:'🎈';position:absolute;font-size:6rem;opacity:.07;top:-20px;left:5%;}
+.cta-box::after{content:'⭐';position:absolute;font-size:5rem;opacity:.07;bottom:-10px;right:8%;}
+.cta-box h2{font-size:clamp(2rem,5vw,3rem);margin-bottom:14px;}
+.cta-box p{font-size:1.05rem;opacity:.85;max-width:480px;margin:0 auto 32px;}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.btn-white{background:#fff;color:var(--p1);font-weight:700;}
+.btn-white:hover{background:#f5f3ff;}
+.btn-ghost{background:rgba(255,255,255,.15);color:#fff;border:2px solid rgba(255,255,255,.35);}
+.btn-ghost:hover{background:rgba(255,255,255,.25);}
+
+/* ── FOOTER ─────────────────────────────────────────────── */
+footer{background:var(--ink);color:#e2e0f0;padding:60px 0 32px;}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:48px;}
+.footer-brand .fb-logo{font-family:var(--display);font-size:1.5rem;color:#fff;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.footer-brand p{font-size:.85rem;color:#9a98b0;line-height:1.7;max-width:260px;}
+.footer-col h5{font-size:.85rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9a98b0;margin-bottom:16px;}
+.footer-col a{display:block;font-size:.88rem;color:#c4c2d8;margin-bottom:8px;transition:color .15s;}
+.footer-col a:hover{color:#fff;}
+.footer-bottom{border-top:1px solid rgba(255,255,255,.08);padding-top:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:gap;gap:12px;}
+.fb-copy{font-size:.8rem;color:#6b6988;}
+.fb-badges{display:flex;gap:10px;}
+.fb-badge{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:6px 12px;font-size:.75rem;color:#9a98b0;display:flex;align-items:center;gap:5px;}
+
+/* ── RESPONSIVE ─────────────────────────────────────────── */
+@media(max-width:900px){
+  .hero-grid,.acc-grid,.mission-grid,.custom-inner{grid-template-columns:1fr;}
+  .hero-visual{display:none;}
+  .footer-grid{grid-template-columns:1fr 1fr;}
+  .faq-grid{grid-template-columns:1fr;}
+}
+@media(max-width:680px){
+  .nav-links,.nav-cta .btn-primary,.lang-sel{display:none;}
+  .hamburger{display:flex;}
+  .footer-grid{grid-template-columns:1fr;}
+  .mission-values,.acc-features{grid-template-columns:1fr;}
+  .plans-grid{grid-template-columns:1fr;}
+  .cta-box{padding:44px 24px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     NAVIGATION
+══════════════════════════════════════════════════════ -->
+<nav>
+  <div class="container">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">
+        <div class="nav-logo-icon">🎈</div>
+        <span class="nav-logo-text">Inclusion<span>Games</span></span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#games">Games</a></li>
+        <li><a href="#how">How It Works</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#mission">Our Mission</a></li>
+        <li><a href="#custom">Custom Games</a></li>
+      </ul>
+      <div class="nav-cta">
+        <select class="lang-sel" onchange="setLang(this.value)" id="lang-select">
+          <option value="en">🇬🇧 EN</option>
+          <option value="de">🇩🇪 DE</option>
+          <option value="fr">🇫🇷 FR</option>
+          <option value="es">🇪🇸 ES</option>
+          <option value="nl">🇳🇱 NL</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="openPayment('trial')">Start Free Trial</button>
+      </div>
+      <button class="hamburger" onclick="toggleMobile()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  <div class="mobile-nav" id="mobile-nav">
+    <a href="#games" onclick="toggleMobile()">Games</a>
+    <a href="#how" onclick="toggleMobile()">How It Works</a>
+    <a href="#pricing" onclick="toggleMobile()">Pricing</a>
+    <a href="#mission" onclick="toggleMobile()">Our Mission</a>
+    <a href="#custom" onclick="toggleMobile()">Custom Games</a>
+    <button class="btn btn-primary" style="margin-top:12px;width:100%;" onclick="openPayment('trial')">Start Free Trial</button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════
+     HERO
+══════════════════════════════════════════════════════ -->
+<section id="hero">
+  <div class="hero-bg"></div>
+  <div class="container">
+    <div class="hero-grid">
+      <div>
+        <div class="hero-tag">
+          <span class="badge badge-purple">🌟 Camera-powered learning</span>
+          <span class="badge badge-gold">No controller needed</span>
+        </div>
+        <h1 class="hero-h1">Every Child Deserves to <em>Play</em></h1>
+        <p class="hero-desc">28 hand-tracking educational games designed for children with disabilities, ages 4–10. Just a webcam and a smile — no expensive equipment, no complicated setup.</p>
+        <div class="hero-btns">
+          <button class="btn btn-primary" onclick="openPayment('trial')">🎮 Start Free Trial — 3 Days</button>
+          <a href="#games" class="btn btn-outline">See All Games</a>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-item"><span class="stat-n">28</span><span class="stat-l">Games available</span></div>
+          <div class="stat-item"><span class="stat-n">8</span><span class="stat-l">Languages</span></div>
+          <div class="stat-item"><span class="stat-n">4–10</span><span class="stat-l">Age range</span></div>
+          <div class="stat-item"><span class="stat-n">0</span><span class="stat-l">Equipment needed</span></div>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-card">
+          <div class="hero-card-header">
+            <div class="hc-avatar">🎈</div>
+            <div class="hc-info">
+              <h4>EduPop! Platform</h4>
+              <p>4 children playing right now</p>
+            </div>
+            <span class="badge badge-green" style="margin-left:auto">● Live</span>
+          </div>
+          <div class="game-preview-row">
+            <div class="gp-card"><div class="gp-icon">🔡</div><div class="gp-name">Letter Pop</div></div>
+            <div class="gp-card"><div class="gp-icon">🔢</div><div class="gp-name">Number Pop</div></div>
+            <div class="gp-card"><div class="gp-icon">🎨</div><div class="gp-name">Color Match</div></div>
+            <div class="gp-card"><div class="gp-icon">😊</div><div class="gp-name">Emotion Faces</div></div>
+          </div>
+          <div class="hero-trial-strip">
+            <div class="hts-text">🎁 Free 3-day trial — all games included</div>
+            <button class="hts-btn" onclick="openPayment('trial')">Start now</button>
+          </div>
+        </div>
+        <div class="floating-badge fb1">✅ No credit card needed</div>
+        <div class="floating-badge fb2">🌍 Works in 8 languages</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     TRIAL BANNER
+══════════════════════════════════════════════════════ -->
+<div id="trial-banner">
+  <div class="container">
+    <div class="tb-inner">
+      <div class="tb-text">🎁 Start with a <em>3-day free trial</em> — extend to <em>7 days</em> by telling us about your child</div>
+      <button class="tb-btn" onclick="openPayment('trial')">Get started →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     TRUST / USED BY
+══════════════════════════════════════════════════════ -->
+<section id="trust">
+  <div class="container">
+    <p class="trust-label">Trusted by parents, teachers & therapists in</p>
+    <div class="trust-logos">
+      <div class="trust-logo"><span>🇩🇪</span> Germany</div>
+      <div class="trust-logo"><span>🇬🇧</span> United Kingdom</div>
+      <div class="trust-logo"><span>🇫🇷</span> France</div>
+      <div class="trust-logo"><span>🇪🇸</span> Spain</div>
+      <div class="trust-logo"><span>🇳🇱</span> Netherlands</div>
+      <div class="trust-logo"><span>🇵🇱</span> Poland</div>
+      <div class="trust-logo"><span>🇵🇹</span> Portugal</div>
+      <div class="trust-logo"><span>🇮🇹</span> Italy</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     HOW IT WORKS
+══════════════════════════════════════════════════════ -->
+<section id="how">
+  <div class="container">
+    <div class="text-center">
+      <p class="section-tag">Simple setup</p>
+      <h2 class="section-title">Ready in 60 seconds</h2>
+      <p class="section-sub">No downloads. No controllers. No expensive equipment. Just open the browser, show your hand, and play.</p>
+    </div>
+    <div class="how-grid">
+      <div class="how-card">
+        <div class="how-num">01</div>
+        <div class="how-icon">💻</div>
+        <h4>Any computer + webcam</h4>
+        <p>Works on any PC, Mac or laptop with a built-in or USB webcam. No app to install — runs entirely in Chrome or Edge.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">02</div>
+        <div class="how-icon">🌍</div>
+        <h4>Choose your language</h4>
+        <p>8 languages available. The game speaks, reads, and labels everything in the child's native language automatically.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">03</div>
+        <div class="how-icon">✋</div>
+        <h4>Show your hand & play</h4>
+        <p>The camera tracks the hand in real time. Swipe a finger to pop bubbles. Fist to pause. No touching a screen required.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">04</div>
+        <div class="how-icon">⭐</div>
+        <h4>Celebrate every win</h4>
+        <p>Praise animations, star rewards, and gentle voice feedback reinforce every correct answer — no punishment for mistakes.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     GAMES
+══════════════════════════════════════════════════════ -->
+<section id="games">
+  <div class="container">
+    <div class="games-header">
+      <div>
+        <p class="section-tag">All 28 games</p>
+        <h2 class="section-title">A game for every child</h2>
+      </div>
+      <p style="font-size:.88rem;color:var(--muted);max-width:320px;">New games are added regularly. All subscribers get instant access to new releases.</p>
+    </div>
+
+    <div class="filter-bar" id="filter-bar">
+      <button class="fc on" data-f="all" onclick="filterGames(this)">All games</button>
+      <button class="fc" data-f="literacy" onclick="filterGames(this)">📚 Literacy</button>
+      <button class="fc" data-f="math" onclick="filterGames(this)">🔢 Math</button>
+      <button class="fc" data-f="science" onclick="filterGames(this)">🔬 Science</button>
+      <button class="fc" data-f="language" onclick="filterGames(this)">💬 Language</button>
+      <button class="fc" data-f="social" onclick="filterGames(this)">😊 Social & Emotional</button>
+      <button class="fc" data-f="art" onclick="filterGames(this)">🎵 Art & Music</button>
+      <button class="fc" data-f="motor" onclick="filterGames(this)">🫀 Body & Motor</button>
+      <button class="fc" data-f="world" onclick="filterGames(this)">🌍 World & Culture</button>
+    </div>
+
+    <div id="games-container"></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     ACCESSIBILITY
+══════════════════════════════════════════════════════ -->
+<section id="accessibility">
+  <div class="container">
+    <div class="text-center">
+      <p class="section-tag">Built for inclusion</p>
+      <h2 class="section-title">Every setting, every child</h2>
+      <p class="section-sub">Every game has built-in accessibility modes designed with therapists, special educators, and parents.</p>
+    </div>
+    <div class="acc-grid">
+      <div class="acc-features">
+        <div class="acc-card"><div class="ac-icon">🐢</div><h4>Slow motion mode</h4><p>Bubbles and speech slowed down for children who need more processing time.</p></div>
+        <div class="acc-card"><div class="ac-icon">🔠</div><h4>Extra large display</h4><p>XL text and bubbles for children with visual impairments or fine motor challenges.</p></div>
+        <div class="acc-card"><div class="ac-icon">🌙</div><h4>High contrast mode</h4><p>High-contrast color scheme for children with visual processing difficulties.</p></div>
+        <div class="acc-card"><div class="ac-icon">🔊</div><h4>Full voice guidance</h4><p>Every instruction, letter, word and praise spoken aloud in the child's language.</p></div>
+        <div class="acc-card"><div class="ac-icon">🎵</div><h4>Calm music option</h4><p>Gentle ambient music for children who are sensory-sensitive or easily distracted.</p></div>
+        <div class="acc-card"><div class="ac-icon">✊</div><h4>Fist to pause</h4><p>Make a fist to pause anytime — no buttons to find, no keyboard needed.</p></div>
+        <div class="acc-card"><div class="ac-icon">⚡</div><h4>1-click special needs</h4><p>One button activates the optimal settings for children with complex needs.</p></div>
+        <div class="acc-card"><div class="ac-icon">🎯</div><h4>Adjustable difficulty</h4><p>3 levels: Gentle (2 bubbles), Standard (3), Challenge (4). Start where your child thrives.</p></div>
+      </div>
+      <div>
+        <div class="acc-visual">
+          <h3 style="font-size:1.1rem;margin-bottom:8px;color:var(--ink);">Accessibility settings</h3>
+          <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px;">Tap to personalise for your child</p>
+          <div class="av-row"><div class="av-dot" style="background:var(--g1)"></div><span class="av-text">Slow motion</span><div class="av-toggle on" onclick="toggleDemo(this)"><div class="av-toggle-dot"></div></div></div>
+          <div class="av-row"><div class="av-dot" style="background:var(--p1)"></div><span class="av-text">Extra large text</span><div class="av-toggle on" onclick="toggleDemo(this)"><div class="av-toggle-dot"></div></div></div>
+          <div class="av-row"><div class="av-dot" style="background:var(--a1)"></div><span class="av-text">Voice guidance</span><div class="av-toggle on" onclick="toggleDemo(this)"><div class="av-toggle-dot"></div></div></div>
+          <div class="av-row"><div class="av-dot" style="background:var(--muted)"></div><span class="av-text">High contrast</span><div class="av-toggle off" onclick="toggleDemo(this)"><div class="av-toggle-dot"></div></div></div>
+          <div class="av-row"><div class="av-dot" style="background:var(--b1)"></div><span class="av-text">Calm music</span><div class="av-toggle on" onclick="toggleDemo(this)"><div class="av-toggle-dot"></div></div></div>
+          <div style="background:var(--surface);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="openPayment('trial')">
+            <span style="font-size:1.4rem;">⭐</span>
+            <div><div style="font-size:.85rem;font-weight:700;color:var(--p1);">Special Needs Mode</div><div style="font-size:.75rem;color:var(--muted);">One click — optimal settings</div></div>
+            <span style="margin-left:auto;font-size:.8rem;color:var(--p1);font-weight:700;">ON →</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     TESTIMONIALS
+══════════════════════════════════════════════════════ -->
+<section id="testimonials">
+  <div class="container">
+    <div class="text-center">
+      <p class="section-tag">What families say</p>
+      <h2 class="section-title">Real stories, real smiles</h2>
+    </div>
+    <div class="test-grid">
+      <div class="test-card">
+        <div class="stars">★★★★★</div>
+        <div class="test-quote">"</div>
+        <p class="test-text">My son has autism and has never engaged with an educational game for more than 2 minutes. He played Letter Pop for 40 minutes and didn't want to stop. I cried.</p>
+        <div class="test-author"><div class="ta-avatar" style="background:linear-gradient(135deg,var(--p1),var(--p2))">MK</div><div><div class="ta-name">Maria K.</div><div class="ta-role">Parent, Munich</div></div></div>
+      </div>
+      <div class="test-card">
+        <div class="stars">★★★★★</div>
+        <div class="test-quote">"</div>
+        <p class="test-text">As a special education teacher, I use these in my classroom every day. The multilingual support is incredible — half my students don't speak German at home.</p>
+        <div class="test-author"><div class="ta-avatar" style="background:linear-gradient(135deg,var(--g1),var(--g2))">ST</div><div><div class="ta-name">Sophie T.</div><div class="ta-role">Special Ed Teacher, Berlin</div></div></div>
+      </div>
+      <div class="test-card">
+        <div class="stars">★★★★★</div>
+        <div class="test-quote">"</div>
+        <p class="test-text">My daughter has cerebral palsy affecting her fine motor skills. The hand-tracking game doesn't need precise movements — she can play and win. That means everything.</p>
+        <div class="test-author"><div class="ta-avatar" style="background:linear-gradient(135deg,var(--a1),var(--a2))">JV</div><div><div class="ta-name">Jan V.</div><div class="ta-role">Parent, Amsterdam</div></div></div>
+      </div>
+      <div class="test-card">
+        <div class="stars">★★★★★</div>
+        <div class="test-quote">"</div>
+        <p class="test-text">I recommend InclusionGames to every family I work with. The slow motion mode and no-punishment design are exactly what children with learning difficulties need.</p>
+        <div class="test-author"><div class="ta-avatar" style="background:linear-gradient(135deg,#ec4899,#be185d))">AR</div><div><div class="ta-name">Ana R.</div><div class="ta-role">Occupational Therapist, Barcelona</div></div></div>
+      </div>
+      <div class="test-card">
+        <div class="stars">★★★★★</div>
+        <div class="test-quote">"</div>
+        <p class="test-text">We use the School plan for 3 classrooms. The progress tracking and multilingual support make it worth every cent. Our SENCO loves it.</p>
+        <div class="test-author"><div class="ta-avatar" style="background:linear-gradient(135deg,#0ea5e9,#0284c7)">DW</div><div><div class="ta-name">David W.</div><div class="ta-role">Head Teacher, London</div></div></div>
+      </div>
+      <div class="test-card">
+        <div class="stars">★★★★★</div>
+        <div class="test-quote">"</div>
+        <p class="test-text">The custom game they built for my son is unbelievable. He has a very specific form of dyspraxia, and they understood immediately. He calls it "his game".</p>
+        <div class="test-author"><div class="ta-avatar" style="background:linear-gradient(135deg,var(--p1),#7c3aed)">CL</div><div><div class="ta-name">Claire L.</div><div class="ta-role">Parent, Paris</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     PRICING
+══════════════════════════════════════════════════════ -->
+<section id="pricing">
+  <div class="container">
+    <div class="text-center" style="margin-bottom:44px;">
+      <p class="section-tag">Simple pricing</p>
+      <h2 class="section-title">Start free, stay forever</h2>
+      <p class="section-sub">Every plan includes access to all 28 games — plus every new game we release. No hidden fees.</p>
+    </div>
+
+    <!-- Trial Box -->
+    <div class="trial-box">
+      <div class="tb-content">
+        <h2 class="tb-title">🎁 Try Everything Free</h2>
+        <p class="tb-desc">Start with 3 days of full access to all games. Tell us about your child and we'll extend it to 7 days — no charge, no pressure.</p>
+        <div class="tb-days">
+          <div class="tb-day"><div class="tb-day-n">3</div><div class="tb-day-l">Day free trial</div></div>
+          <div class="tb-arrow">→</div>
+          <div class="tb-day"><div class="tb-day-n">+4</div><div class="tb-day-l">Day extension</div></div>
+          <div class="tb-arrow">=</div>
+          <div class="tb-day"><div class="tb-day-n">7</div><div class="tb-day-l">Days total free</div></div>
+        </div>
+        <button class="btn btn-gold" onclick="openPayment('trial')">Start My Free Trial →</button>
+        <p class="tb-note">No credit card required for the trial. Cancel anytime. Extension granted within 24 hours of your message.</p>
+      </div>
+    </div>
+
+    <!-- Toggle -->
+    <div class="plans-toggle">
+      <span class="pt-label on" id="lbl-monthly">Monthly</span>
+      <div class="toggle-btn monthly" id="billing-toggle" onclick="toggleBilling()"><div class="dot"></div></div>
+      <span class="pt-label" id="lbl-annual">Annual <span class="save-chip">Save 30%</span></span>
+    </div>
+
+    <!-- Plans -->
+    <div class="plans-grid">
+      <!-- Starter -->
+      <div class="plan-card">
+        <div class="plan-name">Starter</div>
+        <div class="plan-for">For individual home use</div>
+        <div class="plan-price">
+          <div class="plan-amt"><sup>€</sup><span class="price-val" data-monthly="4.99" data-annual="3.49">4.99</span></div>
+          <div class="plan-per">per month · <span class="billed-note">billed monthly</span></div>
+        </div>
+        <ul class="plan-features">
+          <li>1 child profile</li>
+          <li>All 28 current games</li>
+          <li>All future new games</li>
+          <li>8 language support</li>
+          <li>All accessibility modes</li>
+          <li>3-day trial included</li>
+          <li class="no">Progress tracking</li>
+          <li class="no">Multiple profiles</li>
+          <li class="no">Priority support</li>
+        </ul>
+        <button class="plan-btn plan-btn-outline" onclick="openPayment('starter')">Start Free Trial</button>
+      </div>
+
+      <!-- Family — Popular -->
+      <div class="plan-card popular">
+        <span class="popular-tag">⭐ Most popular</span>
+        <div class="plan-name">Family</div>
+        <div class="plan-for">For home with multiple children</div>
+        <div class="plan-price">
+          <div class="plan-amt"><sup>€</sup><span class="price-val" data-monthly="9.99" data-annual="6.99">9.99</span></div>
+          <div class="plan-per">per month · <span class="billed-note">billed monthly</span></div>
+        </div>
+        <ul class="plan-features">
+          <li>Up to 3 child profiles</li>
+          <li>All 28 current games</li>
+          <li>All future new games</li>
+          <li>8 language support</li>
+          <li>All accessibility modes</li>
+          <li>Progress tracking per child</li>
+          <li>7-day trial included</li>
+          <li class="no">School dashboard</li>
+          <li class="no">Bulk management</li>
+        </ul>
+        <button class="plan-btn plan-btn-primary" onclick="openPayment('family')">Start Free Trial</button>
+      </div>
+
+      <!-- Educator -->
+      <div class="plan-card">
+        <div class="plan-name">Educator</div>
+        <div class="plan-for">For teachers & therapists</div>
+        <div class="plan-price">
+          <div class="plan-amt"><sup>€</sup><span class="price-val" data-monthly="19.99" data-annual="13.99">19.99</span></div>
+          <div class="plan-per">per month · <span class="billed-note">billed monthly</span></div>
+        </div>
+        <ul class="plan-features">
+          <li>Up to 10 child profiles</li>
+          <li>All 28 current games</li>
+          <li>All future new games</li>
+          <li>8 language support</li>
+          <li>All accessibility modes</li>
+          <li>Full progress tracking</li>
+          <li>PDF progress reports</li>
+          <li>Priority email support</li>
+          <li class="no">School dashboard</li>
+        </ul>
+        <button class="plan-btn plan-btn-outline" onclick="openPayment('educator')">Start Free Trial</button>
+      </div>
+
+      <!-- School -->
+      <div class="plan-card">
+        <div class="plan-name">School</div>
+        <div class="plan-for">For schools & institutions</div>
+        <div class="plan-price">
+          <div class="plan-amt"><sup>€</sup><span class="price-val" data-monthly="49.99" data-annual="34.99">49.99</span></div>
+          <div class="plan-per">per month · <span class="billed-note">billed monthly</span></div>
+        </div>
+        <ul class="plan-features">
+          <li>Unlimited child profiles</li>
+          <li>All 28 current games</li>
+          <li>All future new games</li>
+          <li>8 language support</li>
+          <li>All accessibility modes</li>
+          <li>Full school dashboard</li>
+          <li>PDF & CSV reports</li>
+          <li>Dedicated support line</li>
+          <li>Custom game consultation</li>
+        </ul>
+        <button class="plan-btn plan-btn-outline" onclick="openPayment('school')">Contact us</button>
+      </div>
+    </div>
+
+    <p style="text-align:center;font-size:.82rem;color:var(--muted);margin-top:24px;">All prices exclude VAT where applicable. Cancel anytime, no commitment.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     PAYMENT MODAL
+══════════════════════════════════════════════════════ -->
+<div id="payment-modal">
+  <div class="pm-box">
+    <button class="pm-close" onclick="closePayment()">✕</button>
+    <h3 class="pm-title">Choose how to pay</h3>
+    <p class="pm-sub">Secure checkout. Cancel anytime. Your trial starts immediately.</p>
+    <div class="pm-selected" id="pm-selected">
+      <span class="pm-sel-name">Family Plan</span>
+      <span class="pm-sel-price">€9.99/mo</span>
+    </div>
+    <div class="pm-trial-note">🎁 Your 3-day free trial is included — no charge today. Extend to 7 days by telling us about your child.</div>
+    <div class="pm-methods">
+      <div class="pm-method pm-stripe sel" onclick="selectPayment(this,'stripe')">
+        <div class="pm-method-icon">Stripe</div>
+        <div>
+          <div class="pm-method-text">Credit / Debit Card</div>
+          <div style="font-size:.75rem;color:var(--muted);">Visa, Mastercard, Amex — powered by Stripe</div>
+        </div>
+        <span style="margin-left:auto;font-size:.75rem;color:var(--g1);font-weight:700;">✓</span>
+      </div>
+      <div class="pm-method pm-paypal" onclick="selectPayment(this,'paypal')">
+        <div class="pm-method-icon">PP</div>
+        <div>
+          <div class="pm-method-text">PayPal</div>
+          <div style="font-size:.75rem;color:var(--muted);">Pay with your PayPal balance or card</div>
+        </div>
+      </div>
+    </div>
+    <button class="pm-proceed-btn" onclick="proceedPayment()">Start my free trial →</button>
+    <p class="pm-footer">🔒 Secured by <a href="https://stripe.com" target="_blank">Stripe</a> & <a href="https://paypal.com" target="_blank">PayPal</a>. We never store your card details. <a href="#faq">See FAQ</a>.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     MISSION
+══════════════════════════════════════════════════════ -->
+<section id="mission">
+  <div class="container">
+    <div class="mission-grid">
+      <div>
+        <p class="section-tag">Our story</p>
+        <h2 class="section-title">A teacher who didn't forget</h2>
+        <div class="mission-quote-block">
+          <p class="mission-quote">"These children were forgotten by the gaming world — but we didn't forget them. Their laughter is everything."</p>
+          <p class="mission-author">— Founder, InclusionGames · Special Education Teacher</p>
+        </div>
+        <p style="font-size:.95rem;color:var(--muted);margin-top:20px;line-height:1.8;">As a teacher, I saw children with disabilities who had almost nothing designed for them in the world of games and learning. No one was creating for them. No one was thinking about their joy. So I decided to do something about it.</p>
+        <div class="mission-values">
+          <div class="mv-card"><div class="mv-icon">🤝</div><div class="mv-title">Inclusion</div><div class="mv-desc">Every child deserves access to play, regardless of ability.</div></div>
+          <div class="mv-card"><div class="mv-icon">😂</div><div class="mv-title">Joy First</div><div class="mv-desc">We measure success in smiles, not test scores.</div></div>
+          <div class="mv-card"><div class="mv-icon">♿</div><div class="mv-title">Accessibility</div><div class="mv-desc">A webcam is all you need. No expensive equipment.</div></div>
+          <div class="mv-card"><div class="mv-icon">✂️</div><div class="mv-title">Tailor-made</div><div class="mv-desc">Every child is unique. We build games to match them.</div></div>
+        </div>
+      </div>
+      <div class="mission-img-block">
+        <div class="mission-main-img" style="display:flex;align-items:center;justify-content:center;font-size:5rem;color:var(--p1);">🎈</div>
+        <div class="mission-img-card">
+          <div class="mic-number">❤️ 100%</div>
+          <div class="mic-text">Made by teachers, for children</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     CUSTOM GAMES
+══════════════════════════════════════════════════════ -->
+<section id="custom">
+  <div class="container">
+    <div class="custom-inner">
+      <div>
+        <p class="section-tag">Beyond the catalogue</p>
+        <h2 class="section-title">Custom games for your child</h2>
+        <p style="font-size:.95rem;color:var(--muted);margin-bottom:8px;line-height:1.7;">Does your child have a specific disability that needs a tailor-made game? We work directly with parents, teachers and therapists to build something designed just for them.</p>
+        <div class="custom-steps">
+          <div class="cs-step"><div class="cs-num">1</div><div class="cs-text"><h4>Tell us about your child</h4><p>Their age, disability, interests and what you'd like them to learn.</p></div></div>
+          <div class="cs-step"><div class="cs-num">2</div><div class="cs-text"><h4>We design together</h4><p>Our team works with you to design a game that fits perfectly.</p></div></div>
+          <div class="cs-step"><div class="cs-num">3</div><div class="cs-text"><h4>Test & refine</h4><p>We test with your child and iterate until it brings real joy.</p></div></div>
+          <div class="cs-step"><div class="cs-num">4</div><div class="cs-text"><h4>Your child's game, forever</h4><p>It becomes part of your subscription — yours to keep.</p></div></div>
+        </div>
+      </div>
+      <div class="custom-form">
+        <div class="cf-title">🎮 Request a custom game</div>
+        <div class="cf-row"><label class="cf-label">Your name</label><input class="cf-input" type="text" placeholder="Name"></div>
+        <div class="cf-row"><label class="cf-label">Email</label><input class="cf-input" type="email" placeholder="email@example.com"></div>
+        <div class="cf-row"><label class="cf-label">I am a…</label>
+          <select class="cf-select"><option>Parent</option><option>Teacher</option><option>Therapist</option><option>Other</option></select></div>
+        <div class="cf-row"><label class="cf-label">Child's age</label>
+          <select class="cf-select"><option>4–5 years</option><option>5–7 years</option><option>7–9 years</option><option>9–10 years</option></select></div>
+        <div class="cf-row"><label class="cf-label">Tell us about your child & idea</label>
+          <textarea class="cf-textarea" placeholder="Disability, interests, what you'd like them to learn..."></textarea></div>
+        <button class="cf-btn">Send my request →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     FAQ
+══════════════════════════════════════════════════════ -->
+<section id="faq">
+  <div class="container">
+    <div class="text-center">
+      <p class="section-tag">Questions</p>
+      <h2 class="section-title">Frequently asked questions</h2>
+    </div>
+    <div class="faq-grid" id="faq-grid"></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     CTA FINAL
+══════════════════════════════════════════════════════ -->
+<section id="cta-final">
+  <div class="container">
+    <div class="cta-box">
+      <h2>Ready to watch your child shine?</h2>
+      <p>Start your free 3-day trial today. No credit card required. All 28 games. 8 languages. Every accessibility mode.</p>
+      <div class="cta-btns">
+        <button class="btn btn-white" onclick="openPayment('trial')">🎈 Start Free Trial</button>
+        <a href="#games" class="btn btn-ghost">Browse all games</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════════════════ -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="fb-logo">🎈 InclusionGames</div>
+        <p>Educational games for children with disabilities. Built by a teacher. Powered by love.</p>
+        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+          <span class="fb-badge">🔒 GDPR Compliant</span>
+          <span class="fb-badge">🛡️ COPPA Safe</span>
+          <span class="fb-badge">🇪🇺 EU Hosted</span>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h5>Games</h5>
+        <a href="#games">All 28 Games</a>
+        <a href="#games">Literacy</a>
+        <a href="#games">Math</a>
+        <a href="#games">Science</a>
+        <a href="#games">Social & Emotional</a>
+        <a href="#custom">Request Custom</a>
+      </div>
+      <div class="footer-col">
+        <h5>Platform</h5>
+        <a href="#how">How It Works</a>
+        <a href="#accessibility">Accessibility</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#pricing">Free Trial</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <div class="footer-col">
+        <h5>Company</h5>
+        <a href="#mission">Our Mission</a>
+        <a href="mailto:hello@inclusiongames.com">Contact Us</a>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="#">Cookie Policy</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span class="fb-copy">© 2026 InclusionGames. Made with ❤️ by a teacher who cares.</span>
+      <div class="fb-badges">
+        <span class="fb-badge">💳 Stripe</span>
+        <span class="fb-badge">🅿️ PayPal</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ══════════════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════════════ -->
+<script>
+// ─── GAMES DATA ───────────────────────────────────────────────
+const CAT_STYLES={
+  literacy:{bg:'#EAF3DE',color:'#3B6D11'},
+  math:{bg:'#E6F1FB',color:'#185FA5'},
+  science:{bg:'#E1F5EE',color:'#0F6E56'},
+  language:{bg:'#EEEDFE',color:'#534AB7'},
+  social:{bg:'#FBEAF0',color:'#993556'},
+  art:{bg:'#FAEEDA',color:'#854F0B'},
+  motor:{bg:'#FAECE7',color:'#993C1D'},
+  world:{bg:'#F1EFE8',color:'#5F5E5A'},
+};
+const GAMES=[
+  {age:'4-5',icon:'🔡',title:'Letter Pop',cat:'literacy',desc:'Swipe the correct floating letter bubble. Voice says the letter and a picture word.',tags:['A-Z','phonics','voice']},
+  {age:'4-5',icon:'🎨',title:'Color Match',cat:'literacy',desc:'Pop the bubble matching the color target. Dual color+label cues for every child.',tags:['colors','visual','matching']},
+  {age:'4-5',icon:'🔷',title:'Shape Sorter',cat:'math',desc:'Match floating shapes — circle, square, triangle, star. Name and shape shown.',tags:['shapes','geometry','matching']},
+  {age:'4-5',icon:'🐘',title:'Animal Sound Match',cat:'science',desc:'Hear an animal sound, then pop the correct animal bubble. No reading needed.',tags:['animals','sound','recognition']},
+  {age:'4-5',icon:'🌦️',title:'Weather Watcher',cat:'science',desc:'Match weather emojis: sunny, rainy, cloudy, snowy, windy. Great starter game.',tags:['weather','nature','observation']},
+  {age:'4-5',icon:'😊',title:'Emotion Faces',cat:'social',desc:'Pop the face showing the described emotion. Builds empathy and emotional literacy.',tags:['emotions','empathy','faces']},
+  {age:'5-7',icon:'🔢',title:'Number Pop',cat:'math',desc:'Swipe the correct number 1–20 as bubbles float past. Spoken in your language.',tags:['counting','numbers','recognition']},
+  {age:'5-7',icon:'📖',title:'Word Builder',cat:'literacy',desc:'Pop letters in order to spell a 3-letter word. Perfect for early readers.',tags:['spelling','CVC words','sequencing']},
+  {age:'5-7',icon:'🍎',title:'Fruit & Veg Sort',cat:'science',desc:'Swipe direction sorts — fruits go left, vegetables go right. Physical and fun.',tags:['food','sorting','biology']},
+  {age:'5-7',icon:'➕',title:'Number Bonds',cat:'math',desc:'Find two bubbles that add up to the target number. Visual number line aid.',tags:['addition','bonds','mental math']},
+  {age:'5-7',icon:'🌍',title:'Continent Finder',cat:'world',desc:'Pop the correct continent when shown on a mini globe. Fun facts spoken aloud.',tags:['geography','continents','world']},
+  {age:'5-7',icon:'🎵',title:'Rhythm Clap',cat:'art',desc:'Pop bubbles in the correct rhythm — slow, slow, fast, fast. Visual pulse aid.',tags:['music','rhythm','beat']},
+  {age:'5-7',icon:'🔤',title:'Rhyme Time',cat:'language',desc:'Pop the word that rhymes with the target. Phoneme highlighted in each bubble.',tags:['phonics','rhyme','listening']},
+  {age:'5-7',icon:'🏡',title:'Where Does It Live?',cat:'science',desc:'Match animals to their habitat: ocean, forest, desert, farm, Arctic.',tags:['habitats','animals','ecology']},
+  {age:'5-7',icon:'🌈',title:'Pattern Complete',cat:'math',desc:'A color/shape pattern has a gap — pop the bubble that comes next.',tags:['patterns','sequences','logic']},
+  {age:'7-9',icon:'✖️',title:'Times Tables',cat:'math',desc:'Pop the correct answer to multiplication questions. Confidence builder.',tags:['multiplication','mental math','fluency']},
+  {age:'7-9',icon:'🏳️',title:'Flag Match',cat:'world',desc:'Match country flags to their country names. Country name always visible.',tags:['flags','geography','culture']},
+  {age:'7-9',icon:'🔬',title:'Plant Parts',cat:'science',desc:'Identify parts of a plant: roots, stem, leaf, flower, seed. Color-coded.',tags:['botany','biology','observation']},
+  {age:'7-9',icon:'🗺️',title:'Capital Cities',cat:'world',desc:'Pop the correct capital city for the country shown. Continent color cues.',tags:['geography','capitals','knowledge']},
+  {age:'7-9',icon:'⚖️',title:'Fraction Finder',cat:'math',desc:'Pop the fraction matching the shaded diagram. Visual + spoken dual cue.',tags:['fractions','visual math','reasoning']},
+  {age:'7-9',icon:'🌡️',title:'States of Matter',cat:'science',desc:'Sort substances into solid, liquid, gas. Color-coded state indicators.',tags:['physics','chemistry','states']},
+  {age:'7-9',icon:'📚',title:'Synonym Swap',cat:'language',desc:'Pop the word meaning the same as the target. Short definition on hover.',tags:['vocabulary','synonyms','language']},
+  {age:'8-10',icon:'🧬',title:'Body Systems',cat:'motor',desc:'Match organs to their body system. Color-coded body diagram in HUD.',tags:['biology','anatomy','systems']},
+  {age:'8-10',icon:'⚡',title:'Energy Types',cat:'science',desc:'Sort energy sources into renewable/non-renewable. Swipe left or right.',tags:['energy','environment','science']},
+  {age:'8-10',icon:'🔣',title:'Language Script',cat:'language',desc:'Match letters from Greek, Arabic, Cyrillic to their Latin sound.',tags:['scripts','multilingual','culture']},
+  {age:'8-10',icon:'📐',title:'Angles & Shapes',cat:'math',desc:'Classify angles — acute, right, obtuse, reflex. Angle drawn on canvas.',tags:['geometry','angles','classification']},
+  {age:'8-10',icon:'🗓️',title:'Historical Timeline',cat:'world',desc:'Pop historical events in chronological order. Decade labels shown.',tags:['history','sequencing','thinking']},
+  {age:'8-10',icon:'💬',title:'Sentence Builder',cat:'literacy',desc:'Pop words in order to build a grammatically correct sentence.',tags:['grammar','syntax','writing']},
+];
+
+const AGE_GROUPS=['4-5','5-7','7-9','8-10'];
+const AGE_LABELS={'4-5':'Ages 4–5  ·  Early Learners','5-7':'Ages 5–7  ·  Foundation Stage','7-9':'Ages 7–9  ·  Key Stage 2','8-10':'Ages 8–10  ·  Advanced Learners'};
+
+function buildGames(){
+  const con=document.getElementById('games-container');
+  con.innerHTML='';
+  const activeFilter=document.querySelector('.fc.on')?.dataset.f||'all';
+  AGE_GROUPS.forEach(ag=>{
+    const games=GAMES.filter(g=>g.age===ag&&(activeFilter==='all'||g.cat===activeFilter));
+    if(!games.length)return;
+    const grp=document.createElement('div');
+    grp.innerHTML=`<div class="age-group-label">${AGE_LABELS[ag]}</div><div class="games-grid" id="grid-${ag.replace('-','')}"></div>`;
+    con.appendChild(grp);
+    const grid=grp.querySelector('.games-grid');
+    games.forEach(g=>{
+      const cs=CAT_STYLES[g.cat];
+      const card=document.createElement('div');
+      card.className='game-card';
+      card.innerHTML=`
+        <div class="gc-top">
+          <span class="gc-icon">${g.icon}</span>
+          <span class="cat-pill" style="background:${cs.bg};color:${cs.color}">${g.cat}</span>
+        </div>
+        <div class="gc-title">${g.title}</div>
+        <div class="gc-desc">${g.desc}</div>
+        <div class="gc-tags">${g.tags.map(t=>`<span class="gc-tag">${t}</span>`).join('')}</div>
+        <div class="gc-age">Ages ${g.age}</div>`;
+      card.onclick=()=>openPayment('family');
+      grid.appendChild(card);
+    });
+    // Coming soon slots
+    if(activeFilter==='all'){
+      for(let i=0;i<2;i++){
+        const cs=document.createElement('div');
+        cs.className='coming-soon-card';
+        cs.innerHTML=`<div class="cs-icon">🎮</div><div class="cs-text">New game coming soon</div><div class="cs-sub">Subscribers get instant access</div>`;
+        grid.appendChild(cs);
+      }
+    }
+  });
+}
+
+function filterGames(btn){
+  document.querySelectorAll('.fc').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  buildGames();
+}
+
+// ─── PAYMENT MODAL ────────────────────────────────────────────
+const PLAN_INFO={
+  trial:{name:'3-Day Free Trial',price:'€0.00'},
+  starter:{name:'Starter Plan',price:'€4.99/mo'},
+  family:{name:'Family Plan',price:'€9.99/mo'},
+  educator:{name:'Educator Plan',price:'€19.99/mo'},
+  school:{name:'School Plan',price:'€49.99/mo'},
+};
+let selectedPayMethod='stripe';
+
+function openPayment(plan){
+  const info=PLAN_INFO[plan]||PLAN_INFO.family;
+  document.getElementById('pm-selected').innerHTML=`<span class="pm-sel-name">${info.name}</span><span class="pm-sel-price">${info.price}</span>`;
+  document.getElementById('payment-modal').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+function closePayment(){
+  document.getElementById('payment-modal').classList.remove('show');
+  document.body.style.overflow='';
+}
+function selectPayment(el,method){
+  document.querySelectorAll('.pm-method').forEach(m=>{m.classList.remove('sel');m.querySelector('span:last-child')&&m.querySelector('span:last-child').remove();});
+  el.classList.add('sel');
+  selectedPayMethod=method;
+  const tick=document.createElement('span');
+  tick.style.cssText='margin-left:auto;font-size:.75rem;color:var(--g1);font-weight:700;';
+  tick.textContent='✓';
+  el.appendChild(tick);
+}
+function proceedPayment(){
+  alert(`Redirecting to ${selectedPayMethod==='stripe'?'Stripe':'PayPal'} checkout…\n\nIn production this would open the payment gateway.\n\nYour 3-day free trial starts immediately after signup!`);
+  closePayment();
+}
+document.getElementById('payment-modal').addEventListener('click',function(e){if(e.target===this)closePayment();});
+
+// ─── BILLING TOGGLE ───────────────────────────────────────────
+let isAnnual=false;
+function toggleBilling(){
+  isAnnual=!isAnnual;
+  const btn=document.getElementById('billing-toggle');
+  btn.className='toggle-btn '+(isAnnual?'annual':'monthly');
+  document.getElementById('lbl-monthly').className='pt-label'+(isAnnual?'':' on');
+  document.getElementById('lbl-annual').className='pt-label'+(isAnnual?' on':'');
+  document.querySelectorAll('.price-val').forEach(el=>{
+    el.textContent=isAnnual?el.dataset.annual:el.dataset.monthly;
+  });
+  document.querySelectorAll('.billed-note').forEach(el=>{
+    el.textContent=isAnnual?'billed annually':'billed monthly';
+  });
+}
+
+// ─── ACCESSIBILITY DEMO ───────────────────────────────────────
+function toggleDemo(tog){
+  const isOn=tog.classList.contains('on');
+  tog.classList.toggle('on',!isOn);
+  tog.classList.toggle('off',isOn);
+}
+
+// ─── MOBILE NAV ───────────────────────────────────────────────
+function toggleMobile(){
+  const nav=document.getElementById('mobile-nav');
+  nav.style.display=nav.style.display==='flex'?'none':'flex';
+  nav.style.flexDirection='column';
+}
+
+// ─── FAQ ──────────────────────────────────────────────────────
+const FAQS=[
+  {q:'Does it work without any special equipment?',a:'Yes! All you need is a PC or laptop with a webcam (built-in is fine) and Chrome or Edge browser. No download, no controller, no special device.'},
+  {q:'Do I need to enter a credit card for the trial?',a:'No credit card is required to start your 3-day free trial. You only enter payment details when you choose to subscribe after the trial.'},
+  {q:'How do I extend my trial to 7 days?',a:'Simply send us a message about your child — their age, disability, and what games you\'d like them to try. We\'ll extend your trial to 7 days within 24 hours, no charge.'},
+  {q:'What disabilities is this designed for?',a:'InclusionGames is designed for children with a wide range of needs: autism spectrum, cerebral palsy, dyslexia, dyspraxia, ADHD, Down syndrome, visual impairments, and more. Contact us if unsure.'},
+  {q:'Can my child play if they can\'t move their hands easily?',a:'Our hand tracking works with partial hand movements — the child doesn\'t need precise gestures. We also offer extra large targets and slow mode for children with limited motor control.'},
+  {q:'How does the language change work?',a:'The language selector in the top corner changes everything — all voiceovers, text labels, and word content switch instantly. 8 languages are available with more coming.'},
+  {q:'What browsers are supported?',a:'Google Chrome and Microsoft Edge are fully supported. Firefox and Safari do not currently support the hand tracking API. Chrome on any OS (Windows/Mac/Linux) works best.'},
+  {q:'Can I use this at school or in a therapy setting?',a:'Absolutely. The Educator and School plans are designed for professional use. You get progress tracking, PDF reports, and priority support for classroom and therapy sessions.'},
+  {q:'Is my child\'s data safe?',a:'We take privacy very seriously. We are GDPR compliant, COPPA safe, and EU-hosted. We do not collect personal data from children and never share data with third parties.'},
+  {q:'What happens when new games are released?',a:'All subscribers get instant access to every new game as it launches — no extra charge, no upgrade required. We\'re always building more.'},
+  {q:'Can I cancel anytime?',a:'Yes. Cancel anytime from your account page with no penalty and no questions asked. You keep access until the end of your billing period.'},
+  {q:'What is a custom game and how much does it cost?',a:'A custom game is built specifically for your child\'s needs and interests. Pricing depends on complexity. Contact us via the form to discuss — School plan subscribers get a free consultation.'},
+];
+function buildFAQ(){
+  const grid=document.getElementById('faq-grid');
+  FAQS.forEach(f=>{
+    const item=document.createElement('div');
+    item.className='faq-item';
+    item.innerHTML=`<div class="faq-q">${f.q}<span class="faq-icon">+</span></div><div class="faq-a">${f.a}</div>`;
+    item.addEventListener('click',()=>item.classList.toggle('open'));
+    grid.appendChild(item);
+  });
+}
+
+// ─── LANGUAGE (PLACEHOLDER) ───────────────────────────────────
+function setLang(l){console.log('Language set to:',l);}
+
+// ─── INIT ─────────────────────────────────────────────────────
+buildGames();
+buildFAQ();
+</script>
+</body>
+</html>
