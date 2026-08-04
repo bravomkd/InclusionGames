@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>High & Low — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game32 — High & Low. Music pitch: high sound or low sound? */
+var ITEMS=[['🐦',1],['🐤',1],['🔔',1],['🦗',1],['🎵',1],['🐘',0],['🐻',0],['🥁',0],['🐸',0],['📯',0]];
+var LBL={en:['High','Low'],de:['Hoch','Tief'],pl:['Wysoko','Nisko'],es:['Agudo','Grave']};
+var HUD={en:'HIGH OR LOW?',de:'HOCH ODER TIEF?',pl:'WYSOKO CZY NISKO?',es:'¿AGUDO O GRAVE?'};
+var ASK={en:'Is this a high or low sound?',de:'Ist das ein hoher oder tiefer Ton?',pl:'Czy to dźwięk wysoki czy niski?',es:'¿Es un sonido agudo o grave?'};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game32', icon:'🎼', hero:'🐦', villain:'🐘', castle:'🏰',
+  text:{
+    en:{tag:'Music · Grades 1–2 · Game #32', title:'High & ', titleEm:'Low!', desc:'Decide if the sound is high or low.', quest:'🎼 Tune the magic bells! Hear each pitch right to ring the way to the castle.', questLbl:'RING THE BELLS'},
+    de:{tag:'Musik · Kl. 1–2 · Spiel #32', title:'Hoch & ', titleEm:'Tief!', desc:'Entscheide, ob der Ton hoch oder tief ist.', quest:'🎼 Stimme die Zauberglocken! Erkenne jede Tonhöhe, um den Weg zur Burg zu läuten.', questLbl:'GLOCKEN LÄUTEN'},
+    pl:{tag:'Muzyka · Kl. 1–2 · Gra #32', title:'Wysoko & ', titleEm:'Nisko!', desc:'Zdecyduj, czy dźwięk jest wysoki czy niski.', quest:'🎼 Nastrój magiczne dzwony! Rozpoznaj wysokość każdego dźwięku, aby wydzwonić drogę do zamku.', questLbl:'DZWOŃ DZWONAMI'},
+    es:{tag:'Música · Grados 1–2 · Juego #32', title:'Agudo & ', titleEm:'Grave!', desc:'Decide si el sonido es agudo o grave.', quest:'🎼 ¡Afina las campanas mágicas! Acierta cada tono para repicar el camino al castillo.', questLbl:'TOCA LAS CAMPANAS'}
+  },
+  rounds:function(lang,level,mode,count){
+    var L=LBL[lang]||LBL.en, out=[], pool=shuf(ITEMS);
+    for(var i=0;i<count;i++){var it=pool[i%pool.length];var c=it[1]?L[0]:L[1];out.push({hud:HUD[lang]||HUD.en,big:it[0],word:null,speech:ASK[lang]||ASK.en,praise:c,correct:c,distractors:[it[1]?L[1]:L[0]]});}
+    return out;
+  }
+});
+</script>
+</body></html>

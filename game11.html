@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Times Treasure — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game11 — Times Treasure. Multiplication tables 2–10. */
+var HUD={en:'MULTIPLY',de:'MAL NEHMEN',pl:'POMNÓŻ',es:'MULTIPLICA'};
+var ASK={en:function(a,b){return a+' times '+b+'?';},de:function(a,b){return a+' mal '+b+'?';},pl:function(a,b){return a+' razy '+b+'?';},es:function(a,b){return a+' por '+b+'?';}};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game11', icon:'✖️', hero:'🏴‍☠️', villain:'🦑', castle:'🏰',
+  text:{
+    en:{tag:'Math · Grades 3–4 · Game #11', title:'Times ', titleEm:'Treasure!', desc:'Multiply the two numbers and pop the answer.', quest:'✖️ Hunt the pirate treasure! Each correct product unlocks a chest on the way to the castle.', questLbl:'FIND THE TREASURE'},
+    de:{tag:'Mathe · Kl. 3–4 · Spiel #11', title:'Einmaleins-', titleEm:'Schatz!', desc:'Multipliziere die zwei Zahlen und triff das Ergebnis.', quest:'✖️ Jage den Piratenschatz! Jedes richtige Produkt öffnet eine Truhe auf dem Weg zur Burg.', questLbl:'FINDE DEN SCHATZ'},
+    pl:{tag:'Matematyka · Kl. 3–4 · Gra #11', title:'Skarb ', titleEm:'Mnożenia!', desc:'Pomnóż dwie liczby i traf wynik.', quest:'✖️ Poluj na piracki skarb! Każdy poprawny iloczyn otwiera skrzynię w drodze do zamku.', questLbl:'ZNAJDŹ SKARB'},
+    es:{tag:'Mates · Grados 3–4 · Juego #11', title:'Tesoro de ', titleEm:'Tablas!', desc:'Multiplica los dos números y revienta la respuesta.', quest:'✖️ ¡Busca el tesoro pirata! Cada producto correcto abre un cofre camino al castillo.', questLbl:'BUSCA EL TESORO'}
+  },
+  rounds:function(lang,level,mode,count){
+    var out=[], top=(level==='challenge'?10:level==='gentle'?5:7);
+    for(var i=0;i<count;i++){
+      var a=2+(Math.random()*(top-1)|0), b=2+(Math.random()*9|0); var s=a*b;
+      var d={}; while(Object.keys(d).length<3){var v=s+((Math.random()*5|0)-2)*a; if(v>0&&v!==s)d[v]=1;}
+      out.push({hud:HUD[lang]||HUD.en, big:a+' × '+b, word:null, speech:(ASK[lang]||ASK.en)(a,b), praise:a+' × '+b+' = '+s, correct:String(s), distractors:shuf(Object.keys(d))});
+    }
+    return out;
+  }
+});
+</script>
+</body></html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Road Ranger — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game26 — Road Ranger. What does the road sign mean? */
+var S=[['🛑','Stop','Stopp','Stop','Alto'],['🚦','Traffic light','Ampel','Sygnalizacja','Semáforo'],['⛔','No entry','Einfahrt verboten','Zakaz wjazdu','Prohibido'],['🚸','Children','Kinder','Dzieci','Niños'],['🅿️','Parking','Parken','Parking','Aparcamiento'],['⚠️','Warning','Achtung','Uwaga','Peligro'],['🚷','No walking','Fußgänger verboten','Zakaz pieszych','Prohibido peatones']];
+var IDX={en:1,de:2,pl:3,es:4};
+var HUD={en:'WHAT DOES IT MEAN?',de:'WAS BEDEUTET ES?',pl:'CO TO ZNACZY?',es:'¿QUÉ SIGNIFICA?'};
+var ASK={en:'What does this sign mean?',de:'Was bedeutet dieses Schild?',pl:'Co oznacza ten znak?',es:'¿Qué significa esta señal?'};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game26', icon:'🚦', hero:'🚲', villain:'🚧', castle:'🏰',
+  text:{
+    en:{tag:'Science · Grades 2–4 · Game #26', title:'Road ', titleEm:'Ranger!', desc:'Learn what each road sign means.', quest:'🚦 Ride safely to the castle! Read each sign correctly to keep the road clear.', questLbl:'RIDE SAFELY'},
+    de:{tag:'Sachkunde · Kl. 2–4 · Spiel #26', title:'Verkehrs-', titleEm:'Ranger!', desc:'Lerne, was jedes Verkehrsschild bedeutet.', quest:'🚦 Fahre sicher zur Burg! Lies jedes Schild richtig, um die Straße frei zu halten.', questLbl:'SICHER FAHREN'},
+    pl:{tag:'Przyroda · Kl. 2–4 · Gra #26', title:'Strażnik ', titleEm:'Drogi!', desc:'Naucz się, co oznacza każdy znak drogowy.', quest:'🚦 Jedź bezpiecznie do zamku! Odczytaj każdy znak, aby droga była wolna.', questLbl:'JEDŹ BEZPIECZNIE'},
+    es:{tag:'Ciencia · Grados 2–4 · Juego #26', title:'Guardián de la ', titleEm:'Carretera!', desc:'Aprende qué significa cada señal de tráfico.', quest:'🚦 ¡Llega seguro al castillo! Lee cada señal para mantener la vía despejada.', questLbl:'CONDUCE SEGURO'}
+  },
+  rounds:function(lang,level,mode,count){
+    var ix=IDX[lang]||1, out=[], pool=shuf(S);
+    for(var i=0;i<count;i++){var s=pool[i%pool.length];out.push({hud:HUD[lang]||HUD.en,big:s[0],word:null,speech:ASK[lang]||ASK.en,praise:s[ix],correct:s[ix],distractors:shuf(S.filter(function(x){return x[0]!==s[0];}).map(function(x){return x[ix];}))});}
+    return out;
+  }
+});
+</script>
+</body></html>

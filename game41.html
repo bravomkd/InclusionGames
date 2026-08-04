@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Olympic Heroes — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game41 — Olympic Heroes. Name the Olympic prizes and symbols. */
+var O=[['🥇','Gold','Gold','Złoto','Oro'],['🥈','Silver','Silber','Srebro','Plata'],['🥉','Bronze','Bronze','Brąz','Bronce'],['🔥','Torch','Fackel','Pochodnia','Antorcha'],['🏅','Medal','Medaille','Medal','Medalla'],['🏆','Trophy','Pokal','Puchar','Trofeo']];
+var IDX={en:1,de:2,pl:3,es:4};
+var HUD={en:'WHAT IS THIS?',de:'WAS IST DAS?',pl:'CO TO JEST?',es:'¿QUÉ ES ESTO?'};
+var ASK={en:'What Olympic prize is this?',de:'Welcher olympische Preis ist das?',pl:'Jaka to olimpijska nagroda?',es:'¿Qué premio olímpico es este?'};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game41', icon:'🥇', hero:'🏅', villain:'😈', castle:'🏰',
+  text:{
+    en:{tag:'Sport · Grades 2–4 · Game #41', title:'Olympic ', titleEm:'Heroes!', desc:'Learn the names of Olympic prizes and symbols.', quest:'🥇 Light the Olympic flame! Name each prize to carry the torch to the castle.', questLbl:'CARRY THE TORCH'},
+    de:{tag:'Sport · Kl. 2–4 · Spiel #41', title:'Olympia-', titleEm:'Helden!', desc:'Lerne die Namen olympischer Preise und Symbole.', quest:'🥇 Entzünde das olympische Feuer! Benenne jeden Preis, um die Fackel zur Burg zu tragen.', questLbl:'TRAGE DIE FACKEL'},
+    pl:{tag:'Sport · Kl. 2–4 · Gra #41', title:'Olimpijscy ', titleEm:'Bohaterowie!', desc:'Naucz się nazw olimpijskich nagród i symboli.', quest:'🥇 Zapal olimpijski ogień! Nazwij każdą nagrodę, aby zanieść pochodnię do zamku.', questLbl:'NIEŚ POCHODNIĘ'},
+    es:{tag:'Deporte · Grados 2–4 · Juego #41', title:'Héroes ', titleEm:'Olímpicos!', desc:'Aprende los nombres de los premios y símbolos olímpicos.', quest:'🥇 ¡Enciende la llama olímpica! Nombra cada premio para llevar la antorcha al castillo.', questLbl:'LLEVA LA ANTORCHA'}
+  },
+  rounds:function(lang,level,mode,count){
+    var ix=IDX[lang]||1, out=[], pool=shuf(O);
+    for(var i=0;i<count;i++){var s=pool[i%pool.length];out.push({hud:HUD[lang]||HUD.en,big:s[0],word:null,speech:ASK[lang]||ASK.en,praise:s[ix],correct:s[ix],distractors:shuf(O.filter(function(x){return x[0]!==s[0];}).map(function(x){return x[ix];}))});}
+    return out;
+  }
+});
+</script>
+</body></html>

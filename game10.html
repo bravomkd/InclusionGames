@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Minus Magic — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game10 — Minus Magic. Subtraction. The "-" sign is always shown in big. */
+var HUD={en:'TAKE AWAY',de:'RECHNE MINUS',pl:'ODEJMIJ',es:'RESTA'};
+var ASK={en:function(a,b){return a+' minus '+b+'?';},de:function(a,b){return a+' minus '+b+'?';},pl:function(a,b){return a+' minus '+b+'? Ile zostaje?';},es:function(a,b){return a+' menos '+b+'?';}};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game10', icon:'➖', hero:'🧙', villain:'👻', castle:'🏰',
+  text:{
+    en:{tag:'Math · Grades 2–3 · Game #10', title:'Minus ', titleEm:'Magic!', desc:'Take away and pop the answer. The minus sign is shown every time.', quest:'➖ Make the ghosts vanish! Each correct subtraction clears the path to the castle.', questLbl:'CLEAR THE PATH'},
+    de:{tag:'Mathe · Kl. 2–3 · Spiel #10', title:'Minus-', titleEm:'Magie!', desc:'Ziehe ab und triff das Ergebnis. Das Minuszeichen ist immer zu sehen.', quest:'➖ Lass die Geister verschwinden! Jede richtige Subtraktion macht den Weg zur Burg frei.', questLbl:'WEG FREIMACHEN'},
+    pl:{tag:'Matematyka · Kl. 2–3 · Gra #10', title:'Magia ', titleEm:'Minusa!', desc:'Odejmij i traf wynik. Znak minus jest zawsze pokazany.', quest:'➖ Spraw, by duchy zniknęły! Każde poprawne odejmowanie oczyszcza drogę do zamku.', questLbl:'OCZYŚĆ DROGĘ'},
+    es:{tag:'Mates · Grados 2–3 · Juego #10', title:'Magia ', titleEm:'Resta!', desc:'Resta y revienta la respuesta. El signo menos siempre se muestra.', quest:'➖ ¡Haz desaparecer a los fantasmas! Cada resta correcta despeja el camino al castillo.', questLbl:'DESPEJA EL CAMINO'}
+  },
+  rounds:function(lang,level,mode,count){
+    var out=[], max=(level==='challenge'?20:level==='gentle'?10:15);
+    for(var i=0;i<count;i++){
+      var a=2+(Math.random()*(max-1)|0), b=1+(Math.random()*a|0); if(b>a)b=a; var s=a-b;
+      var d={}; while(Object.keys(d).length<3){var v=s+(Math.random()*7|0)-3; if(v>=0&&v!==s)d[v]=1;}
+      out.push({hud:HUD[lang]||HUD.en, big:a+' - '+b, word:null, speech:(ASK[lang]||ASK.en)(a,b), praise:a+' - '+b+' = '+s, correct:String(s), distractors:shuf(Object.keys(d))});
+    }
+    return out;
+  }
+});
+</script>
+</body></html>

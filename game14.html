@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Hello Friends — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game14 — Hello Friends. Learn English greetings. Bubbles = English words. */
+var G=[['Hello','Hallo','Cześć','Hola','👋'],['Goodbye','Tschüss','Pa pa','Adiós','🖐️'],['Please','Bitte','Proszę','Por favor','🙏'],['Thank you','Danke','Dziękuję','Gracias','🤗'],['Sorry','Entschuldigung','Przepraszam','Perdón','😟'],['Yes','Ja','Tak','Sí','👍'],['No','Nein','Nie','No','👎']];
+var IDX={en:0,de:1,pl:2,es:3};
+var HUD={en:'SAY IT IN ENGLISH',de:'SAG ES AUF ENGLISCH',pl:'POWIEDZ PO ANGIELSKU',es:'DILO EN INGLÉS'};
+var ASK={en:function(w){return 'How do you say '+w+'?';},de:function(w){return 'Wie sagt man '+w+' auf Englisch?';},pl:function(w){return 'Jak powiedzieć '+w+' po angielsku?';},es:function(w){return '¿Cómo se dice '+w+' en inglés?';}};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game14', icon:'👋', hero:'🧒', villain:'🐲', castle:'🏰',
+  text:{
+    en:{tag:'English · Grade 3 · Game #14', title:'Hello ', titleEm:'Friends!', desc:'Learn English greetings — pop the right word.', quest:'👋 Make friends across the land! Every polite word you learn opens a door toward the castle.', questLbl:'MAKE FRIENDS'},
+    de:{tag:'Englisch · Kl. 3 · Spiel #14', title:'Hallo ', titleEm:'Freunde!', desc:'Lerne englische Begrüßungen — triff das richtige Wort.', quest:'👋 Finde Freunde im ganzen Land! Jedes höfliche Wort öffnet eine Tür zur Burg.', questLbl:'FREUNDE FINDEN'},
+    pl:{tag:'Angielski · Kl. 3 · Gra #14', title:'Witajcie ', titleEm:'Przyjaciele!', desc:'Ucz się angielskich powitań — trafiaj właściwe słowo.', quest:'👋 Zdobywaj przyjaciół! Każde uprzejme słowo otwiera drzwi do zamku.', questLbl:'ZDOBĄDŹ PRZYJACIÓŁ'},
+    es:{tag:'Inglés · Grado 3 · Juego #14', title:'Hola ', titleEm:'Amigos!', desc:'Aprende saludos en inglés — revienta la palabra correcta.', quest:'👋 ¡Haz amigos por todo el reino! Cada palabra amable abre una puerta hacia el castillo.', questLbl:'HAZ AMIGOS'}
+  },
+  rounds:function(lang,level,mode,count){
+    var ix=IDX[lang]||0, out=[], pool=shuf(G);
+    for(var i=0;i<count;i++){
+      var g=pool[i%pool.length];
+      out.push({hud:HUD[lang]||HUD.en, big:g[4], word:null, speech:(ASK[lang]||ASK.en)(g[ix]), praise:g[0], correct:g[0], distractors:shuf(G.filter(function(x){return x[0]!==g[0];}).map(function(x){return x[0];}))});
+    }
+    return out;
+  }
+});
+</script>
+</body></html>

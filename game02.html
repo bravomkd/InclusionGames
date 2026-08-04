@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Syllable Clap — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game02 — Syllable Clap. Hear a word, pop how many syllables it has. */
+var WORDS={
+  en:[['Cat','🐱',1],['Dog','🐶',1],['Sun','☀️',1],['Star','⭐',1],['Moon','🌙',1],['Apple','🍎',2],['Flower','🌸',2],['Rabbit','🐰',2],['Tiger','🐯',2],['Pencil','✏️',2],['Banana','🍌',3],['Elephant','🐘',3],['Butterfly','🦋',3],['Computer','💻',3],['Tomato','🍅',3]],
+  de:[['Hund','🐶',1],['Stern','⭐',1],['Mond','🌙',1],['Ball','⚽',1],['Katze','🐱',2],['Apfel','🍎',2],['Blume','🌸',2],['Sonne','☀️',2],['Tiger','🐯',2],['Banane','🍌',3],['Elefant','🐘',3],['Computer','💻',3],['Tomate','🍅',3],['Giraffe','🦒',3],['Schokolade','🍫',4]],
+  pl:[['Kot','🐱',1],['Pies','🐶',1],['Słoń','🐘',1],['Dom','🏠',1],['Kwiat','🌸',1],['Jabłko','🍎',2],['Banan','🍌',2],['Słońce','☀️',2],['Motyl','🦋',2],['Tygrys','🐯',2],['Gwiazda','⭐',2],['Księżyc','🌙',2],['Komputer','💻',3],['Pomidor','🍅',3],['Żyrafa','🦒',3]],
+  es:[['Sol','☀️',1],['Flor','🌸',1],['Pan','🍞',1],['Gato','🐱',2],['Perro','🐶',2],['Luna','🌙',2],['Tigre','🐯',2],['Casa','🏠',2],['Manzana','🍎',3],['Plátano','🍌',3],['Tomate','🍅',3],['Estrella','⭐',3],['Jirafa','🦒',3],['Elefante','🐘',4],['Mariposa','🦋',4]]
+};
+var HUD={en:'HOW MANY SYLLABLES?',de:'WIE VIELE SILBEN?',pl:'ILE SYLAB?',es:'¿CUÁNTAS SÍLABAS?'};
+var ASK={
+  en:function(w){return 'How many syllables are in '+w+'? Clap them!';},
+  de:function(w){return 'Wie viele Silben hat '+w+'? Klatsche mit!';},
+  pl:function(w){return 'Ile sylab ma słowo '+w+'? Klaszcz!';},
+  es:function(w){return '¿Cuántas sílabas tiene '+w+'? ¡Aplaude!';}
+};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+IG_GAME({
+  id:'game02', icon:'🌉', hero:'🧒', villain:'🧌', castle:'🏰',
+  text:{
+    en:{tag:'Literacy · Grades 1–2 · Game #2', title:'Syllable ', titleEm:'Clap!', desc:'Hear a word and pop how many syllables it has.', quest:'🌉 Build the Singing Bridge! Clap the right number of syllables to lay each plank and reach the castle.', questLbl:'BUILD THE BRIDGE'},
+    de:{tag:'Sprache · Kl. 1–2 · Spiel #2', title:'Silben-', titleEm:'Klatscher!', desc:'Höre ein Wort und triff, wie viele Silben es hat.', quest:'🌉 Baue die Singende Brücke! Klatsche die richtige Silbenzahl, um jedes Brett zu legen und zur Burg zu kommen.', questLbl:'BAUE DIE BRÜCKE'},
+    pl:{tag:'Język polski · Kl. 1–2 · Gra #2', title:'Sylaby-', titleEm:'Klask!', desc:'Posłuchaj słowa i traf, ile ma sylab.', quest:'🌉 Zbuduj Śpiewający Most! Klaszcz właściwą liczbę sylab, aby ułożyć deski i dotrzeć do zamku.', questLbl:'ZBUDUJ MOST'},
+    es:{tag:'Lectura · Grados 1–2 · Juego #2', title:'¡Sílabas ', titleEm:'Aplauso!', desc:'Escucha una palabra y revienta cuántas sílabas tiene.', quest:'🌉 ¡Construye el Puente Cantarín! Aplaude el número correcto de sílabas para colocar cada tabla y llegar al castillo.', questLbl:'CONSTRUYE EL PUENTE'}
+  },
+  rounds:function(lang,level,mode,count){
+    var pool=shuf(WORDS[lang]||WORDS.en), out=[], all=['1','2','3','4'];
+    for(var i=0;i<count;i++){
+      var w=pool[i%pool.length];
+      var correct=String(w[2]);
+      var dist=shuf(all.filter(function(n){return n!==correct;}));
+      out.push({hud:HUD[lang]||HUD.en, big:w[1], word:w[0], speech:(ASK[lang]||ASK.en)(w[0]), praise:w[0]+' — '+correct, correct:correct, distractors:dist});
+    }
+    return out;
+  }
+});
+</script>
+</body></html>

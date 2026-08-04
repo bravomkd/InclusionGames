@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Pattern Maker — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game36 — Pattern Maker. A pattern has a gap — pop what comes next. */
+var POOL=['🔴','🔵','🟡','🟢','⭐','❤️','🔺','🟦'];
+var HUD={en:'WHAT COMES NEXT?',de:'WAS KOMMT ALS NÄCHSTES?',pl:'CO JEST DALEJ?',es:'¿QUÉ SIGUE?'};
+var ASK={en:'Look at the pattern. What comes next?',de:'Schau das Muster an. Was kommt als Nächstes?',pl:'Spójrz na wzór. Co jest dalej?',es:'Mira el patrón. ¿Qué sigue?'};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game36', icon:'🔷', hero:'🧒', villain:'🌀', castle:'🏰',
+  text:{
+    en:{tag:'Art · Grades 1–3 · Game #36', title:'Pattern ', titleEm:'Maker!', desc:'Find what comes next in the pattern.', quest:'🔷 Weave the magic carpet! Continue each pattern to fly closer to the castle.', questLbl:'WEAVE THE CARPET'},
+    de:{tag:'Kunst · Kl. 1–3 · Spiel #36', title:'Muster-', titleEm:'Macher!', desc:'Finde, was als Nächstes im Muster kommt.', quest:'🔷 Webe den fliegenden Teppich! Setze jedes Muster fort, um näher zur Burg zu fliegen.', questLbl:'TEPPICH WEBEN'},
+    pl:{tag:'Plastyka · Kl. 1–3 · Gra #36', title:'Twórca ', titleEm:'Wzorów!', desc:'Znajdź, co jest dalej we wzorze.', quest:'🔷 Utkaj latający dywan! Kontynuuj każdy wzór, aby lecieć bliżej zamku.', questLbl:'UTKAJ DYWAN'},
+    es:{tag:'Arte · Grados 1–3 · Juego #36', title:'Creador de ', titleEm:'Patrones!', desc:'Encuentra qué sigue en el patrón.', quest:'🔷 ¡Teje la alfombra mágica! Continúa cada patrón para volar más cerca del castillo.', questLbl:'TEJE LA ALFOMBRA'}
+  },
+  rounds:function(lang,level,mode,count){
+    var out=[];
+    for(var i=0;i<count;i++){
+      var p=shuf(POOL), A=p[0], B=p[1];
+      var seq=A+B+A+B+A, next=B;
+      var dist=shuf(POOL.filter(function(x){return x!==next;})).slice(0,3);
+      out.push({hud:HUD[lang]||HUD.en, big:null, word:seq+' ❓', speech:ASK[lang]||ASK.en, praise:next, correct:next, distractors:dist});
+    }
+    return out;
+  }
+});
+</script>
+</body></html>

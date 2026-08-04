@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Habitat Hunt — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game22 — Habitat Hunt. Where does the animal live? */
+var H4={ocean:['Ocean','Meer','Ocean','Océano'],forest:['Forest','Wald','Las','Bosque'],desert:['Desert','Wüste','Pustynia','Desierto'],farm:['Farm','Bauernhof','Gospodarstwo','Granja'],arctic:['Arctic','Arktis','Arktyka','Ártico']};
+var AN=[['🐟','ocean'],['🐻','forest'],['🐪','desert'],['🐄','farm'],['🐧','arctic'],['🦊','forest'],['🐬','ocean'],['🐓','farm'],['🦅','forest'],['🐳','ocean']];
+var IDX={en:0,de:1,pl:2,es:3};
+var HUD={en:'WHERE DOES IT LIVE?',de:'WO LEBT ES?',pl:'GDZIE ŻYJE?',es:'¿DÓNDE VIVE?'};
+var ASK={en:'Where does this animal live?',de:'Wo lebt dieses Tier?',pl:'Gdzie żyje to zwierzę?',es:'¿Dónde vive este animal?'};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game22', icon:'🌍', hero:'🧭', villain:'🐊', castle:'🏰',
+  text:{
+    en:{tag:'Science · Grades 1–2 · Game #22', title:'Habitat ', titleEm:'Hunt!', desc:'Match each animal to where it lives.', quest:'🌍 Guide every animal home! Each correct habitat clears the trail to the castle.', questLbl:'GUIDE THEM HOME'},
+    de:{tag:'Sachkunde · Kl. 1–2 · Spiel #22', title:'Lebensraum-', titleEm:'Suche!', desc:'Ordne jedes Tier seinem Lebensraum zu.', quest:'🌍 Bring jedes Tier nach Hause! Jeder richtige Lebensraum macht den Weg zur Burg frei.', questLbl:'BRING SIE HEIM'},
+    pl:{tag:'Przyroda · Kl. 1–2 · Gra #22', title:'Poszukiwanie ', titleEm:'Domów!', desc:'Dopasuj każde zwierzę do miejsca, gdzie żyje.', quest:'🌍 Zaprowadź każde zwierzę do domu! Każde poprawne środowisko oczyszcza drogę do zamku.', questLbl:'ZAPROWADŹ DO DOMU'},
+    es:{tag:'Ciencia · Grados 1–2 · Juego #22', title:'Busca ', titleEm:'Hábitats!', desc:'Une cada animal con el lugar donde vive.', quest:'🌍 ¡Lleva cada animal a casa! Cada hábitat correcto despeja el sendero al castillo.', questLbl:'LLÉVALOS A CASA'}
+  },
+  rounds:function(lang,level,mode,count){
+    var ix=IDX[lang]||0, out=[], pool=shuf(AN), keys=Object.keys(H4);
+    for(var i=0;i<count;i++){
+      var a=pool[i%pool.length], correct=H4[a[1]][ix];
+      var dist=shuf(keys.filter(function(k){return k!==a[1];}).map(function(k){return H4[k][ix];}));
+      out.push({hud:HUD[lang]||HUD.en,big:a[0],word:null,speech:ASK[lang]||ASK.en,praise:correct,correct:correct,distractors:dist});
+    }
+    return out;
+  }
+});
+</script>
+</body></html>

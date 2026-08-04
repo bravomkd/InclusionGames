@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Egg Counter — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game07 — Egg Counter. Count the objects (1–8), pop the number. */
+var HUD={en:'HOW MANY?',de:'WIE VIELE?',pl:'ILE?',es:'¿CUÁNTAS?'};
+var ASK={en:'How many? Count them!',de:'Wie viele? Zähle sie!',pl:'Ile ich jest? Policz!',es:'¿Cuántas hay? ¡Cuéntalas!'};
+var EMO=['🥚','🍎','⭐','🐣','🌸','🍓'];
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game07', icon:'🐣', hero:'🐔', villain:'🦊', castle:'🏰',
+  text:{
+    en:{tag:'Math · Grade 1 · Game #7', title:'Egg ', titleEm:'Counter!', desc:'Count the objects and pop the right number (1–8).', quest:'🐣 Save the hen’s eggs from the fox! Count correctly to carry each egg safely to the castle.', questLbl:'SAVE THE EGGS'},
+    de:{tag:'Mathe · Kl. 1 · Spiel #7', title:'Eier-', titleEm:'Zähler!', desc:'Zähle die Dinge und triff die richtige Zahl (1–8).', quest:'🐣 Rette die Eier vor dem Fuchs! Zähle richtig, um jedes Ei sicher zur Burg zu bringen.', questLbl:'RETTE DIE EIER'},
+    pl:{tag:'Matematyka · Kl. 1 · Gra #7', title:'Licznik ', titleEm:'Jajek!', desc:'Policz przedmioty i traf właściwą liczbę (1–8).', quest:'🐣 Uratuj jajka przed lisem! Licz poprawnie, aby bezpiecznie zanieść każde jajko do zamku.', questLbl:'URATUJ JAJKA'},
+    es:{tag:'Mates · Grado 1 · Juego #7', title:'Cuenta ', titleEm:'Huevos!', desc:'Cuenta los objetos y revienta el número correcto (1–8).', quest:'🐣 ¡Salva los huevos del zorro! Cuenta bien para llevar cada huevo al castillo.', questLbl:'SALVA LOS HUEVOS'}
+  },
+  rounds:function(lang,level,mode,count){
+    var out=[], top=(level==='challenge'?8:level==='gentle'?5:6);
+    for(var i=0;i<count;i++){
+      var n=1+(Math.random()*top|0); if(n>top)n=top; if(n<1)n=1;
+      var e=EMO[Math.random()*EMO.length|0];
+      var pool=[]; for(var k=1;k<=8;k++)if(k!==n)pool.push(String(k));
+      out.push({hud:HUD[lang]||HUD.en, big:null, word:new Array(n+1).join(e), speech:ASK[lang]||ASK.en, praise:String(n), correct:String(n), distractors:shuf(pool)});
+    }
+    return out;
+  }
+});
+</script>
+</body></html>

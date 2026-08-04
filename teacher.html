@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="de"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Profile & Spiele anpassen — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1a1a2e;--ink2:#3d3d5c;--muted:#6b6b8a;--bg:#fafaf8;--surface:#fff;--s2:#f4f3ff;--border:#e8e6f0;--p1:#7c3aed;--p2:#a855f7;--p3:#ede9fe;--g1:#10b981;--a1:#f59e0b;--r1:#dc2626;--b1:#3b82f6;--font:'Nunito',sans-serif;--display:'Fredoka One',cursive;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);min-height:100vh;}
+.topbar{background:linear-gradient(135deg,#1e1b4b,#312e81);color:#fff;}
+.tb-in{max-width:1100px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:14px;}
+.tb-logo{display:flex;align-items:center;gap:10px;font-family:var(--display);font-size:1.3rem;}
+.tb-logo-box{width:36px;height:36px;background:linear-gradient(135deg,var(--p1),var(--p2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;}
+.tb-logo .g{color:var(--p2);}
+.tb-right{display:flex;align-items:center;gap:12px;font-size:.9rem;}
+.tb-link{color:#c7d2fe;text-decoration:none;font-weight:700;font-size:.85rem;}
+.tb-link:hover{color:#fff;}
+.wrap{max-width:1100px;margin:0 auto;padding:22px 24px 60px;}
+
+/* child strip */
+.section-h{font-family:var(--display);font-size:1.15rem;color:var(--ink2);margin:6px 0 14px;display:flex;align-items:center;gap:9px;}
+.kids{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;}
+.kid{background:var(--surface);border:2px solid var(--border);border-radius:16px;padding:14px 16px;min-width:150px;cursor:pointer;transition:all .15s;position:relative;}
+.kid:hover{border-color:var(--p2);transform:translateY(-2px);}
+.kid.active{border-color:var(--p1);background:var(--s2);box-shadow:0 4px 16px rgba(124,58,237,.15);}
+.kid .av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:1.1rem;margin-bottom:8px;}
+.kid .nm{font-weight:800;font-size:1rem;}
+.kid .meta{font-size:.74rem;color:var(--muted);margin-top:3px;}
+.kid .demo{position:absolute;top:10px;right:10px;background:rgba(251,191,36,.2);color:#a16207;font-size:.6rem;font-weight:800;padding:2px 7px;border-radius:100px;letter-spacing:.5px;}
+.kid.add{display:flex;flex-direction:column;align-items:center;justify-content:center;border-style:dashed;color:var(--muted);font-weight:700;min-height:96px;}
+.kid.add .plus{font-size:1.6rem;color:var(--p1);line-height:1;margin-bottom:4px;}
+
+.activebar{background:var(--s2);border:1px solid var(--p3);border-radius:12px;padding:10px 16px;margin:14px 0 24px;font-size:.9rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.activebar b{color:var(--p1);}
+.activebar .play{margin-left:auto;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;padding:8px 18px;border-radius:100px;font-weight:800;font-family:var(--font);cursor:pointer;}
+.activebar .play:hover{transform:translateY(-1px);}
+
+/* games grid */
+.subj{margin-bottom:26px;}
+.subj-h{font-family:var(--display);font-size:.95rem;margin-bottom:10px;color:var(--ink2);}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
+.gcard{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:13px;cursor:pointer;transition:all .15s;}
+.gcard:hover{border-color:var(--p2);transform:translateY(-2px);}
+.gcard .ico{font-size:1.5rem;margin-bottom:6px;}
+.gcard .gt{font-weight:800;font-size:.86rem;line-height:1.2;}
+.gcard .gsub{font-size:.7rem;color:var(--muted);margin-top:3px;}
+.gcard .custom{display:inline-block;margin-top:8px;font-size:.64rem;font-weight:800;padding:2px 8px;border-radius:100px;background:#dcfce7;color:#166534;}
+.gcard.locked{opacity:.55;}
+.gcard .soon{display:inline-block;margin-top:8px;font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:100px;background:#f1f0fb;color:var(--muted);}
+
+/* modal */
+.ov{position:fixed;inset:0;background:rgba(20,18,40,.55);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:30px 16px;overflow-y:auto;}
+.ov.show{display:flex;}
+.modal{background:var(--surface);border-radius:20px;max-width:620px;width:100%;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.modal h3{font-family:var(--display);font-size:1.3rem;margin-bottom:2px;}
+.modal .msub{color:var(--muted);font-size:.85rem;margin-bottom:18px;}
+.fieldlbl{font-weight:800;font-size:.8rem;margin:16px 0 8px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink2);}
+
+.items{display:flex;flex-direction:column;gap:8px;}
+.item{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1.5px solid var(--border);border-radius:11px;background:var(--bg);}
+.item.off{opacity:.45;}
+.item.cust{border-color:var(--p3);background:var(--s2);}
+.item .big{font-size:1.5rem;width:34px;text-align:center;}
+.item .lbl{flex:1;font-weight:700;}
+.item .lbl small{display:block;font-weight:400;color:var(--muted);font-size:.74rem;}
+.item .tag{font-size:.6rem;font-weight:800;color:var(--p1);background:var(--p3);padding:2px 7px;border-radius:100px;}
+.tog{width:44px;height:25px;border-radius:100px;background:#cbd5e1;position:relative;cursor:pointer;flex-shrink:0;transition:background .15s;}
+.tog.on{background:var(--g1);}
+.tog::after{content:'';position:absolute;width:19px;height:19px;border-radius:50%;background:#fff;top:3px;left:3px;transition:left .15s;}
+.tog.on::after{left:22px;}
+.item .del{background:none;border:none;color:var(--r1);font-size:1.1rem;cursor:pointer;padding:2px 6px;}
+
+.addbox{border:1.5px dashed var(--p3);border-radius:12px;padding:14px;margin-top:10px;background:#fdfcff;}
+.addrow{display:flex;gap:8px;align-items:center;}
+.addrow input.word{flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:.95rem;}
+.addrow button{background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;padding:10px 16px;border-radius:10px;font-weight:800;font-family:var(--font);cursor:pointer;white-space:nowrap;}
+.addrow button:disabled{opacity:.5;cursor:default;}
+.hint{font-size:.74rem;color:var(--muted);margin-top:7px;}
+.preview{display:none;margin-top:12px;padding:12px;border:1.5px solid var(--p3);border-radius:11px;background:var(--s2);}
+.preview.show{display:block;}
+.preview .pvtop{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.preview .pvemoji{font-size:1.8rem;}
+.langgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.langgrid label{font-size:.72rem;font-weight:700;color:var(--muted);display:block;margin-bottom:3px;}
+.langgrid input{width:100%;padding:7px 9px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);}
+.pvactions{display:flex;gap:8px;margin-top:12px;}
+.pvactions .confirm{background:var(--g1);color:#fff;border:none;padding:9px 16px;border-radius:9px;font-weight:800;cursor:pointer;font-family:var(--font);}
+.pvactions .cancel{background:none;border:1.5px solid var(--border);padding:9px 16px;border-radius:9px;font-weight:700;cursor:pointer;font-family:var(--font);color:var(--muted);}
+
+
+.markbtn{width:38px;height:38px;border:2px solid var(--border);border-radius:9px;background:var(--bg);font-size:1.1rem;font-weight:800;cursor:pointer;font-family:var(--font);}
+.markbtn.on{border-color:var(--p1);background:var(--s2);color:var(--p1);}
+.mtiers{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
+.mtier{flex:1;min-width:120px;background:var(--bg);border:2px solid var(--border);border-radius:13px;padding:14px;cursor:pointer;text-align:center;font-family:var(--font);transition:all .15s;}
+.mtier:hover{border-color:var(--p2);}
+.mtier.on{border-color:var(--p1);background:var(--s2);box-shadow:0 3px 12px rgba(124,58,237,.15);}
+.mtier .mtl{font-weight:800;font-size:1rem;margin-bottom:3px;}
+.mtier .mtd{font-size:.8rem;color:var(--muted);font-weight:700;}
+.controls{display:flex;gap:18px;flex-wrap:wrap;margin-top:6px;}
+.ctrl label{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--ink2);display:block;margin-bottom:6px;}
+.ctrl select,.ctrl input{padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-weight:700;}
+.modal-foot{display:flex;gap:10px;margin-top:24px;padding-top:18px;border-top:1px solid var(--border);}
+.modal-foot .save{flex:1;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;padding:13px;border-radius:11px;font-weight:800;font-size:1rem;font-family:var(--font);cursor:pointer;}
+.modal-foot .save:hover{transform:translateY(-1px);}
+.modal-foot .close{background:none;border:1.5px solid var(--border);padding:13px 22px;border-radius:11px;font-weight:700;cursor:pointer;font-family:var(--font);color:var(--muted);}
+.kprog{margin-top:8px;width:100%;background:var(--p3);color:var(--p1);border:none;border-radius:8px;padding:6px;font-family:var(--font);font-weight:800;font-size:.72rem;cursor:pointer;}
+.kprog:hover{background:#ddd4fb;}
+.psum{display:flex;gap:12px;margin-bottom:6px;}
+.pstat{flex:1;background:var(--s2);border-radius:12px;padding:14px;text-align:center;}
+.pstat .pn{font-family:var(--display);font-size:1.6rem;color:var(--p1);line-height:1;}
+.pstat .pl{font-size:.72rem;color:var(--muted);font-weight:700;margin-top:4px;}
+.pgames{display:flex;flex-direction:column;gap:8px;}
+.pgame{border:1.5px solid var(--border);border-radius:11px;padding:10px 12px;}
+.pgame .pgt{font-weight:800;font-size:.9rem;}
+.pgame .pgr{font-size:.8rem;color:var(--ink2);margin-top:2px;}
+.pgame .pseq{font-size:.74rem;color:var(--muted);margin-top:3px;font-family:monospace;}
+.psess{display:flex;flex-direction:column;gap:4px;}
+.prow{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;background:var(--bg);font-size:.82rem;}
+.prow span{flex:1;font-weight:700;}
+.prow small{color:var(--muted);min-width:90px;text-align:right;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;padding:13px 22px;border-radius:100px;font-weight:700;font-size:.9rem;opacity:0;transition:all .3s;z-index:80;}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+.empty{text-align:center;padding:50px 20px;color:var(--muted);}
+.spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px;}
+@keyframes s{to{transform:rotate(360deg);}}
+</style></head>
+<body>
+<div class="topbar"><div class="tb-in">
+  <a href="dashboard.html" class="tb-logo" style="text-decoration:none;color:#fff;"><span class="tb-logo-box">🎈</span><span>Inclusion<span class="g">Games</span></span></a>
+  <div class="tb-right"><a href="dashboard.html" class="tb-link">← Dashboard</a><span id="uname"></span></div>
+</div></div>
+
+<div class="wrap">
+  <div class="section-h">👧 Kinderprofile</div>
+  <div class="kids" id="kids"></div>
+
+  <div class="activebar" id="activebar" style="display:none;">
+    Aktiv für Anpassung & Spiel: <b id="activename">—</b>
+    <span id="activenote" style="color:var(--muted);"></span>
+    <button class="play" id="playBtn">▶ Spielen als dieses Kind</button>
+  </div>
+
+  <div class="section-h" style="margin-top:8px;">🎮 Spiele anpassen</div>
+  <div id="games"><div class="empty">Wähle oben ein Kind, um seine Spiele anzupassen.</div></div>
+</div>
+
+<!-- game editor modal -->
+<div class="ov" id="ov"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="assets/auth.js"></script>
+<script>
+IG.requireAuth('login.html');
+(function(){ var u=IG.user(); if(u){ document.getElementById('uname').textContent = u.name||(u.email?u.email.split('@')[0]:'Konto'); } })();
+
+// --- subject map (from the game tags) ---
+var SUBJECTS=[
+  {key:'Literacy',label:'📖 Lesen & Schreiben',de:'Literacy'},
+  {key:'Grammar',label:'📝 Grammatik',de:'Grammar'},
+  {key:'Letters',label:'🔤 Buchstaben',de:'Letters'},
+  {key:'Math',label:'🔢 Mathe',de:'Math'},
+  {key:'English',label:'🇬🇧 Englisch',de:'English'},
+  {key:'Science',label:'🔬 Sachkunde',de:'Science'},
+  {key:'Geography',label:'🗺️ Geografie',de:'Geography'},
+  {key:'Music',label:'🎵 Musik',de:'Music'},
+  {key:'Art',label:'🎨 Kunst',de:'Art'},
+  {key:'Sport',label:'⚽ Sport',de:'Sport'}
+];
+// which games are fully wired for custom editing right now (Type V vocabulary)
+// game24 is the first; others can be enabled as we extend.
+var EDITABLE=["game05","game07","game08","game09","game10","game11","game12","game23","game03","game04","game06","game13","game14","game15","game16","game17","game18","game19","game20","game21","game22","game24","game25","game26","game27","game28","game29","game31","game32","game34","game35","game37","game38","game39","game40","game41","game42"];
+var MATH_GAMES=['game07','game08','game09','game10','game11'];
+var SENTENCE_GAMES=['game05'];
+var MATH_TIERS={
+  game07:{title:'Eier zählen',gentle:'bis 5',normal:'bis 6',challenge:'bis 8',unit:'Höchste Anzahl'},
+  game08:{title:'Größte Zahl',gentle:'2 Zahlen',normal:'3 Zahlen',challenge:'4 Zahlen',unit:'Zahlen vergleichen (2–99)'},
+  game10:{title:'Minus',gentle:'bis 10',normal:'bis 15',challenge:'bis 20',unit:'Größte Zahl'},
+  game09:{title:'Plus',gentle:'bis 10',normal:'bis 15',challenge:'bis 20',unit:'Größte Zahl'},
+  game11:{title:'Mal',gentle:'×2–5',normal:'×2–7',challenge:'×2–10',unit:'Malreihen'}
+};
+
+var state={ kids:[], active:null, gamesIndex:null, editing:null, editState:null };
+
+function toast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},2200); }
+
+// ---------- children ----------
+async function loadKids(){
+  var r=await IG.apiFetch('/children');
+  state.kids=r.children||[];
+  renderKids();
+}
+function renderKids(){
+  var el=document.getElementById('kids'); el.innerHTML='';
+  state.kids.forEach(function(k){
+    var d=document.createElement('div');
+    d.className='kid'+(state.active&&state.active.id===k.id?' active':'');
+    d.innerHTML=(k.is_demo?'<span class="demo">DEMO</span>':'')+
+      '<div class="av">'+((k.name||'?')[0].toUpperCase())+'</div>'+
+      '<div class="nm">'+esc(k.name)+'</div>'+
+      '<div class="meta">'+k.games_customized+' angepasst · '+k.plays+' Spiele</div>'+
+      '<button class="kprog" data-kid="'+k.id+'">📊 Fortschritt</button>';
+    d.onclick=function(){ setActive(k); };
+    var pb=d.querySelector('.kprog');
+    if(pb) pb.onclick=function(ev){ ev.stopPropagation(); openProgress(k); };
+    el.appendChild(d);
+  });
+  var add=document.createElement('div');
+  add.className='kid add';
+  add.innerHTML='<div class="plus">+</div>Kind hinzufügen';
+  add.onclick=addKid;
+  el.appendChild(add);
+}
+async function addKid(){
+  var name=prompt('Name des Kindes:'); if(!name) return;
+  var note=prompt('Notiz (optional, z. B. „arbeitet an Tieren, Stufe 1"):')||'';
+  try{ var r=await IG.apiFetch('/children',{method:'POST',body:JSON.stringify({name:name,note:note})});
+    await loadKids(); setActive(r.child); toast('Kind hinzugefügt'); }
+  catch(e){ toast('Fehler: '+e.message); }
+}
+function setActive(k){
+  state.active=k;
+  document.getElementById('activebar').style.display='flex';
+  document.getElementById('activename').textContent=k.name;
+  document.getElementById('activenote').textContent=k.note?('· '+k.note):'';
+  renderKids(); renderGames();
+}
+document.getElementById('playBtn').onclick=function(){
+  if(!state.active) return;
+  // remember active child for the game engine to read
+  try{ localStorage.setItem('ig_active_child', JSON.stringify({id:state.active.id,name:state.active.name})); }catch(e){}
+  toast('„'+state.active.name+'" ist aktiv. Spiel öffnen…');
+  setTimeout(function(){ location.href='dashboard.html'; },900);
+};
+
+// ---------- games grid ----------
+async function ensureIndex(){
+  if(state.gamesIndex) return state.gamesIndex;
+  // fetch the lightweight list by probing the content endpoint is heavy; instead load from a static manifest baked here.
+  // We pull tags from the per-game content endpoint lazily, but for the grid we use a small built-in manifest:
+  state.gamesIndex=GAMES_MANIFEST;
+  return state.gamesIndex;
+}
+function renderGames(){
+  var host=document.getElementById('games'); host.innerHTML='';
+  var idx=GAMES_MANIFEST;
+  SUBJECTS.forEach(function(s){
+    var inSubj=idx.filter(function(g){ return g.subject===s.de; });
+    if(!inSubj.length) return;
+    var sec=document.createElement('div'); sec.className='subj';
+    sec.innerHTML='<div class="subj-h">'+s.label+'</div>';
+    var grid=document.createElement('div'); grid.className='grid';
+    inSubj.forEach(function(g){
+      var editable=EDITABLE.indexOf(g.id)>=0;
+      var customized=state.active && state.active.id && false; // refined below per-child
+      var c=document.createElement('div');
+      c.className='gcard'+(editable?'':' locked');
+      c.innerHTML='<div class="ico">'+g.icon+'</div><div class="gt">'+esc(g.title)+'</div><div class="gsub">'+esc(g.grade)+'</div>'+
+        (editable?'<span class="custom" data-cust="'+g.id+'" style="display:none;">angepasst ✓</span>':'<span class="soon">bald</span>');
+      if(editable){ c.onclick=function(){ openEditor(g); }; }
+      grid.appendChild(c);
+    });
+    sec.appendChild(grid); host.appendChild(sec);
+  });
+  // mark which editable games this child has customized
+  if(state.active){
+    EDITABLE.forEach(function(gid){
+      IG.apiFetch('/children/'+state.active.id+'/settings/'+gid).then(function(r){
+        if(r.settings){ var b=document.querySelector('[data-cust="'+gid+'"]'); if(b) b.style.display='inline-block'; }
+      }).catch(function(){});
+    });
+  }
+}
+
+// ---------- editor ----------
+async function openEditor(g){
+  if(!state.active){ toast('Erst ein Kind wählen'); return; }
+  state.editing=g;
+  if(MATH_GAMES.indexOf(g.id)>=0){ return openMathEditor(g); }
+  if(SENTENCE_GAMES.indexOf(g.id)>=0){ return openSentenceEditor(g); }
+  var modal=document.getElementById('modal');
+  modal.innerHTML='<div class="empty"><span class="spin" style="border-top-color:var(--p1);border-color:var(--p3);"></span> Lädt…</div>';
+  document.getElementById('ov').classList.add('show');
+  // load content + this child's saved settings in parallel
+  var lang=(localStorage.getItem('ig_lang')||'de');
+  var content, saved;
+  try{
+    content=await IG.apiFetch('/game-content/'+g.id);
+    saved=(await IG.apiFetch('/children/'+state.active.id+'/settings/'+g.id)).settings;
+  }catch(e){ modal.innerHTML='<div class="empty">Konnte Inhalt nicht laden.<br><br><button class="close" onclick="closeOv()">Schließen</button></div>'; return; }
+
+  var items=(content.langs[lang]&&content.langs[lang].items)||content.langs.de&&content.langs.de.items||[];
+  // build edit state
+  var disabled=(saved&&saved.disabled)||[];
+  state.editState={
+    lang:lang,
+    builtin:items.map(function(it){ return {emoji:it.big||'', correct:it.correct, key:(it.big||'')+'|'+it.correct, on:disabled.indexOf((it.big||'')+'|'+it.correct)<0}; }),
+    custom:(saved&&saved.custom?saved.custom.slice():[]),
+    level:(saved&&saved.level)||null,
+    count:(saved&&saved.count)||null
+  };
+  renderEditor(content);
+}
+function renderEditor(content){
+  var s=state.editState, g=state.editing;
+  var langName={de:'Deutsch',en:'Englisch',pl:'Polnisch',es:'Spanisch'}[s.lang]||s.lang;
+  var h='<h3>'+g.icon+' '+esc(g.title)+'</h3><div class="msub">Für <b>'+esc(state.active.name)+'</b> · Inhalte in '+langName+'</div>';
+
+  h+='<div class="fieldlbl">Vorhandene Inhalte — antippen zum Ein-/Ausschalten</div><div class="items" id="builtinItems"></div>';
+  h+='<div class="fieldlbl">Eigene Inhalte hinzufügen</div><div class="items" id="customItems"></div>';
+  h+='<div class="addbox">'+
+       '<div class="addrow"><input class="word" id="addWord" placeholder="Wort eingeben, z. B. Türkei, Löwe, Trommel…" autocomplete="off"><button id="addBtn">Suchen</button></div>'+
+       '<div class="hint">Wir füllen Emoji & Übersetzungen automatisch aus. Nicht gefunden? Du kannst alles selbst eintragen.</div>'+
+       '<div class="preview" id="preview"></div>'+
+     '</div>';
+
+  h+='<div class="fieldlbl">Einstellungen</div><div class="controls">'+
+       '<div class="ctrl"><label>Schwierigkeit</label><select id="lvl"><option value="">Standard</option><option value="1">Stufe 1</option><option value="2">Stufe 2</option><option value="3">Stufe 3</option></select></div>'+
+       '<div class="ctrl"><label>Runden</label><input id="cnt" type="number" min="1" max="50" placeholder="Standard" style="width:90px;"></div>'+
+     '</div>';
+
+  h+='<div class="modal-foot"><button class="save" id="saveBtn">Speichern</button><button class="close" onclick="closeOv()">Abbrechen</button></div>';
+  document.getElementById('modal').innerHTML=h;
+
+  if(s.level) document.getElementById('lvl').value=String(s.level);
+  if(s.count) document.getElementById('cnt').value=String(s.count);
+
+  renderBuiltin(); renderCustom();
+  document.getElementById('addBtn').onclick=doComplete;
+  document.getElementById('addWord').addEventListener('keydown',function(e){ if(e.key==='Enter'){e.preventDefault();doComplete();} });
+  document.getElementById('saveBtn').onclick=saveSettings;
+}
+function renderBuiltin(){
+  var host=document.getElementById('builtinItems'); host.innerHTML='';
+  state.editState.builtin.forEach(function(it,i){
+    var d=document.createElement('div'); d.className='item'+(it.on?'':' off');
+    d.innerHTML='<span class="big">'+(it.emoji||'•')+'</span><span class="lbl">'+esc(it.correct)+'</span>'+
+      '<span class="tog'+(it.on?' on':'')+'"></span>';
+    d.querySelector('.tog').onclick=function(){ it.on=!it.on; renderBuiltin(); };
+    host.appendChild(d);
+  });
+}
+function renderCustom(){
+  var host=document.getElementById('customItems'); host.innerHTML='';
+  if(!state.editState.custom.length){ host.innerHTML='<div style="font-size:.8rem;color:var(--muted);padding:4px 2px;">Noch keine eigenen Inhalte.</div>'; return; }
+  state.editState.custom.forEach(function(it,i){
+    var d=document.createElement('div'); d.className='item cust';
+    var sub=[it.de,it.en,it.pl,it.es].filter(Boolean).join(' · ');
+    d.innerHTML='<span class="big">'+(it.emoji||'•')+'</span><span class="lbl">'+esc(it.de||it.en||it.correct||'')+'<small>'+esc(sub)+'</small></span>'+
+      '<span class="tag">EIGEN</span><button class="del">✕</button>';
+    d.querySelector('.del').onclick=function(){ state.editState.custom.splice(i,1); renderCustom(); };
+    host.appendChild(d);
+  });
+}
+async function doComplete(){
+  var inp=document.getElementById('addWord'); var q=inp.value.trim(); if(!q) return;
+  var btn=document.getElementById('addBtn'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
+  var pv=document.getElementById('preview');
+  try{
+    var r=await IG.apiFetch('/complete-item?q='+encodeURIComponent(q));
+    var it=r.found?r.item:{emoji:'',en:'',de:q,pl:'',es:''};
+    pv.classList.add('show');
+    pv.innerHTML='<div class="pvtop"><span class="pvemoji">'+(it.emoji||'❓')+'</span><div><div style="font-weight:800;">'+(r.found?'Gefunden':'Nicht in der Bibliothek — bitte ergänzen')+'</div><div class="hint" style="margin:0;">Emoji & Namen prüfen, dann „Hinzufügen".</div></div></div>'+
+      '<div class="langgrid">'+
+        fld('pvEmoji','Emoji',it.emoji)+fld('pvDe','Deutsch',it.de)+
+        fld('pvEn','Englisch',it.en)+fld('pvPl','Polnisch',it.pl)+
+        fld('pvEs','Spanisch',it.es)+'</div>'+
+      '<div class="pvactions"><button class="confirm" id="pvAdd">Hinzufügen</button><button class="cancel" id="pvCancel">Abbrechen</button></div>';
+    document.getElementById('pvAdd').onclick=function(){
+      var item={emoji:val('pvEmoji'),de:val('pvDe'),en:val('pvEn'),pl:val('pvPl'),es:val('pvEs')};
+      if(!item.de&&!item.en&&!item.pl&&!item.es){ toast('Bitte mindestens einen Namen'); return; }
+      // fill empty languages from German so the game never breaks
+      var fallback=item.de||item.en||item.pl||item.es;
+      ['de','en','pl','es'].forEach(function(L){ if(!item[L]) item[L]=fallback; });
+      state.editState.custom.push(item); renderCustom();
+      pv.classList.remove('show'); inp.value=''; toast('Hinzugefügt');
+    };
+    document.getElementById('pvCancel').onclick=function(){ pv.classList.remove('show'); };
+  }catch(e){ toast('Fehler: '+e.message); }
+  btn.disabled=false; btn.textContent='Suchen';
+}
+function fld(id,label,v){ return '<div><label>'+label+'</label><input id="'+id+'" value="'+esc(v||'')+'"></div>'; }
+function val(id){ return document.getElementById(id).value.trim(); }
+
+async function openMathEditor(g){
+  var modal=document.getElementById('modal');
+  modal.innerHTML='<div class="empty"><span class="spin" style="border-top-color:var(--p1);border-color:var(--p3);"></span> L\u00e4dt\u2026</div>';
+  document.getElementById('ov').classList.add('show');
+  var saved;
+  try{ saved=(await IG.apiFetch('/children/'+state.active.id+'/settings/'+g.id)).settings; }
+  catch(e){ modal.innerHTML='<div class="empty">Konnte Einstellungen nicht laden.<br><br><button class="close" onclick="closeOv()">Schlie\u00dfen</button></div>'; return; }
+  state.editState={ isMath:true, mathLevel:(saved&&saved.mathLevel!=null)?saved.mathLevel:null, count:(saved&&saved.count)||null };
+  renderMathEditor(g);
+}
+function renderMathEditor(g){
+  var s=state.editState, t=MATH_TIERS[g.id]||{gentle:'leichter',normal:'normal',challenge:'schwerer',unit:'Schwierigkeit'};
+  var cur=s.mathLevel; // 'gentle' | '' | 'challenge' | null
+  function tierBtn(val,label,desc){
+    var on=(cur===val)||(cur==null&&val==='');
+    return '<button class="mtier'+(on?' on':'')+'" data-v="'+val+'">'+
+      '<div class="mtl">'+label+'</div><div class="mtd">'+desc+'</div></button>';
+  }
+  var h='<h3>'+g.icon+' '+esc(g.title)+'</h3><div class="msub">F\u00fcr <b>'+esc(state.active.name)+'</b> \u00b7 Mathe-Schwierigkeit</div>';
+  h+='<div class="fieldlbl">'+esc(t.unit||'Schwierigkeit')+' w\u00e4hlen</div>';
+  h+='<div class="mtiers">'+
+       tierBtn('gentle','Leicht',t.gentle||'')+
+       tierBtn('','Normal',t.normal||'')+
+       tierBtn('challenge','Schwer',t.challenge||'')+
+     '</div>';
+  h+='<div class="hint">Diese Stufe wird beim Spielen f\u00fcr dieses Kind automatisch gesetzt.</div>';
+  h+='<div class="fieldlbl">Runden</div><div class="controls"><div class="ctrl"><input id="mcnt" type="number" min="1" max="50" placeholder="Standard" style="width:90px;"></div></div>';
+  h+='<div class="modal-foot"><button class="save" id="saveBtn">Speichern</button><button class="close" onclick="closeOv()">Abbrechen</button></div>';
+  document.getElementById('modal').innerHTML=h;
+  if(s.count) document.getElementById('mcnt').value=String(s.count);
+  document.querySelectorAll('.mtier').forEach(function(b){ b.onclick=function(){ state.editState.mathLevel=b.dataset.v; renderMathEditor(g); }; });
+  document.getElementById('saveBtn').onclick=saveSettings;
+}
+async function openSentenceEditor(g){
+  var modal=document.getElementById('modal');
+  modal.innerHTML='<div class="empty"><span class="spin" style="border-top-color:var(--p1);border-color:var(--p3);"></span> L\u00e4dt\u2026</div>';
+  document.getElementById('ov').classList.add('show');
+  var lang=(localStorage.getItem('ig_lang')||'de');
+  var sentences, saved;
+  try{
+    sentences=(await IG.apiFetch('/game-content-sentences/'+g.id)).sentences;
+    saved=(await IG.apiFetch('/children/'+state.active.id+'/settings/'+g.id)).settings;
+  }catch(e){ modal.innerHTML='<div class="empty">Konnte Inhalt nicht laden.<br><br><button class="close" onclick="closeOv()">Schlie\u00dfen</button></div>'; return; }
+  var list=(sentences[lang]||sentences.de||[]);
+  var disabled=(saved&&saved.disabled)||[];
+  state.editState={
+    isSentence:true, lang:lang,
+    builtin:list.map(function(s){ var key='S|'+s[0]; return {text:s[0], mark:s[1], key:key, on:disabled.indexOf(key)<0}; }),
+    custom:(saved&&saved.custom?saved.custom.slice():[]),
+    count:(saved&&saved.count)||null
+  };
+  renderSentenceEditor(g);
+}
+function renderSentenceEditor(g){
+  var s=state.editState;
+  var langName={de:'Deutsch',en:'Englisch',pl:'Polnisch',es:'Spanisch'}[s.lang]||s.lang;
+  var h='<h3>'+g.icon+' '+esc(g.title)+'</h3><div class="msub">F\u00fcr <b>'+esc(state.active.name)+'</b> \u00b7 S\u00e4tze in '+langName+'</div>';
+  h+='<div class="fieldlbl">Vorhandene S\u00e4tze \u2014 antippen zum Ein-/Ausschalten</div><div class="items" id="sBuiltin"></div>';
+  h+='<div class="fieldlbl">Eigene S\u00e4tze hinzuf\u00fcgen</div><div class="items" id="sCustom"></div>';
+  h+='<div class="addbox">'+
+       '<div class="addrow"><input class="word" id="sText" placeholder="Satz eingeben, z. B. Der Hund bellt" autocomplete="off" style="flex:1;"></div>'+
+       '<div style="display:flex;gap:8px;align-items:center;margin-top:8px;">'+
+         '<span style="font-size:.8rem;font-weight:700;color:var(--muted);">Satzzeichen:</span>'+
+         '<button class="markbtn" data-m=".">.</button>'+
+         '<button class="markbtn" data-m="?">?</button>'+
+         '<button class="markbtn" data-m="!">!</button>'+
+         '<button id="sAdd" style="margin-left:auto;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;padding:9px 16px;border-radius:10px;font-weight:800;font-family:var(--font);cursor:pointer;">Hinzuf\u00fcgen</button>'+
+       '</div>'+
+       '<div class="hint">W\u00e4hle das richtige Satzzeichen, dann \u201eHinzuf\u00fcgen\u201c. Das Kind muss es im Spiel erkennen.</div>'+
+     '</div>';
+  h+='<div class="fieldlbl">Runden</div><div class="controls"><div class="ctrl"><input id="sCnt" type="number" min="1" max="50" placeholder="Standard" style="width:90px;"></div></div>';
+  h+='<div class="modal-foot"><button class="save" id="saveBtn">Speichern</button><button class="close" onclick="closeOv()">Abbrechen</button></div>';
+  document.getElementById('modal').innerHTML=h;
+  if(s.count) document.getElementById('sCnt').value=String(s.count);
+  renderSBuiltin(); renderSCustom();
+  var pickedMark='.';
+  document.querySelectorAll('.markbtn').forEach(function(b){
+    b.onclick=function(){ pickedMark=b.dataset.m; document.querySelectorAll('.markbtn').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); };
+  });
+  document.querySelector('.markbtn').classList.add('on');
+  document.getElementById('sAdd').onclick=function(){
+    var txt=document.getElementById('sText').value.trim();
+    if(!txt){ toast('Bitte einen Satz eingeben'); return; }
+    // strip any trailing punctuation the teacher typed
+    txt=txt.replace(/[.?!]+$/,'').trim();
+    state.editState.custom.push({sentence:txt, mark:pickedMark, lang:s.lang});
+    renderSCustom(); document.getElementById('sText').value='';
+    toast('Satz hinzugef\u00fcgt');
+  };
+  document.getElementById('saveBtn').onclick=saveSettings;
+}
+function renderSBuiltin(){
+  var host=document.getElementById('sBuiltin'); host.innerHTML='';
+  state.editState.builtin.forEach(function(it){
+    var d=document.createElement('div'); d.className='item'+(it.on?'':' off');
+    d.innerHTML='<span class="lbl">'+esc(it.text)+' <b style="color:var(--p1);">'+esc(it.mark)+'</b></span><span class="tog'+(it.on?' on':'')+'"></span>';
+    d.querySelector('.tog').onclick=function(){ it.on=!it.on; renderSBuiltin(); };
+    host.appendChild(d);
+  });
+}
+function renderSCustom(){
+  var host=document.getElementById('sCustom'); host.innerHTML='';
+  if(!state.editState.custom.length){ host.innerHTML='<div style="font-size:.8rem;color:var(--muted);padding:4px 2px;">Noch keine eigenen S\u00e4tze.</div>'; return; }
+  state.editState.custom.forEach(function(it,i){
+    var d=document.createElement('div'); d.className='item cust';
+    d.innerHTML='<span class="lbl">'+esc(it.sentence)+' <b style="color:var(--p1);">'+esc(it.mark)+'</b></span><span class="tag">EIGEN</span><button class="del">\u2715</button>';
+    d.querySelector('.del').onclick=function(){ state.editState.custom.splice(i,1); renderSCustom(); };
+    host.appendChild(d);
+  });
+}
+async function saveSettings(){
+  var s=state.editState;
+  var payload;
+  if(s.isSentence){
+    var disabled=s.builtin.filter(function(it){return !it.on;}).map(function(it){return it.key;});
+    payload={ disabled:disabled, custom:s.custom, count:document.getElementById('sCnt').value?parseInt(document.getElementById('sCnt').value):null };
+  } else if(s.isMath){
+    payload={ mathLevel:(s.mathLevel!=null?s.mathLevel:null), count:document.getElementById('mcnt').value?parseInt(document.getElementById('mcnt').value):null };
+  } else {
+    var disabled=s.builtin.filter(function(it){return !it.on;}).map(function(it){return it.key;});
+    payload={
+      disabled:disabled,
+      custom:s.custom,
+      level:document.getElementById('lvl').value?parseInt(document.getElementById('lvl').value):null,
+      count:document.getElementById('cnt').value?parseInt(document.getElementById('cnt').value):null
+    };
+  }
+  try{
+    await IG.apiFetch('/children/'+state.active.id+'/settings/'+state.editing.id,{method:'PUT',body:JSON.stringify(payload)});
+    toast('Gespeichert für '+state.active.name);
+    closeOv(); await loadKids();
+    var k=state.kids.find(function(x){return x.id===state.active.id;}); if(k){ state.active=k; }
+    renderKids(); renderGames();
+  }catch(e){ toast('Fehler: '+e.message); }
+}
+function closeOv(){ document.getElementById('ov').classList.remove('show'); }
+document.getElementById('ov').onclick=function(e){ if(e.target===this) closeOv(); };
+
+// ───────── progress view ─────────
+var GAME_TITLES={};
+(function(){ if(typeof GAMES_MANIFEST!=='undefined'){ GAMES_MANIFEST.forEach(function(g){ GAME_TITLES[g.id]=g.icon+' '+g.title; }); } })();
+function gtitle(id){ return GAME_TITLES[id]||id; }
+function fmtDate(ms){ var d=new Date(ms); return d.getDate()+'.'+(d.getMonth()+1)+'. '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+
+async function openProgress(k){
+  var modal=document.getElementById('modal');
+  modal.innerHTML='<div class="empty"><span class="spin" style="border-top-color:var(--p1);border-color:var(--p3);"></span> L\u00e4dt\u2026</div>';
+  document.getElementById('ov').classList.add('show');
+  var child;
+  try{ child=(await IG.apiFetch('/children/'+k.id)).child; }
+  catch(e){ modal.innerHTML='<div class="empty">Konnte Fortschritt nicht laden.<br><br><button class="close" onclick="closeOv()">Schlie\u00dfen</button></div>'; return; }
+  var prog=(child.progress||[]).slice();
+  renderProgress(child, prog);
+}
+function renderProgress(child, prog){
+  var h='<h3>📊 '+esc(child.name)+'</h3><div class="msub">Fortschritt &amp; Spielverlauf</div>';
+  if(!prog.length){
+    h+='<div class="empty" style="padding:30px 10px;">Noch keine Spiele gespielt.<br><small>Sobald '+esc(child.name)+' ein Spiel beendet, erscheint es hier automatisch.</small></div>';
+    h+='<div class="modal-foot"><button class="close" onclick="closeOv()" style="flex:1;">Schlie\u00dfen</button></div>';
+    document.getElementById('modal').innerHTML=h; return;
+  }
+  // summary
+  var totalGames=prog.length;
+  var sumScore=prog.reduce(function(a,p){return a+(p.score||0);},0);
+  var sumTotal=prog.reduce(function(a,p){return a+(p.total||0);},0);
+  var pct=sumTotal?Math.round(100*sumScore/sumTotal):0;
+  h+='<div class="psum"><div class="pstat"><div class="pn">'+totalGames+'</div><div class="pl">Spiele</div></div>'+
+     '<div class="pstat"><div class="pn">'+pct+'%</div><div class="pl">richtig</div></div></div>';
+  // per-game grouping
+  var byGame={};
+  prog.forEach(function(p){ (byGame[p.game]=byGame[p.game]||[]).push(p); });
+  h+='<div class="fieldlbl">Pro Spiel</div><div class="pgames">';
+  Object.keys(byGame).forEach(function(gid){
+    var rs=byGame[gid];
+    var last=rs[rs.length-1], best=rs.reduce(function(b,p){ var r=(p.total?p.score/p.total:0); return r>b.r?{r:r,p:p}:b; },{r:-1,p:null}).p;
+    var first=rs[0];
+    var fr=first.total?first.score/first.total:0, lr=last.total?last.score/last.total:0;
+    var trend = rs.length<2 ? '►' : (lr>fr+0.05?'▲':(lr<fr-0.05?'▼':'►'));
+    var tcol = trend==='▲'?'var(--g1)':(trend==='▼'?'var(--r1)':'var(--muted)');
+    // score sequence (last up to 6)
+    var seq=rs.slice(-6).map(function(p){return p.score+'/'+p.total;}).join(' → ');
+    h+='<div class="pgame"><div class="pgt">'+esc(gtitle(gid))+' <span style="color:var(--muted);font-weight:700;">×'+rs.length+'</span></div>'+
+       '<div class="pgr">zuletzt <b>'+last.score+'/'+last.total+'</b> · best <b>'+best.score+'/'+best.total+'</b> <span style="color:'+tcol+';font-weight:900;">'+trend+'</span></div>'+
+       '<div class="pseq">'+esc(seq)+'</div></div>';
+  });
+  h+='</div>';
+  // recent sessions
+  h+='<div class="fieldlbl">Letzte Sitzungen</div><div class="psess">';
+  prog.slice(-12).reverse().forEach(function(p){
+    h+='<div class="prow"><span>'+esc(gtitle(p.game))+'</span><b>'+p.score+'/'+p.total+'</b><small>'+fmtDate(p.at)+'</small></div>';
+  });
+  h+='</div>';
+  h+='<div class="modal-foot"><button class="save" id="pdfBtn">📄 Förderbericht (PDF)</button><button class="close" onclick="closeOv()">Schließen</button></div>';
+  document.getElementById('modal').innerHTML=h;
+  var pb=document.getElementById('pdfBtn'); if(pb) pb.onclick=function(){ downloadReport(child.id, child.name); };
+}
+async function downloadReport(childId, childName){
+  try{
+    var tok=localStorage.getItem('ig_token');
+    var res=await fetch('/api/children/'+childId+'/report.pdf',{headers:{Authorization:'Bearer '+tok}});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    var blob=await res.blob();
+    var url=URL.createObjectURL(blob);
+    window.open(url,'_blank');
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+  }catch(e){ toast('PDF-Fehler: '+e.message); }
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+// minimal manifest for the grid (id, title, subject, grade, icon)
+var GAMES_MANIFEST=[
+  { id: "game05", title: "Mark Hunter", subject: "Literacy", grade: "Kl. 2–3", icon: "🗡️" },
+  { id: "game12", title: "Shape Seeker", subject: "Math", grade: "Kl. 1–2", icon: "🔷" },
+  { id: "game23", title: "Plant Parts", subject: "Science", grade: "Kl. 2–3", icon: "🌱" },
+  { id: "game07", title: "Egg Counter", subject: "Math", grade: "Kl. 1", icon: "🐣" },
+  { id: "game08", title: "Number Mountain", subject: "Math", grade: "Kl. 2", icon: "⛰️" },
+  { id: "game09", title: "Plus Power", subject: "Math", grade: "Kl. 1–2", icon: "➕" },
+  { id: "game10", title: "Minus Magic", subject: "Math", grade: "Kl. 2–3", icon: "➖" },
+  { id: "game11", title: "Times Treasure", subject: "Math", grade: "Kl. 3–4", icon: "✖️" },
+
+  {
+    id: "game03",
+    title: "First Sound",
+    subject: "Literacy",
+    grade: "Kl. 1–2",
+    icon: "🔮"
+  },
+  {
+    id: "game04",
+    title: "Word Wizard",
+    subject: "Grammar",
+    grade: "Kl. 3–4",
+    icon: "🧙"
+  },
+  {
+    id: "game06",
+    title: "Rhyme Rescue",
+    subject: "Literacy",
+    grade: "Kl. 1–2",
+    icon: "🎶"
+  },
+  {
+    id: "game13",
+    title: "Unit Detective",
+    subject: "Math",
+    grade: "Kl. 3–4",
+    icon: "📏"
+  },
+  {
+    id: "game14",
+    title: "Hello Friends",
+    subject: "English",
+    grade: "Kl. 3",
+    icon: "👋"
+  },
+  {
+    id: "game15",
+    title: "Rainbow Numbers",
+    subject: "English",
+    grade: "Kl. 3",
+    icon: "🎨"
+  },
+  {
+    id: "game16",
+    title: "Animal Safari",
+    subject: "English",
+    grade: "Kl. 3",
+    icon: "🦁"
+  },
+  {
+    id: "game17",
+    title: "Family Tree",
+    subject: "English",
+    grade: "Kl. 3",
+    icon: "👨‍👩‍👧"
+  },
+  {
+    id: "game18",
+    title: "Tasty Words",
+    subject: "English",
+    grade: "Kl. 3–4",
+    icon: "🍎"
+  },
+  {
+    id: "game19",
+    title: "School Quest",
+    subject: "English",
+    grade: "Kl. 3–4",
+    icon: "🎒"
+  },
+  {
+    id: "game20",
+    title: "Action Heroes",
+    subject: "English",
+    grade: "Kl. 4",
+    icon: "🏃"
+  },
+  {
+    id: "game21",
+    title: "Season Spinner",
+    subject: "Science",
+    grade: "Kl. 1–2",
+    icon: "🌦️"
+  },
+  {
+    id: "game22",
+    title: "Habitat Hunt",
+    subject: "Science",
+    grade: "Kl. 1–2",
+    icon: "🌍"
+  },
+  {
+    id: "game24",
+    title: "World Explorer",
+    subject: "Geography",
+    grade: "Kl. 2–4",
+    icon: "🗺️"
+  },
+  {
+    id: "game25",
+    title: "Healthy Heroes",
+    subject: "Science",
+    grade: "Kl. 1–3",
+    icon: "🥦"
+  },
+  {
+    id: "game26",
+    title: "Road Ranger",
+    subject: "Science",
+    grade: "Kl. 2–4",
+    icon: "🚦"
+  },
+  {
+    id: "game27",
+    title: "Job Heroes",
+    subject: "Science",
+    grade: "Kl. 2–4",
+    icon: "👷"
+  },
+  {
+    id: "game28",
+    title: "Instrument Band",
+    subject: "Music",
+    grade: "Kl. 1–3",
+    icon: "🎺"
+  },
+  {
+    id: "game29",
+    title: "Loud & Quiet",
+    subject: "Music",
+    grade: "Kl. 1–2",
+    icon: "🔊"
+  },
+  {
+    id: "game31",
+    title: "Fast & Slow",
+    subject: "Music",
+    grade: "Kl. 1–2",
+    icon: "🎶"
+  },
+  {
+    id: "game32",
+    title: "High & Low",
+    subject: "Music",
+    grade: "Kl. 1–2",
+    icon: "🎼"
+  },
+  {
+    id: "game34",
+    title: "Warm & Cold",
+    subject: "Art",
+    grade: "Kl. 2–3",
+    icon: "🌈"
+  },
+  {
+    id: "game35",
+    title: "Art Studio",
+    subject: "Art",
+    grade: "Kl. 1–3",
+    icon: "🖼️"
+  },
+  {
+    id: "game37",
+    title: "Light & Shadow",
+    subject: "Art",
+    grade: "Kl. 2–3",
+    icon: "🔦"
+  },
+  {
+    id: "game38",
+    title: "Body Parts",
+    subject: "Sport",
+    grade: "Kl. 1–2",
+    icon: "🧍"
+  },
+  {
+    id: "game39",
+    title: "Sports Star",
+    subject: "Sport",
+    grade: "Kl. 2–3",
+    icon: "⚽"
+  },
+  {
+    id: "game40",
+    title: "Move It!",
+    subject: "Sport",
+    grade: "Kl. 1–2",
+    icon: "🤾"
+  },
+  {
+    id: "game41",
+    title: "Olympic Heroes",
+    subject: "Sport",
+    grade: "Kl. 2–4",
+    icon: "🥇"
+  },
+  {
+    id: "game42",
+    title: "Fair Play",
+    subject: "Sport",
+    grade: "Kl. 1–3",
+    icon: "🤝"
+  }
+];
+
+loadKids();
+</script>
+</body></html>

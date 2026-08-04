@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Fair Play — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game42 — Fair Play. Is this fair play, or not fair? */
+var ITEMS=[['🤝',1],['🔄',1],['👏',1],['🆘',1],['😊',1],['😠',0],['🃏',0],['😢',0],['🙅',0],['👊',0]];
+var LBL={en:['Fair','Not fair'],de:['Fair','Unfair'],pl:['Uczciwe','Nieuczciwe'],es:['Justo','Injusto']};
+var HUD={en:'FAIR PLAY?',de:'FAIRES SPIEL?',pl:'CZY TO FAIR?',es:'¿JUEGO LIMPIO?'};
+var ASK={en:'Is this fair play, or not fair?',de:'Ist das fair oder unfair?',pl:'Czy to jest uczciwe, czy nie?',es:'¿Es juego limpio o no?'};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game42', icon:'🤝', hero:'🧒', villain:'😈', castle:'🏰',
+  text:{
+    en:{tag:'Sport · Grades 1–3 · Game #42', title:'Fair ', titleEm:'Play!', desc:'Decide if each action is fair play — or not.', quest:'🤝 Build the team of friends! Each fair choice you spot brings the team closer to the castle.', questLbl:'BUILD THE TEAM'},
+    de:{tag:'Sport · Kl. 1–3 · Spiel #42', title:'Faires ', titleEm:'Spiel!', desc:'Entscheide, ob jede Handlung fair ist — oder nicht.', quest:'🤝 Baue das Team aus Freunden! Jede faire Wahl bringt das Team näher zur Burg.', questLbl:'TEAM AUFBAUEN'},
+    pl:{tag:'Sport · Kl. 1–3 · Gra #42', title:'Fair ', titleEm:'Play!', desc:'Zdecyduj, czy każde zachowanie jest uczciwe — czy nie.', quest:'🤝 Zbuduj drużynę przyjaciół! Każdy uczciwy wybór przybliża drużynę do zamku.', questLbl:'ZBUDUJ DRUŻYNĘ'},
+    es:{tag:'Deporte · Grados 1–3 · Juego #42', title:'Juego ', titleEm:'Limpio!', desc:'Decide si cada acción es juego limpio — o no.', quest:'🤝 ¡Forma el equipo de amigos! Cada elección justa acerca al equipo al castillo.', questLbl:'FORMA EL EQUIPO'}
+  },
+  rounds:function(lang,level,mode,count){
+    var L=LBL[lang]||LBL.en, out=[], pool=shuf(ITEMS);
+    for(var i=0;i<count;i++){var it=pool[i%pool.length];var c=it[1]?L[0]:L[1];out.push({hud:HUD[lang]||HUD.en,big:it[0],word:null,speech:ASK[lang]||ASK.en,praise:c,correct:c,distractors:[it[1]?L[1]:L[0]]});}
+    return out;
+  }
+});
+</script>
+</body></html>

@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InclusionGames — Każde Dziecko Zasługuje na Zabawę</title>
+<meta name="description" content="Edukacyjne gry komputerowe dla dzieci z niepełnosprawnościami, w wieku 4–10 lat. Tylko kamera — żadnych kontrolerów. Zacznij bezpłatny okres próbny.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --ink:#1a1a2e;--ink2:#3d3d5c;--muted:#6b6b8a;
+  --bg:#fafaf8;--surface:#ffffff;--surface2:#f4f3ff;--border:#e8e6f0;
+  --p1:#7c3aed;--p2:#a855f7;--p3:#ede9fe;
+  --a1:#f59e0b;--a2:#fbbf24;--a3:#fef3c7;
+  --g1:#10b981;--g2:#34d399;--g3:#d1fae5;
+  --r1:#ef4444;--b1:#3b82f6;--b3:#dbeafe;
+  --font:'Nunito',sans-serif;--display:'Fredoka One',cursive;
+  --shadow:0 4px 24px rgba(124,58,237,.10);
+  --shadow-lg:0 12px 48px rgba(124,58,237,.16);
+  --radius:16px;--radius-xl:28px;
+}
+html{scroll-behavior:smooth;}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);line-height:1.6;overflow-x:hidden;}
+h1,h2,h3{font-family:var(--display);line-height:1.2;}
+a{text-decoration:none;color:inherit;}
+.container{max-width:1200px;margin:0 auto;padding:0 24px;}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;font-weight:700;letter-spacing:.5px;padding:4px 12px;border-radius:100px;}
+.badge-purple{background:var(--p3);color:var(--p1);}
+.badge-gold{background:var(--a3);color:#92400e;}
+.badge-green{background:var(--g3);color:#065f46;}
+.badge-red{background:#fee2e2;color:#991b1b;}
+.section-tag{font-size:.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--p1);margin-bottom:12px;}
+.section-title{font-size:clamp(2rem,5vw,3rem);color:var(--ink);margin-bottom:14px;}
+.section-sub{font-size:1.05rem;color:var(--muted);max-width:580px;line-height:1.7;}
+.text-center{text-align:center;}
+.text-center .section-sub{margin:0 auto;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 28px;border-radius:100px;font-size:1rem;font-weight:700;border:none;cursor:pointer;transition:transform .2s,box-shadow .2s;font-family:var(--font);}
+.btn:hover{transform:translateY(-2px);}
+.btn-primary{background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;box-shadow:0 6px 24px rgba(124,58,237,.35);}
+.btn-primary:hover{box-shadow:0 10px 36px rgba(124,58,237,.45);}
+.btn-outline{background:transparent;color:var(--p1);border:2px solid var(--p1);}
+.btn-outline:hover{background:var(--p3);}
+.btn-gold{background:linear-gradient(135deg,var(--a1),var(--a2));color:#fff;box-shadow:0 6px 20px rgba(245,158,11,.35);}
+.btn-green{background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;}
+.btn-red{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;box-shadow:0 6px 20px rgba(239,68,68,.35);}
+.btn-sm{padding:10px 20px;font-size:.9rem;}
+
+/* DEMO BANNER */
+#demo-banner{background:linear-gradient(135deg,#dc2626,#b91c1c);padding:14px 0;color:#fff;}
+.db-inner{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;text-align:center;}
+.db-text{font-size:.95rem;font-weight:700;}
+.db-text strong{background:rgba(255,255,255,.2);padding:2px 10px;border-radius:100px;margin:0 4px;}
+.db-btn{background:#fff;color:#dc2626;font-size:.88rem;font-weight:700;padding:8px 20px;border-radius:100px;border:none;cursor:pointer;transition:transform .15s;}
+.db-btn:hover{transform:scale(1.04);}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;background:rgba(250,250,248,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0;}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:68px;gap:20px;}
+.nav-logo{display:flex;align-items:center;gap:10px;}
+.nav-logo-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--p1),var(--p2));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;}
+.nav-logo-text{font-family:var(--display);font-size:1.3rem;color:var(--ink);}
+.nav-logo-text span{color:var(--p1);}
+.nav-links{display:flex;align-items:center;gap:28px;list-style:none;}
+.nav-links a{font-size:.9rem;font-weight:600;color:var(--muted);transition:color .2s;}
+.nav-links a:hover{color:var(--p1);}
+.nav-cta{display:flex;align-items:center;gap:10px;}
+.lang-chip{font-size:.82rem;font-weight:700;color:var(--muted);background:none;border:1.5px solid var(--border);padding:6px 12px;border-radius:100px;cursor:pointer;transition:border-color .15s;}
+.lang-chip:hover{border-color:var(--p1);color:var(--p1);}
+.demo-chip{background:var(--b3);color:var(--b1);border:none;font-size:.8rem;font-weight:700;padding:6px 14px;border-radius:100px;cursor:pointer;}
+
+/* HERO */
+#hero{padding:80px 0 60px;position:relative;overflow:hidden;}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(124,58,237,.07),transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(239,68,68,.05),transparent 50%);pointer-events:none;}
+.hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;}
+.hero-h1{font-size:clamp(2.4rem,6vw,4rem);color:var(--ink);margin-bottom:20px;}
+.hero-h1 em{font-style:normal;color:var(--p1);}
+.hero-desc{font-size:1.05rem;color:var(--muted);margin-bottom:32px;max-width:480px;line-height:1.8;}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:36px;}
+.hero-stats{display:flex;gap:28px;flex-wrap:wrap;}
+.stat-n{font-family:var(--display);font-size:1.8rem;color:var(--p1);}
+.stat-l{font-size:.8rem;color:var(--muted);font-weight:600;}
+.hero-card{background:var(--surface);border-radius:var(--radius-xl);padding:26px;box-shadow:var(--shadow-lg);border:1px solid var(--border);}
+.hc-hdr{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+.hc-av{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--p1),var(--a2));display:flex;align-items:center;justify-content:center;font-size:1.3rem;}
+.hc-info h4{font-size:.92rem;font-weight:700;}
+.hc-info p{font-size:.78rem;color:var(--muted);}
+.preview-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px;}
+.pg-card{background:var(--surface2);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border);}
+.pg-icon{font-size:1.7rem;margin-bottom:3px;}
+.pg-name{font-size:.72rem;font-weight:700;color:var(--ink2);}
+.demo-strip{background:linear-gradient(135deg,#fee2e2,#fef3c7);border-radius:12px;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.ds-text{font-size:.82rem;font-weight:700;color:var(--ink2);}
+.ds-btn{font-size:.78rem;font-weight:700;padding:7px 14px;background:var(--r1);color:#fff;border:none;border-radius:100px;cursor:pointer;}
+
+/* POLISH MARKET SECTION */
+#poland{padding:70px 0;background:linear-gradient(135deg,#fafafa,#f4f0ff);}
+.poland-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;}
+.poland-flag{font-size:4rem;margin-bottom:16px;}
+.pl-stat-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px;}
+.pl-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;}
+.pl-stat-n{font-family:var(--display);font-size:1.8rem;color:var(--p1);}
+.pl-stat-l{font-size:.8rem;color:var(--muted);font-weight:600;}
+.compliance-list{display:flex;flex-direction:column;gap:10px;}
+.c-item{display:flex;align-items:flex-start;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 15px;}
+.c-icon{font-size:1.2rem;flex-shrink:0;}
+.c-title{font-size:.88rem;font-weight:700;color:var(--ink);}
+.c-desc{font-size:.78rem;color:var(--muted);margin-top:2px;}
+
+/* HOW */
+#how{padding:80px 0;}
+.how-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px;margin-top:48px;}
+.how-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:26px 22px;transition:box-shadow .2s;}
+.how-card:hover{box-shadow:var(--shadow);}
+.how-num{font-family:var(--display);font-size:3.2rem;color:var(--p3);line-height:1;margin-bottom:10px;}
+.how-icon{font-size:1.9rem;margin-bottom:10px;}
+.how-card h4{font-size:1.05rem;margin-bottom:7px;}
+.how-card p{font-size:.88rem;color:var(--muted);line-height:1.6;}
+
+/* GAMES */
+#games{padding:80px 0;background:var(--surface2);}
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:32px;}
+.fc{font-size:.82rem;font-weight:700;padding:7px 16px;border-radius:100px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;transition:all .15s;}
+.fc.on{background:var(--p1);color:#fff;border-color:var(--p1);}
+.age-label{font-family:var(--display);font-size:1.05rem;color:var(--ink2);margin:28px 0 14px;display:flex;align-items:center;gap:10px;}
+.age-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.games-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:14px;}
+.game-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px;cursor:pointer;transition:transform .2s,box-shadow .2s,border-color .2s;}
+.game-card:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:var(--p1);}
+.gc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;}
+.gc-icon{font-size:2.1rem;}
+.cat-pill{font-size:.66rem;font-weight:700;padding:3px 8px;border-radius:100px;}
+.gc-title{font-size:.92rem;font-weight:700;color:var(--ink);margin-bottom:4px;}
+.gc-desc{font-size:.78rem;color:var(--muted);line-height:1.5;margin-bottom:8px;}
+.gc-tags{display:flex;gap:5px;flex-wrap:wrap;}
+.gc-tag{font-size:.66rem;padding:2px 7px;background:var(--surface2);color:var(--ink2);border-radius:4px;border:1px solid var(--border);}
+.cs-card{background:var(--surface);border:2px dashed var(--border);border-radius:var(--radius);padding:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:155px;color:var(--muted);text-align:center;gap:7px;}
+
+/* ACCESSIBILITY */
+#dostepnosc{padding:80px 0;}
+.acc-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;margin-top:48px;}
+.acc-features{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.acc-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.acc-card .ai{font-size:1.5rem;margin-bottom:7px;}
+.acc-card h4{font-size:.88rem;font-weight:700;margin-bottom:3px;}
+.acc-card p{font-size:.78rem;color:var(--muted);line-height:1.5;}
+.acc-visual{background:linear-gradient(135deg,var(--p3),var(--a3));border-radius:var(--radius-xl);padding:30px;display:flex;flex-direction:column;gap:12px;}
+.av-row{background:var(--surface);border-radius:12px;padding:12px 15px;display:flex;align-items:center;gap:10px;}
+.av-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.av-text{font-size:.83rem;font-weight:700;color:var(--ink2);}
+.av-tog{margin-left:auto;width:34px;height:19px;border-radius:9px;display:flex;align-items:center;padding:2px 3px;cursor:pointer;}
+.av-tog.on{background:var(--g1);justify-content:flex-end;}
+.av-tog.off{background:var(--border);}
+.av-tog-dot{width:15px;height:15px;background:#fff;border-radius:50%;}
+
+/* TESTIMONIALS */
+#opinie{padding:80px 0;background:var(--surface2);}
+.test-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:22px;margin-top:48px;}
+.test-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:26px;}
+.test-stars{color:var(--a1);font-size:.85rem;margin-bottom:10px;}
+.test-q{font-size:1.5rem;color:var(--p1);margin-bottom:10px;font-family:Georgia,serif;line-height:1;}
+.test-text{font-size:.9rem;color:var(--ink2);line-height:1.7;margin-bottom:18px;font-style:italic;}
+.test-auth{display:flex;align-items:center;gap:10px;}
+.ta-av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:1rem;}
+.ta-name{font-size:.86rem;font-weight:700;}
+.ta-role{font-size:.75rem;color:var(--muted);}
+
+/* PRICING */
+#cennik{padding:80px 0;}
+.trial-box{background:linear-gradient(135deg,var(--p1),#5b21b6);border-radius:var(--radius-xl);padding:42px;color:#fff;margin-bottom:56px;text-align:center;position:relative;overflow:hidden;}
+.trial-box::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:rgba(255,255,255,.06);border-radius:50%;}
+.tb-content{position:relative;z-index:1;}
+.tb-title{font-size:clamp(1.8rem,4vw,2.6rem);margin-bottom:10px;}
+.tb-desc{font-size:.98rem;opacity:.85;max-width:480px;margin:0 auto 24px;}
+.tb-days{display:flex;gap:14px;justify-content:center;margin-bottom:24px;flex-wrap:wrap;}
+.tb-day{background:rgba(255,255,255,.15);border-radius:12px;padding:12px 20px;text-align:center;border:1px solid rgba(255,255,255,.2);}
+.tb-day-n{font-family:var(--display);font-size:1.9rem;line-height:1;}
+.tb-day-l{font-size:.76rem;opacity:.8;}
+.tb-arrow{font-size:1.4rem;display:flex;align-items:center;color:rgba(255,255,255,.5);}
+.tb-note{font-size:.8rem;opacity:.65;margin-top:12px;}
+
+.plans-toggle{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:40px;}
+.pt-lbl{font-size:.9rem;font-weight:700;color:var(--muted);}
+.pt-lbl.on{color:var(--p1);}
+.tog-btn{width:48px;height:25px;background:var(--p1);border-radius:13px;display:flex;align-items:center;padding:3px;cursor:pointer;}
+.tog-btn .dot{width:19px;height:19px;background:#fff;border-radius:50%;transition:transform .2s;}
+.tog-btn.ann .dot{transform:translateX(23px);}
+.save-chip{background:var(--g3);color:#065f46;font-size:.7rem;font-weight:700;padding:2px 7px;border-radius:100px;}
+
+.plans-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:22px;}
+.plan-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:28px 24px;display:flex;flex-direction:column;}
+.plan-card.popular{border-color:var(--p1);box-shadow:0 0 0 3px rgba(124,58,237,.12);}
+.pop-tag{background:var(--p1);color:#fff;font-size:.7rem;font-weight:700;padding:3px 12px;border-radius:100px;display:inline-block;margin-bottom:14px;align-self:flex-start;}
+.plan-name{font-family:var(--display);font-size:1.4rem;margin-bottom:5px;}
+.plan-for{font-size:.8rem;color:var(--muted);margin-bottom:18px;}
+.plan-price{margin-bottom:22px;}
+.plan-amt{font-family:var(--display);font-size:2.6rem;line-height:1;}
+.plan-per{font-size:.8rem;color:var(--muted);}
+.plan-features{list-style:none;display:flex;flex-direction:column;gap:9px;margin-bottom:24px;flex:1;}
+.plan-features li{display:flex;align-items:flex-start;gap:7px;font-size:.86rem;color:var(--ink2);}
+.plan-features li::before{content:'✓';color:var(--g1);font-weight:700;flex-shrink:0;}
+.plan-features li.no::before{content:'✗';color:var(--border);}
+.plan-features li.no{color:var(--muted);}
+.plan-btn{width:100%;padding:13px;border-radius:100px;font-size:.92rem;font-weight:700;border:none;cursor:pointer;font-family:var(--font);transition:transform .15s;}
+.plan-btn:hover{transform:translateY(-2px);}
+.plan-btn-p{background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;}
+.plan-btn-o{background:transparent;color:var(--p1);border:2px solid var(--p1);}
+.plan-btn-o:hover{background:var(--p3);}
+
+/* DEMO ACCOUNT BOX */
+#demo-konto{padding:80px 0;background:linear-gradient(135deg,#1e1b4b,#312e81);}
+.demo-inner{max-width:700px;margin:0 auto;text-align:center;color:#fff;}
+.demo-inner h2{font-size:clamp(2rem,5vw,3rem);margin-bottom:12px;}
+.demo-inner p{font-size:1rem;opacity:.8;margin-bottom:32px;line-height:1.7;}
+.demo-creds{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:28px 32px;margin-bottom:28px;}
+.dc-title{font-size:.75rem;letter-spacing:2px;text-transform:uppercase;opacity:.7;margin-bottom:18px;font-weight:700;}
+.dc-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.1);}
+.dc-row:last-child{border-bottom:none;}
+.dc-lbl{font-size:.88rem;opacity:.7;font-weight:700;}
+.dc-val{font-family:'Courier New',monospace;font-size:1rem;color:#fbbf24;font-weight:700;letter-spacing:.5px;}
+.dc-copy{font-size:.72rem;padding:4px 10px;background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:100px;cursor:pointer;transition:background .15s;}
+.dc-copy:hover{background:rgba(255,255,255,.25);}
+.demo-note{font-size:.82rem;opacity:.6;margin-top:14px;}
+.demo-access-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+
+/* CONTACT / CUSTOM */
+#kontakt{padding:80px 0;}
+.custom-inner{background:linear-gradient(135deg,#f8faff,#fdf6ff);border:1px solid var(--border);border-radius:var(--radius-xl);padding:56px;display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;}
+.cf{background:var(--surface);border-radius:var(--radius);padding:26px;border:1px solid var(--border);}
+.cf-title{font-size:1.1rem;font-weight:700;margin-bottom:14px;}
+.cf-row{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+.cf-lbl{font-size:.8rem;font-weight:700;color:var(--ink2);}
+.cf-input,.cf-sel,.cf-ta{width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:.86rem;color:var(--ink);background:var(--surface);outline:none;transition:border-color .15s;}
+.cf-input:focus,.cf-sel:focus,.cf-ta:focus{border-color:var(--p1);}
+.cf-ta{resize:vertical;min-height:75px;}
+.cf-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:100px;font-family:var(--font);font-size:.92rem;font-weight:700;cursor:pointer;margin-top:4px;}
+
+/* CTA FINAL */
+#cta-final{padding:80px 0;}
+.cta-box{background:linear-gradient(135deg,var(--p1),#7c3aed,var(--a1));border-radius:var(--radius-xl);padding:70px 56px;text-align:center;color:#fff;position:relative;overflow:hidden;}
+.cta-box::before{content:'🎈';position:absolute;font-size:6rem;opacity:.07;top:-20px;left:5%;}
+.cta-box h2{font-size:clamp(2rem,5vw,3rem);margin-bottom:12px;}
+.cta-box p{font-size:1rem;opacity:.85;max-width:460px;margin:0 auto 28px;}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.btn-white{background:#fff;color:var(--p1);font-weight:700;}
+.btn-ghost{background:rgba(255,255,255,.15);color:#fff;border:2px solid rgba(255,255,255,.35);}
+
+/* FOOTER */
+footer{background:var(--ink);color:#e2e0f0;padding:56px 0 28px;}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:36px;margin-bottom:40px;}
+.footer-brand .fb-logo{font-family:var(--display);font-size:1.4rem;color:#fff;margin-bottom:10px;}
+.footer-brand p{font-size:.83rem;color:#9a98b0;line-height:1.7;max-width:240px;}
+.footer-col h5{font-size:.82rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9a98b0;margin-bottom:14px;}
+.footer-col a{display:block;font-size:.86rem;color:#c4c2d8;margin-bottom:7px;transition:color .15s;}
+.footer-col a:hover{color:#fff;}
+.footer-bottom{border-top:1px solid rgba(255,255,255,.08);padding-top:22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.fb-copy{font-size:.78rem;color:#6b6988;}
+.fb-badges{display:flex;gap:8px;}
+.fb-badge{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:5px 10px;font-size:.72rem;color:#9a98b0;}
+
+/* PAYMENT MODAL */
+#pay-modal{display:none;position:fixed;inset:0;z-index:200;background:rgba(26,26,46,.65);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;}
+#pay-modal.show{display:flex;}
+.pm-box{background:var(--surface);border-radius:var(--radius-xl);padding:34px;max-width:440px;width:100%;position:relative;box-shadow:0 24px 80px rgba(0,0,0,.2);}
+.pm-close{position:absolute;top:14px;right:14px;background:var(--surface2);border:1px solid var(--border);width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.95rem;color:var(--ink2);}
+.pm-title{font-size:1.35rem;margin-bottom:5px;}
+.pm-sub{font-size:.82rem;color:var(--muted);margin-bottom:20px;}
+.pm-sel{background:var(--p3);border-radius:12px;padding:12px 15px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;}
+.pm-sel-name{font-weight:700;font-size:.92rem;color:var(--p1);}
+.pm-sel-price{font-family:var(--display);font-size:1.25rem;color:var(--p1);}
+.pm-trial-note{background:var(--g3);border-radius:10px;padding:11px 13px;font-size:.8rem;color:#065f46;font-weight:600;margin-bottom:18px;}
+.pm-methods{display:flex;flex-direction:column;gap:10px;margin-bottom:18px;}
+.pm-method{display:flex;align-items:center;gap:12px;border:1.5px solid var(--border);border-radius:11px;padding:13px 15px;cursor:pointer;transition:border-color .15s;}
+.pm-method:hover,.pm-method.sel{border-color:var(--p1);background:var(--p3);}
+.pm-m-icon{width:42px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:.8rem;font-weight:700;}
+.pm-stripe .pm-m-icon{background:#635bff;color:#fff;}
+.pm-paypal .pm-m-icon{background:#003087;color:#fff;}
+.pm-m-text{font-size:.88rem;font-weight:600;color:var(--ink2);}
+.pm-proceed{width:100%;padding:13px;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:100px;font-size:.95rem;font-weight:700;cursor:pointer;margin-bottom:12px;font-family:var(--font);}
+.pm-footer{font-size:.73rem;color:var(--muted);text-align:center;}
+.pm-footer a{color:var(--p1);}
+
+@media(max-width:900px){
+  .hero-grid,.poland-grid,.acc-grid,.custom-inner{grid-template-columns:1fr;}
+  .footer-grid{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:600px){
+  .nav-links{display:none;}
+  .footer-grid{grid-template-columns:1fr;}
+  .acc-features,.pl-stat-row{grid-template-columns:1fr;}
+  .cta-box{padding:40px 22px;}
+}
+</style>
+</head>
+<body>
+
+<!-- DEMO BANNER -->
+<div id="demo-banner">
+  <div class="container">
+    <div class="db-inner">
+      <div class="db-text">🎯 Konto demo dla <strong>Macieja</strong> — pełny dostęp do wszystkich gier już aktywny!</div>
+      <button class="db-btn" onclick="scrollToDemo()">Zaloguj się jako demo →</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="container">
+    <div class="nav-inner">
+      <div class="nav-logo">
+        <div class="nav-logo-icon">🎈</div>
+        <span class="nav-logo-text">Inclusion<span>Games</span></span>
+      </div>
+      <ul class="nav-links">
+        <li><a href="#games">Gry</a></li>
+        <li><a href="#jak-dziala">Jak działa</a></li>
+        <li><a href="#cennik">Cennik</a></li>
+        <li><a href="#misja">Misja</a></li>
+        <li><a href="#kontakt">Kontakt</a></li>
+      </ul>
+      <div class="nav-cta">
+        <a href="index.html" class="lang-chip">🇩🇪 DE</a>
+        <a href="index.html" class="lang-chip">🇬🇧 EN</a>
+        <button class="demo-chip" onclick="scrollToDemo()">🎯 Demo Macieja</button>
+        <button class="btn btn-primary btn-sm" onclick="openPayment('trial')">Zacznij bezpłatnie</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg"></div>
+  <div class="container">
+    <div class="hero-grid">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
+          <span class="badge badge-purple">🎮 Śledzenie ruchu ręki</span>
+          <span class="badge badge-gold">Bez kontrolera</span>
+          <span class="badge badge-red">🇵🇱 Dostępne po polsku</span>
+        </div>
+        <h1 class="hero-h1">Każde dziecko zasługuje na <em>zabawę</em></h1>
+        <p class="hero-desc">42 edukacyjne gry z śledzeniem dłoni dla dzieci z niepełnosprawnościami, w wieku 4–10 lat. Tylko kamera i uśmiech — żadnego drogiego sprzętu, żadnych skomplikowanych ustawień.</p>
+        <div class="hero-btns">
+          <button class="btn btn-primary" onclick="openPayment('trial')">🎮 Zacznij bezpłatny okres próbny — 3 dni</button>
+          <a href="#games" class="btn btn-outline">Zobacz wszystkie gry</a>
+        </div>
+        <div class="hero-stats">
+          <div><div class="stat-n">42</div><div class="stat-l">Gry dostępne</div></div>
+          <div><div class="stat-n">8</div><div class="stat-l">Języki</div></div>
+          <div><div class="stat-n">4–10</div><div class="stat-l">Przedział wiekowy</div></div>
+          <div><div class="stat-n">0</div><div class="stat-l">Sprzętu potrzeba</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="hero-card">
+          <div class="hc-hdr">
+            <div class="hc-av">🎈</div>
+            <div class="hc-info"><h4>Platforma EduPop!</h4><p>4 dzieci gra teraz</p></div>
+            <span class="badge badge-green" style="margin-left:auto">● Na żywo</span>
+          </div>
+          <div class="preview-grid">
+            <div class="pg-card"><div class="pg-icon">📖</div><div class="pg-name">Litery-Pop</div></div>
+            <div class="pg-card"><div class="pg-icon">🔢</div><div class="pg-name">Liczby-Pop</div></div>
+            <div class="pg-card"><div class="pg-icon">🎨</div><div class="pg-name">Kolory-Pop</div></div>
+            <div class="pg-card"><div class="pg-icon">😊</div><div class="pg-name">Emocje-Pop</div></div>
+          </div>
+          <div class="demo-strip">
+            <div class="ds-text">🎁 Bezpłatny okres próbny 3 dni — wszystkie gry</div>
+            <button class="ds-btn" onclick="openPayment('trial')">Zacznij</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRIAL STRIP -->
+<div style="background:linear-gradient(135deg,var(--p1),#5b21b6);padding:16px 0;color:#fff;">
+  <div class="container">
+    <div style="display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;text-align:center;">
+      <div style="font-size:.98rem;font-weight:700;">🎁 Zacznij z <em style="background:rgba(255,255,255,.2);padding:2px 10px;border-radius:100px;font-style:normal;">3-dniowym bezpłatnym okresem próbnym</em> — przedłuż do <em style="background:rgba(255,255,255,.2);padding:2px 10px;border-radius:100px;font-style:normal;">7 dni</em> opowiadając nam o swoim dziecku</div>
+      <button class="db-btn" onclick="openPayment('trial')">Zacznij →</button>
+    </div>
+  </div>
+</div>
+
+<!-- POLISH MARKET -->
+<section id="poland">
+  <div class="container">
+    <div class="poland-grid">
+      <div>
+        <div class="poland-flag">🇵🇱</div>
+        <div class="section-tag">Rynek polski</div>
+        <h2 class="section-title">Zaprojektowane dla polskich szkół</h2>
+        <p class="section-sub">InclusionGames spełnia wszystkie wymagania polskiego systemu edukacji — zgodność z podstawą programową MEN, pełne wsparcie RODO i język polski w każdej grze.</p>
+        <div class="pl-stat-row">
+          <div class="pl-stat"><div class="pl-stat-n">4,9 mln</div><div class="pl-stat-l">uczniów szkół podstawowych w Polsce</div></div>
+          <div class="pl-stat"><div class="pl-stat-n">~80 000</div><div class="pl-stat-l">uczniów z orzeczeniem w klasach 1–4</div></div>
+          <div class="pl-stat"><div class="pl-stat-n">0</div><div class="pl-stat-l">podobnych produktów na rynku PL</div></div>
+          <div class="pl-stat"><div class="pl-stat-n">100%</div><div class="pl-stat-l">zgodność z podstawą programową</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="compliance-list">
+          <div class="c-item"><div class="c-icon">🛡️</div><div><div class="c-title">Zgodność z RODO</div><div class="c-desc">Dane uczniów przetwarzane zgodnie z RODO — możliwe podpisanie umowy AVV z placówką</div></div></div>
+          <div class="c-item"><div class="c-icon">📚</div><div><div class="c-title">Podstawa programowa MEN</div><div class="c-desc">Każda gra powiązana z konkretnym celem dydaktycznym z PP dla klas 1–4</div></div></div>
+          <div class="c-item"><div class="c-icon">🇵🇱</div><div><div class="c-title">Pełna polonizacja</div><div class="c-desc">Interfejs, lektorat głosowy, słownictwo — wszystko po polsku</div></div></div>
+          <div class="c-item"><div class="c-icon">♿</div><div><div class="c-title">Zgodność z MEN ws. dostępności</div><div class="c-desc">Tryb wysokiego kontrastu, duże czcionki, spowolnione tempo dla uczniów z SPE</div></div></div>
+          <div class="c-item"><div class="c-icon">🏫</div><div><div class="c-title">Integracja z systemem szkolnym</div><div class="c-desc">Plan Szkoła obsługuje nieograniczoną liczbę profili uczniów i raporty PDF</div></div></div>
+          <div class="c-item"><div class="c-icon">💳</div><div><div class="c-title">Faktury VAT</div><div class="c-desc">Możliwość wystawienia faktury VAT dla szkół i organów prowadzących</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="jak-dziala">
+  <div class="container">
+    <div class="text-center">
+      <div class="section-tag">Proste uruchomienie</div>
+      <h2 class="section-title">Gotowe w 60 sekund</h2>
+      <p class="section-sub">Bez pobierania. Bez kontrolerów. Bez drogiego sprzętu. Wystarczy otworzyć przeglądarkę, pokazać rękę i grać.</p>
+    </div>
+    <div class="how-grid">
+      <div class="how-card"><div class="how-num">01</div><div class="how-icon">💻</div><h4>Dowolny komputer z kamerą</h4><p>Działa na każdym PC, Mac lub laptopie z wbudowaną lub USB kamerą. Żadnej aplikacji do instalowania — uruchamia się w Chrome lub Edge.</p></div>
+      <div class="how-card"><div class="how-num">02</div><div class="how-icon">🌍</div><h4>Wybierz język</h4><p>4 języki do wyboru. Gra mówi, czyta i oznacza wszystko po polsku automatycznie.</p></div>
+      <div class="how-card"><div class="how-num">03</div><div class="how-icon">✋</div><h4>Pokaż rękę i graj</h4><p>Kamera śledzi rękę w czasie rzeczywistym. Przesuń palec, aby trafić w bańkę. Pięść — pauza. Żadnego dotykania ekranu.</p></div>
+      <div class="how-card"><div class="how-num">04</div><div class="how-icon">⭐</div><h4>Świętuj każdy sukces</h4><p>Animacje pochwalne, gwiazdkowe nagrody i głosowe komunikaty po polsku — wzmacniają każdą prawidłową odpowiedź.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- GAMES -->
+<section id="games">
+  <div class="container">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:28px;">
+      <div>
+        <div class="section-tag">Wszystkie 42 gry</div>
+        <h2 class="section-title">Gra dla każdego dziecka</h2>
+      </div>
+      <p style="font-size:.86rem;color:var(--muted);max-width:300px;">Nowe gry dodawane regularnie. Wszyscy subskrybenci mają natychmiastowy dostęp do nowych gier.</p>
+    </div>
+    <div class="filter-bar" id="filter-bar">
+      <button class="fc on" data-f="all" onclick="filterG(this)">Wszystkie</button>
+      <button class="fc" data-f="deutsch" onclick="filterG(this)">📖 Język polski</button>
+      <button class="fc" data-f="mathe" onclick="filterG(this)">🔢 Matematyka</button>
+      <button class="fc" data-f="english" onclick="filterG(this)">🇬🇧 Angielski</button>
+      <button class="fc" data-f="sachkunde" onclick="filterG(this)">🌍 Przyroda</button>
+      <button class="fc" data-f="musik" onclick="filterG(this)">🎵 Muzyka</button>
+      <button class="fc" data-f="kunst" onclick="filterG(this)">🎨 Plastyka</button>
+      <button class="fc" data-f="sport" onclick="filterG(this)">⚽ Sport</button>
+    </div>
+    <div id="games-container"></div>
+  </div>
+</section>
+
+<!-- ACCESSIBILITY -->
+<section id="dostepnosc">
+  <div class="container">
+    <div class="text-center">
+      <div class="section-tag">Zbudowane dla inkluzji</div>
+      <h2 class="section-title">Każde ustawienie, każde dziecko</h2>
+      <p class="section-sub">Każda gra ma wbudowane tryby dostępności opracowane z terapeutami, pedagogami specjalnymi i rodzicami.</p>
+    </div>
+    <div class="acc-grid">
+      <div class="acc-features">
+        <div class="acc-card"><div class="ai">🐢</div><h4>Tryb zwolnionego tempa</h4><p>Bańki i mowa spowolnione dla dzieci potrzebujących więcej czasu.</p></div>
+        <div class="acc-card"><div class="ai">🔠</div><h4>Bardzo duże litery</h4><p>Tryb XL dla dzieci z wadami wzroku lub trudnościami motorycznymi.</p></div>
+        <div class="acc-card"><div class="ai">🌙</div><h4>Wysoki kontrast</h4><p>Schemat kolorów wysokiego kontrastu dla dzieci z zaburzeniami przetwarzania wzrokowego.</p></div>
+        <div class="acc-card"><div class="ai">🔊</div><h4>Pełne wsparcie głosowe</h4><p>Każda instrukcja, litera i pochwała czytana na głos po polsku.</p></div>
+        <div class="acc-card"><div class="ai">🎵</div><h4>Spokojna muzyka</h4><p>Łagodna muzyka ambientalna dla dzieci wrażliwych sensorycznie.</p></div>
+        <div class="acc-card"><div class="ai">✊</div><h4>Pięść = pauza</h4><p>Zaciśnij pięść, by zatrzymać grę — bez przycisków, bez klawiatury.</p></div>
+        <div class="acc-card"><div class="ai">⚡</div><h4>Tryb SPE — jeden klik</h4><p>Jeden przycisk aktywuje optymalne ustawienia dla dzieci z orzeczeniem.</p></div>
+        <div class="acc-card"><div class="ai">🎯</div><h4>Regulowany poziom</h4><p>3 poziomy: Łagodny (2 bańki), Normalny (3), Wyzwanie (4).</p></div>
+      </div>
+      <div>
+        <div class="acc-visual">
+          <h3 style="font-size:1.1rem;margin-bottom:6px;color:var(--ink);">Ustawienia dostępności</h3>
+          <p style="font-size:.8rem;color:var(--muted);margin-bottom:14px;">Dotknij, aby dostosować dla swojego dziecka</p>
+          <div class="av-row"><div class="av-dot" style="background:var(--g1)"></div><span class="av-text">Zwolnione tempo</span><div class="av-tog on" onclick="this.classList.toggle('on');this.classList.toggle('off')"><div class="av-tog-dot"></div></div></div>
+          <div class="av-row"><div class="av-dot" style="background:var(--p1)"></div><span class="av-text">Bardzo duże litery</span><div class="av-tog on" onclick="this.classList.toggle('on');this.classList.toggle('off')"><div class="av-tog-dot"></div></div></div>
+          <div class="av-row"><div class="av-dot" style="background:var(--a1)"></div><span class="av-text">Wsparcie głosowe</span><div class="av-tog on" onclick="this.classList.toggle('on');this.classList.toggle('off')"><div class="av-tog-dot"></div></div></div>
+          <div class="av-row"><div class="av-dot" style="background:var(--muted)"></div><span class="av-text">Wysoki kontrast</span><div class="av-tog off" onclick="this.classList.toggle('on');this.classList.toggle('off')"><div class="av-tog-dot"></div></div></div>
+          <div class="av-row"><div class="av-dot" style="background:var(--b1)"></div><span class="av-text">Spokojna muzyka</span><div class="av-tog on" onclick="this.classList.toggle('on');this.classList.toggle('off')"><div class="av-tog-dot"></div></div></div>
+          <div style="background:var(--surface);border-radius:12px;padding:13px 15px;display:flex;align-items:center;gap:9px;cursor:pointer;" onclick="openPayment('trial')">
+            <span style="font-size:1.3rem;">⭐</span>
+            <div><div style="font-size:.84rem;font-weight:700;color:var(--p1);">Tryb SPE</div><div style="font-size:.72rem;color:var(--muted);">Jeden klik — optymalne ustawienia</div></div>
+            <span style="margin-left:auto;font-size:.78rem;color:var(--p1);font-weight:700;">WŁ →</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section id="opinie">
+  <div class="container">
+    <div class="text-center">
+      <div class="section-tag">Co mówią rodziny</div>
+      <h2 class="section-title">Prawdziwe historie, prawdziwe uśmiechy</h2>
+    </div>
+    <div class="test-grid">
+      <div class="test-card">
+        <div class="test-stars">★★★★★</div>
+        <div class="test-q">"</div>
+        <p class="test-text">Mój syn ma autyzm i nigdy nie angażował się w żadną grę edukacyjną dłużej niż 2 minuty. Grał w Litery-Pop przez 40 minut i nie chciał przestać. Płakałam ze szczęścia.</p>
+        <div class="test-auth"><div class="ta-av" style="background:linear-gradient(135deg,var(--p1),var(--p2))">MK</div><div><div class="ta-name">Maria K.</div><div class="ta-role">Rodzic, Warszawa</div></div></div>
+      </div>
+      <div class="test-card">
+        <div class="test-stars">★★★★★</div>
+        <div class="test-q">"</div>
+        <p class="test-text">Jako nauczyciel wspomagający, używam tych gier w mojej klasie każdego dnia. Dzieci z orzeczeniem o SPE wreszcie uczą się w swoim tempie — i to z uśmiechem.</p>
+        <div class="test-auth"><div class="ta-av" style="background:linear-gradient(135deg,var(--g1),var(--g2))">AT</div><div><div class="ta-name">Anna T.</div><div class="ta-role">Nauczyciel wspomagający, Kraków</div></div></div>
+      </div>
+      <div class="test-card">
+        <div class="test-stars">★★★★★</div>
+        <div class="test-q">"</div>
+        <p class="test-text">Córka ma mózgowe porażenie dziecięce — trudności z precyzją ruchów. Śledzenie dłoni nie wymaga precyzyjnych ruchów. Ona może grać i wygrywać. To znaczy dla nas wszystko.</p>
+        <div class="test-auth"><div class="ta-av" style="background:linear-gradient(135deg,var(--a1),var(--a2))">PW</div><div><div class="ta-name">Piotr W.</div><div class="ta-role">Rodzic, Poznań</div></div></div>
+      </div>
+      <div class="test-card">
+        <div class="test-stars">★★★★★</div>
+        <div class="test-q">"</div>
+        <p class="test-text">Polecam InclusionGames każdej rodzinie, z którą pracuję. Tryb spowolnienia i brak karania za błędy to dokładnie to, czego potrzebują dzieci z trudnościami w uczeniu się.</p>
+        <div class="test-auth"><div class="ta-av" style="background:linear-gradient(135deg,#ec4899,#be185d)">BR</div><div><div class="ta-name">Barbara R.</div><div class="ta-role">Terapeuta zajęciowy, Wrocław</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="cennik">
+  <div class="container">
+    <div class="text-center" style="margin-bottom:40px;">
+      <div class="section-tag">Prosty cennik</div>
+      <h2 class="section-title">Zacznij za darmo, zostań na zawsze</h2>
+      <p class="section-sub">Każdy plan zawiera dostęp do wszystkich 42 gier i każdej nowej gry, którą dodamy. Bez ukrytych opłat.</p>
+    </div>
+
+    <div class="trial-box">
+      <div class="tb-content">
+        <h2 class="tb-title">🎁 Wypróbuj wszystko za darmo</h2>
+        <p class="tb-desc">Zacznij od 3 dni pełnego dostępu do wszystkich gier. Opowiedz nam o swoim dziecku, a przedłużymy do 7 dni — bez opłat.</p>
+        <div class="tb-days">
+          <div class="tb-day"><div class="tb-day-n">3</div><div class="tb-day-l">Dni bezpłatnie</div></div>
+          <div class="tb-arrow">→</div>
+          <div class="tb-day"><div class="tb-day-n">+4</div><div class="tb-day-l">Dni przedłużenia</div></div>
+          <div class="tb-arrow">=</div>
+          <div class="tb-day"><div class="tb-day-n">7</div><div class="tb-day-l">Dni łącznie za darmo</div></div>
+        </div>
+        <button class="btn btn-gold" onclick="openPayment('trial')">Zacznij bezpłatny okres próbny →</button>
+        <p class="tb-note">Karta kredytowa nie jest wymagana. Anuluj w dowolnym momencie.</p>
+      </div>
+    </div>
+
+    <div class="plans-toggle">
+      <span class="pt-lbl on" id="lbl-mies">Miesięcznie</span>
+      <div class="tog-btn" id="btog" onclick="toggleBill()"><div class="dot"></div></div>
+      <span class="pt-lbl" id="lbl-rok">Rocznie <span class="save-chip">Oszczędź 30%</span></span>
+    </div>
+
+    <div class="plans-grid">
+      <div class="plan-card">
+        <div class="plan-name">Starter</div>
+        <div class="plan-for">Do użytku domowego</div>
+        <div class="plan-price"><div class="plan-amt"><sup>€</sup><span class="pv" data-m="4.99" data-a="3.49">4.99</span></div><div class="plan-per">miesięcznie · <span class="bn">rozliczane miesięcznie</span></div></div>
+        <ul class="plan-features">
+          <li>1 profil dziecka</li><li>Wszystkie 42 gry</li><li>Wszystkie nowe gry</li><li>4 języki</li><li>Tryby dostępności</li><li>3-dniowy okres próbny</li>
+          <li class="no">Śledzenie postępów</li><li class="no">Wiele profili</li>
+        </ul>
+        <button class="plan-btn plan-btn-o" onclick="openPayment('starter')">Zacznij bezpłatnie</button>
+      </div>
+      <div class="plan-card popular">
+        <span class="pop-tag">⭐ Najpopularniejszy</span>
+        <div class="plan-name">Rodzina</div>
+        <div class="plan-for">Dla domów z wieloma dziećmi</div>
+        <div class="plan-price"><div class="plan-amt"><sup>€</sup><span class="pv" data-m="9.99" data-a="6.99">9.99</span></div><div class="plan-per">miesięcznie · <span class="bn">rozliczane miesięcznie</span></div></div>
+        <ul class="plan-features">
+          <li>Do 3 profili dzieci</li><li>Wszystkie 42 gry</li><li>Wszystkie nowe gry</li><li>4 języki</li><li>Tryby dostępności</li><li>Śledzenie postępów</li><li>7-dniowy okres próbny</li>
+          <li class="no">Panel szkoły</li>
+        </ul>
+        <button class="plan-btn plan-btn-p" onclick="openPayment('family')">Zacznij bezpłatnie</button>
+      </div>
+      <div class="plan-card">
+        <div class="plan-name">Pedagog</div>
+        <div class="plan-for">Dla nauczycieli i terapeutów</div>
+        <div class="plan-price"><div class="plan-amt"><sup>€</sup><span class="pv" data-m="19.99" data-a="13.99">19.99</span></div><div class="plan-per">miesięcznie · <span class="bn">rozliczane miesięcznie</span></div></div>
+        <ul class="plan-features">
+          <li>Do 10 profili uczniów</li><li>Wszystkie 42 gry</li><li>Wszystkie nowe gry</li><li>4 języki</li><li>Pełne śledzenie postępów</li><li>Raporty PDF</li><li>Wsparcie priorytetowe</li>
+          <li class="no">Panel szkoły</li>
+        </ul>
+        <button class="plan-btn plan-btn-o" onclick="openPayment('educator')">Zacznij bezpłatnie</button>
+      </div>
+      <div class="plan-card">
+        <div class="plan-name">Szkoła</div>
+        <div class="plan-for">Dla szkół i placówek</div>
+        <div class="plan-price"><div class="plan-amt"><sup>€</sup><span class="pv" data-m="49.99" data-a="34.99">49.99</span></div><div class="plan-per">miesięcznie · <span class="bn">rozliczane miesięcznie</span></div></div>
+        <ul class="plan-features">
+          <li>Nieograniczone profile</li><li>Wszystkie 42 gry</li><li>Wszystkie nowe gry</li><li>4 języki</li><li>Panel szkoły</li><li>Raporty PDF i CSV</li><li>Wsparcie dedykowane</li><li>Konsultacje dot. gier</li>
+        </ul>
+        <button class="plan-btn plan-btn-o" onclick="openPayment('school')">Skontaktuj się</button>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:.8rem;color:var(--muted);margin-top:20px;">Wszystkie ceny netto. Możliwość wystawienia faktury VAT. Anuluj w dowolnym momencie.</p>
+  </div>
+</section>
+
+<!-- DEMO ACCOUNT -->
+<section id="demo-konto">
+  <div class="container">
+    <div class="demo-inner">
+      <div style="font-size:3rem;margin-bottom:12px;">🎯</div>
+      <h2>Konto demo dla Macieja</h2>
+      <p>Pełny dostęp do platformy — wszystkie 42 gry, wszystkie tryby dostępności, panel pedagoga. Żadnych ograniczeń, żadnej karty kredytowej.</p>
+
+      <div class="demo-creds">
+        <div class="dc-title">Dane logowania do konta demo</div>
+        <div class="dc-row">
+          <span class="dc-lbl">🌐 Adres strony</span>
+          <span class="dc-val">inclusion-games.com</span>
+          <button class="dc-copy" onclick="copy('inclusion-games.com',this)">Kopiuj</button>
+        </div>
+        <div class="dc-row">
+          <span class="dc-lbl">📧 E-mail</span>
+          <span class="dc-val">demo@inclusion-games.com</span>
+          <button class="dc-copy" onclick="copy('demo@inclusion-games.com',this)">Kopiuj</button>
+        </div>
+        <div class="dc-row">
+          <span class="dc-lbl">🔑 Hasło</span>
+          <span class="dc-val">Demo2025!</span>
+          <button class="dc-copy" onclick="copy('Demo2025!',this)">Kopiuj</button>
+        </div>
+        <div class="dc-row">
+          <span class="dc-lbl">👤 Typ konta</span>
+          <span class="dc-val" style="color:#4ade80;">Pedagog — pełny dostęp</span>
+          <span></span>
+        </div>
+        <div class="dc-note" style="font-size:.78rem;color:rgba(255,255,255,.5);margin-top:14px;text-align:left;">Konto demo ważne przez 30 dni · Dane są resetowane po każdej sesji demonstracyjnej</div>
+      </div>
+
+      <div class="demo-access-btns">
+        <a href="login-pl.html" class="btn btn-white">🔐 Zaloguj się teraz</a>
+        <button class="btn btn-ghost" onclick="openPayment('trial')">🎮 Zacznij własny okres próbny</button>
+      </div>
+      <p class="demo-note" style="margin-top:16px;">Masz pytania? Napisz do nas: <strong>info@inclusion-games.com</strong></p>
+    </div>
+  </div>
+</section>
+
+<!-- MISJA -->
+<section id="misja" style="padding:80px 0;background:var(--surface2);">
+  <div class="container">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;">
+      <div>
+        <div class="section-tag">Nasza historia</div>
+        <h2 class="section-title">Nauczyciel, który nie zapomniał</h2>
+        <div style="position:relative;padding-left:26px;margin-bottom:20px;">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--p1),var(--a2));border-radius:2px;"></div>
+          <p style="font-family:var(--display);font-size:clamp(1.2rem,3vw,1.7rem);color:var(--ink);line-height:1.5;">"Te dzieci zostały zapomniane przez świat gier — ale my o nich nie zapomnieliśmy. Ich śmiech jest najważniejszy."</p>
+        </div>
+        <p style="font-size:.93rem;color:var(--muted);line-height:1.8;margin-bottom:20px;">Jako nauczyciel widziałem dzieci z niepełnosprawnościami, dla których nie tworzono prawie nic w świecie gier i nauki. Nikt dla nich nie tworzył. Nikt nie myślał o ich radości. Postanowiłem to zmienić.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px;"><div style="font-size:1.3rem;margin-bottom:6px;">🤝</div><div style="font-size:.86rem;font-weight:700;margin-bottom:3px;">Inkluzja</div><div style="font-size:.76rem;color:var(--muted);">Każde dziecko zasługuje na dostęp do zabawy.</div></div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px;"><div style="font-size:1.3rem;margin-bottom:6px;">😂</div><div style="font-size:.86rem;font-weight:700;margin-bottom:3px;">Radość przede wszystkim</div><div style="font-size:.76rem;color:var(--muted);">Mierzymy sukces uśmiechami, nie ocenami.</div></div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px;"><div style="font-size:1.3rem;margin-bottom:6px;">♿</div><div style="font-size:.86rem;font-weight:700;margin-bottom:3px;">Dostępność</div><div style="font-size:.76rem;color:var(--muted);">Wystarczy kamera. Żadnego drogiego sprzętu.</div></div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px;"><div style="font-size:1.3rem;margin-bottom:6px;">✂️</div><div style="font-size:.86rem;font-weight:700;margin-bottom:3px;">Szyte na miarę</div><div style="font-size:.76rem;color:var(--muted);">Każde dziecko jest wyjątkowe. Tworzymy gry pod jego potrzeby.</div></div>
+        </div>
+      </div>
+      <div style="background:linear-gradient(135deg,var(--p3),var(--a3));border-radius:var(--radius-xl);padding:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:320px;text-align:center;">
+        <div style="font-size:5rem;margin-bottom:16px;">🎈</div>
+        <div style="font-family:var(--display);font-size:1.3rem;color:var(--ink);">Zrobione przez nauczyciela</div>
+        <div style="font-size:.88rem;color:var(--muted);margin-top:6px;">dla każdego dziecka</div>
+        <div style="margin-top:24px;background:var(--surface);border-radius:14px;padding:14px 20px;">
+          <div style="font-family:var(--display);font-size:2rem;color:var(--p1);">❤️ 100%</div>
+          <div style="font-size:.78rem;color:var(--muted);">pasja nauczyciela</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="kontakt">
+  <div class="container">
+    <div class="custom-inner">
+      <div>
+        <div class="section-tag">Poza katalogiem</div>
+        <h2 class="section-title">Gry szyte na miarę dla twojego dziecka</h2>
+        <p style="font-size:.93rem;color:var(--muted);margin-bottom:16px;line-height:1.7;">Czy twoje dziecko ma specyficzną niepełnosprawność wymagającą gry stworzonej specjalnie dla niego? Pracujemy bezpośrednio z rodzicami, nauczycielami i terapeutami.</p>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;gap:12px;align-items:flex-start;"><div style="width:30px;height:30px;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;flex-shrink:0;">1</div><div><div style="font-size:.9rem;font-weight:700;">Opowiedz nam o dziecku</div><div style="font-size:.78rem;color:var(--muted);">Wiek, niepełnosprawność, zainteresowania i czego chcesz, żeby się nauczyło.</div></div></div>
+          <div style="display:flex;gap:12px;align-items:flex-start;"><div style="width:30px;height:30px;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;flex-shrink:0;">2</div><div><div style="font-size:.9rem;font-weight:700;">Projektujemy razem</div><div style="font-size:.78rem;color:var(--muted);">Nasz zespół pracuje z tobą, żeby stworzyć idealną grę.</div></div></div>
+          <div style="display:flex;gap:12px;align-items:flex-start;"><div style="width:30px;height:30px;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;flex-shrink:0;">3</div><div><div style="font-size:.9rem;font-weight:700;">Testujemy i doskonalimy</div><div style="font-size:.78rem;color:var(--muted);">Testujemy z twoim dzieckiem i iterujemy, aż przynosi prawdziwą radość.</div></div></div>
+        </div>
+      </div>
+      <div class="cf">
+        <div class="cf-title">🎮 Zapytaj o grę na zamówienie</div>
+        <div class="cf-row"><label class="cf-lbl">Imię i nazwisko</label><input class="cf-input" type="text" placeholder="Jan Kowalski"></div>
+        <div class="cf-row"><label class="cf-lbl">E-mail</label><input class="cf-input" type="email" placeholder="jan@szkola.pl"></div>
+        <div class="cf-row"><label class="cf-lbl">Jestem…</label>
+          <select class="cf-sel"><option>Rodzicem</option><option>Nauczycielem</option><option>Terapeutą</option><option>Innym</option></select></div>
+        <div class="cf-row"><label class="cf-lbl">Wiek dziecka</label>
+          <select class="cf-sel"><option>4–5 lat</option><option>5–7 lat</option><option>7–9 lat</option><option>9–10 lat</option></select></div>
+        <div class="cf-row"><label class="cf-lbl">Opowiedz nam o dziecku i swoim pomyśle</label>
+          <textarea class="cf-ta" placeholder="Niepełnosprawność, zainteresowania, czego chcesz, żeby się nauczyło…"></textarea></div>
+        <button class="cf-btn">Wyślij zapytanie →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<section id="cta-final" style="padding:80px 0;">
+  <div class="container">
+    <div class="cta-box">
+      <h2>Gotowy, żeby zobaczyć jak twoje dziecko błyszczy?</h2>
+      <p>Zacznij bezpłatny 3-dniowy okres próbny. Bez karty kredytowej. Wszystkie 42 gry. 4 języki. Każdy tryb dostępności.</p>
+      <div class="cta-btns">
+        <button class="btn btn-white" onclick="openPayment('trial')">🎈 Zacznij bezpłatnie</button>
+        <a href="#games" class="btn btn-ghost">Przeglądaj wszystkie gry</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="fb-logo">🎈 InclusionGames</div>
+        <p>Edukacyjne gry dla dzieci z niepełnosprawnościami. Stworzone przez nauczyciela. Napędzane pasją.</p>
+        <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+          <span class="fb-badge">🔒 RODO</span>
+          <span class="fb-badge">🇪🇺 EU Hosted</span>
+          <span class="fb-badge">🏫 MEN</span>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h5>Gry</h5>
+        <a href="#games">Wszystkie 42 gry</a>
+        <a href="#games">Język polski</a>
+        <a href="#games">Matematyka</a>
+        <a href="#games">Angielski</a>
+        <a href="#kontakt">Gra na zamówienie</a>
+      </div>
+      <div class="footer-col">
+        <h5>Platforma</h5>
+        <a href="#jak-dziala">Jak działa</a>
+        <a href="#dostepnosc">Dostępność</a>
+        <a href="#cennik">Cennik</a>
+        <a href="#cennik">Bezpłatny okres próbny</a>
+        <a href="login-pl.html">Zaloguj się</a>
+      </div>
+      <div class="footer-col">
+        <h5>Firma</h5>
+        <a href="#misja">Nasza misja</a>
+        <a href="mailto:info@inclusion-games.com">Kontakt</a>
+        <a href="#">Polityka prywatności</a>
+        <a href="#">Regulamin</a>
+        <a href="#">Polityka cookies</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span class="fb-copy">© 2026 InclusionGames — Stworzone z ❤️ przez nauczyciela, który dba.</span>
+      <div class="fb-badges"><span class="fb-badge">💳 Stripe</span><span class="fb-badge">🅿️ PayPal</span></div>
+    </div>
+  </div>
+</footer>
+
+<!-- PAYMENT MODAL -->
+<div id="pay-modal">
+  <div class="pm-box">
+    <button class="pm-close" onclick="closePay()">✕</button>
+    <h3 class="pm-title">Wybierz metodę płatności</h3>
+    <p class="pm-sub">Bezpieczna płatność. Anuluj w dowolnym momencie. Twój okres próbny zaczyna się natychmiast.</p>
+    <div class="pm-sel" id="pm-sel">
+      <span class="pm-sel-name">Plan Rodzina</span>
+      <span class="pm-sel-price">€9.99/mies.</span>
+    </div>
+    <div class="pm-trial-note">🎁 Twój 3-dniowy bezpłatny okres próbny jest wliczony — dziś nic nie płacisz.</div>
+    <div class="pm-methods">
+      <div class="pm-method pm-stripe sel" onclick="selPay(this,'stripe')">
+        <div class="pm-m-icon">Stripe</div>
+        <div><div class="pm-m-text">Karta kredytowa / debetowa</div><div style="font-size:.72rem;color:var(--muted);">Visa, Mastercard, Amex — obsługiwane przez Stripe</div></div>
+        <span style="margin-left:auto;font-size:.72rem;color:var(--g1);font-weight:700;">✓</span>
+      </div>
+      <div class="pm-method pm-paypal" onclick="selPay(this,'paypal')">
+        <div class="pm-m-icon">PP</div>
+        <div><div class="pm-m-text">PayPal</div><div style="font-size:.72rem;color:var(--muted);">Płać z saldem PayPal lub kartą</div></div>
+      </div>
+    </div>
+    <button class="pm-proceed" onclick="proceedPay()">Zacznij bezpłatny okres próbny →</button>
+    <p class="pm-footer">🔒 Zabezpieczone przez <a href="https://stripe.com" target="_blank">Stripe</a> i <a href="https://paypal.com" target="_blank">PayPal</a>. Nie przechowujemy danych karty.</p>
+  </div>
+</div>
+
+<script>
+// GAMES DATA (Polish labels)
+
+function isDemo(){return sessionStorage.getItem('ig-demo')==='1'||localStorage.getItem('ig-demo')==='1';}
+function setDemo(){sessionStorage.setItem('ig-demo','1');localStorage.setItem('ig-demo','1');}
+if(window.location.search.includes('demo=maciek')){setDemo();}
+if(isDemo()){
+  document.addEventListener('DOMContentLoaded',function(){
+    var b=document.createElement('div');
+    b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;text-align:center;padding:10px 16px;font-weight:700;font-size:.88rem;display:flex;align-items:center;justify-content:center;gap:16px;';
+    b.innerHTML='🎯 Konto Demo — Maciej — Pelny dostep &nbsp;|&nbsp; <a href="games/demo-dashboard.html" style="color:#fbbf24;font-weight:700;">Wszystkie gry →</a>';
+    document.body.prepend(b);
+    document.body.style.paddingTop='44px';
+  });
+}
+
+var CAT_STYLES={deutsch:{bg:'#EAF3DE',color:'#3B6D11'},mathe:{bg:'#E6F1FB',color:'#185FA5'},english:{bg:'#E1F5EE',color:'#0F6E56'},sachkunde:{bg:'#FAEEDA',color:'#854F0B'},musik:{bg:'#EEEDFE',color:'#534AB7'},kunst:{bg:'#FBEAF0',color:'#993556'},sport:{bg:'#FAECE7',color:'#993C1D'}};
+var GAMES=[
+  {age:'Kl. 1–2',icon:'📖',title:'Litery-Pop',cat:'deutsch',desc:'Rozpoznaj duże i małe litery i trafiaj w odpowiednią bańkę!',tags:['litery','pisownia','głos']},
+  {age:'Kl. 1–2',icon:'🔠',title:'Sylaby-Klaskacz',cat:'deutsch',desc:'Ile sylab ma słowo? Wybierz właściwą bańkę.',tags:['sylaby','czytanie','rytm']},
+  {age:'Kl. 1–2',icon:'🔤',title:'Inicjały-Szukacz',cat:'deutsch',desc:'Sortuj słowa według ich pierwszej głoski.',tags:['głoski','fonetyka','sortowanie']},
+  {age:'Kl. 3–4',icon:'📝',title:'Części mowy-Pop',cat:'deutsch',desc:'Rzeczownik, czasownik czy przymiotnik? Znajdź właściwą część mowy.',tags:['gramatyka','części mowy','język']},
+  {age:'Kl. 2–3',icon:'❓',title:'Znaki przestankowe',cat:'deutsch',desc:'Kropka, pytajnik czy wykrzyknik? Wybierz właściwy znak.',tags:['interpunkcja','zdania','pisownia']},
+  {age:'Kl. 1–2',icon:'🎵',title:'Rymy-Błyskawica',cat:'deutsch',desc:'Trafiaj w słowa rymujące się z podanym słowem.',tags:['rymy','słuchanie','fonologia']},
+  {age:'Kl. 1',icon:'🔢',title:'Liczby do 20',cat:'mathe',desc:'Rozpoznaj, nazwy i porządkuj liczby do 20.',tags:['liczby','kolejność','cyfry']},
+  {age:'Kl. 2',icon:'💯',title:'Liczby do 100',cat:'mathe',desc:'Dziesiątki, parzyste i nieparzyste do 100.',tags:['dziesiątki','parzyste','sto']},
+  {age:'Kl. 1–2',icon:'➕',title:'Dodawanie-Błysk',cat:'mathe',desc:'Dodawanie do 20 — wybierz właściwy wynik!',tags:['dodawanie','liczenie','szybkość']},
+  {age:'Kl. 2–3',icon:'➖',title:'Odejmowanie-Błysk',cat:'mathe',desc:'Odejmowanie do 100 — szybko wybierz bańkę.',tags:['odejmowanie','wynik','matematyka']},
+  {age:'Kl. 3–4',icon:'✖️',title:'Tabliczka mnożenia',cat:'mathe',desc:'Mnożenie: tabliczki od 2 do 10.',tags:['mnożenie','tabliczka','pamięć']},
+  {age:'Kl. 1–2',icon:'🔷',title:'Figury geometryczne',cat:'mathe',desc:'Rozpoznaj figury: koło, trójkąt, czworokąt…',tags:['geometria','figury','kształty']},
+  {age:'Kl. 3–4',icon:'📏',title:'Jednostki miar',cat:'mathe',desc:'Przyporządkuj cm, m, km, g, kg, l.',tags:['miary','jednostki','wiedza']},
+  {age:'Kl. 3',icon:'👋',title:'Pozdrowienia po angielsku',cat:'english',desc:'Hello, goodbye, please, thank you — pierwsze zwroty.',tags:['angielski','zwroty','pozdrowienia']},
+  {age:'Kl. 3',icon:'🎨',title:'Kolory i liczby EN',cat:'english',desc:'Angielskie kolory i liczby 1–20.',tags:['angielski','kolory','liczby']},
+  {age:'Kl. 3',icon:'🐘',title:'Zwierzęta po angielsku',cat:'english',desc:'Dog, cat, horse, bird… angielskie słownictwo zwierząt.',tags:['angielski','zwierzęta','słownictwo']},
+  {age:'Kl. 3',icon:'👨‍👩‍👧',title:'Moja rodzina EN',cat:'english',desc:'Mother, father, sister, brother — rodzina po angielsku.',tags:['angielski','rodzina','słowa']},
+  {age:'Kl. 3–4',icon:'🍎',title:'Jedzenie i napoje EN',cat:'english',desc:'Apple, milk, bread, water — codzienne słownictwo.',tags:['angielski','jedzenie','słownictwo']},
+  {age:'Kl. 3–4',icon:'📚',title:'Przybory szkolne EN',cat:'english',desc:'Book, pencil, ruler, bag — przybory klasy.',tags:['angielski','szkoła','przedmioty']},
+  {age:'Kl. 4',icon:'🏃',title:'Czasowniki w akcji EN',cat:'english',desc:'Run, jump, swim, eat — czasowniki akcji po angielsku.',tags:['angielski','czasowniki','akcja']},
+  {age:'Kl. 1–2',icon:'🌦️',title:'Pory roku-Pop',cat:'sachkunde',desc:'Wiosna, lato, jesień, zima i ich cechy.',tags:['pory roku','przyroda','obserwacja']},
+  {age:'Kl. 1–2',icon:'🐘',title:'Zwierzęta i siedliska',cat:'sachkunde',desc:'Gdzie mieszkają niedźwiedź, ryba, ptak, motyl?',tags:['zwierzęta','siedliska','przyroda']},
+  {age:'Kl. 2–3',icon:'🌱',title:'Części rośliny',cat:'sachkunde',desc:'Korzeń, łodyga, liść, kwiat, owoc — nazwy części.',tags:['rośliny','botanika','biologia']},
+  {age:'Kl. 3–4',icon:'🗺️',title:'Polska-Szukacz',cat:'sachkunde',desc:'Rozpoznaj miasta, rzeki i regiony Polski.',tags:['Polska','geografia','regiony']},
+  {age:'Kl. 1–2',icon:'🥗',title:'Zdrowe czy nie?',cat:'sachkunde',desc:'Sortuj produkty na zdrowe i niezdrowe.',tags:['zdrowie','żywność','sortowanie']},
+  {age:'Kl. 2–3',icon:'🚦',title:'Znaki drogowe-Pop',cat:'sachkunde',desc:'Rozpoznaj sygnalizację, znak stop, zebra.',tags:['ruch drogowy','bezpieczeństwo','znaki']},
+  {age:'Kl. 2–3',icon:'👨‍⚕️',title:'Zawody-Błysk',cat:'sachkunde',desc:'Które narzędzie należy do zawodu? Strażak, lekarz…',tags:['zawody','narzędzia','wiedza']},
+  {age:'Kl. 1–4',icon:'🎻',title:'Instrumenty-Pop',cat:'musik',desc:'Skrzypce, bęben, flet, fortepian — przyporządkuj.',tags:['muzyka','instrumenty','słuch']},
+  {age:'Kl. 2–4',icon:'🎵',title:'Nuty-Pop',cat:'musik',desc:'Rozróżnij całą, półnutę, ćwierćnutę.',tags:['nuty','rytm','zapis muzyczny']},
+  {age:'Kl. 3–4',icon:'🥁',title:'Takt-Szukacz',cat:'musik',desc:'Rozpoznaj takt 2/4, 3/4 lub 4/4.',tags:['takt','rytm','muzyka']},
+  {age:'Kl. 1–3',icon:'🎤',title:'Piosenka-Pop',cat:'musik',desc:'Która piosenka dla dzieci pasuje? Przyporządkuj melodię.',tags:['piosenki','melodia','słuch']},
+  {age:'Kl. 1–2',icon:'🔊',title:'Wysoko i nisko',cat:'musik',desc:'Rozpoznaj i rozróżniaj wysokie i niskie dźwięki.',tags:['wysokość dźwięku','słuch','muzyka']},
+  {age:'Kl. 1–2',icon:'🎨',title:'Mieszanie kolorów',cat:'kunst',desc:'Mieszaj kolory podstawowe: Czerwony+Niebieski=Fioletowy?',tags:['kolory','mieszanie','sztuka']},
+  {age:'Kl. 2–3',icon:'🌡️',title:'Ciepłe i zimne',cat:'kunst',desc:'Odróżniaj ciepłe i zimne kolory.',tags:['kolory','temperatura','plastyka']},
+  {age:'Kl. 3–4',icon:'🖼️',title:'Dzieła sztuki-Pop',cat:'kunst',desc:'Który artysta namalował ten obraz? Van Gogh, Monet…',tags:['artyści','malarstwo','historia sztuki']},
+  {age:'Kl. 1–2',icon:'🔷',title:'Figury i wzory',cat:'kunst',desc:'Rozpoznaj podstawowe figury geometryczne w dziełach sztuki.',tags:['figury','wzory','obserwacja']},
+  {age:'Kl. 3–4',icon:'💡',title:'Światło i cień',cat:'kunst',desc:'Rozpoznaj kontrasty jasno-ciemno na obrazach.',tags:['kontrast','walor','plastyka']},
+  {age:'Kl. 1–2',icon:'🦵',title:'Części ciała-Pop',cat:'sport',desc:'Głowa, ramiona, kolana, stopy — pokaż części ciała.',tags:['ciało','anatomia','ruch']},
+  {age:'Kl. 2–4',icon:'⚽',title:'Dyscypliny sportu',cat:'sport',desc:'Jaki to sport? Pływanie, gimnastyka, piłka nożna…',tags:['sport','dyscypliny','rozpoznawanie']},
+  {age:'Kl. 1–2',icon:'🤸',title:'Ruszaj się!',cat:'sport',desc:'Wykonaj instrukcję ruchową: skakaj, obracaj się, wyciągnij…',tags:['ruch','instrukcje','aktywność']},
+  {age:'Kl. 3–4',icon:'🏅',title:'Olimpiada-Pop',cat:'sport',desc:'Poznaj olimpijskie dyscypliny sportowe i ich zasady.',tags:['olimpiada','sport','wiedza']},
+  {age:'Kl. 3–4',icon:'📋',title:'Zasady gry-Pop',cat:'sport',desc:'Jaka reguła obowiązuje? Faul, gol, aut — zrozum zasady.',tags:['zasady','reguły','sport']},
+];
+
+var AGE_GROUPS=['Kl. 1–2','Kl. 1','Kl. 2','Kl. 3','Kl. 3–4','Kl. 4'];
+function getAgeGroup(age){if(age.includes('1–2'))return 'Klasy 1–2  ·  Wczesnoszkolna';if(age.includes('1'))return 'Klasa 1  ·  Pierwsza klasa';if(age.includes('3–4'))return 'Klasy 3–4  ·  Kształcenie zintegrowane';if(age.includes('4'))return 'Klasa 4  ·  Przejście do klas starszych';return 'Klasy 2–3';}
+
+var activeFilter='all';
+function buildGames(){
+  var con=document.getElementById('games-container');
+  con.innerHTML='';
+  var grouped={};
+  GAMES.forEach(function(g){
+    if(activeFilter!=='all'&&g.cat!==activeFilter)return;
+    var ag=g.age;
+    if(!grouped[ag])grouped[ag]=[];
+    grouped[ag].push(g);
+  });
+  Object.keys(grouped).forEach(function(ag){
+    var games=grouped[ag];
+    var div=document.createElement('div');
+    div.innerHTML='<div class="age-label">'+getAgeGroup(ag)+'</div><div class="games-grid" id="grid-'+ag.replace(/[^a-z0-9]/gi,'')+'"></div>';
+    con.appendChild(div);
+    var grid=div.querySelector('.games-grid');
+    games.forEach(function(g){
+      var cs=CAT_STYLES[g.cat];
+      var card=document.createElement('div');
+      card.className='game-card';
+      card.innerHTML='<div class="gc-top"><span class="gc-icon">'+g.icon+'</span><span class="cat-pill" style="background:'+cs.bg+';color:'+cs.color+'">'+g.cat+'</span></div><div class="gc-title">'+g.title+'</div><div class="gc-desc">'+g.desc+'</div><div class="gc-tags">'+g.tags.map(function(t){return '<span class="gc-tag">'+t+'</span>';}).join('')+'</div>';
+      card.onclick=function(){if(isDemo()){window.location.href='games/demo-dashboard.html';}else{openPayment('family');}};
+      grid.appendChild(card);
+    });
+    // Coming soon
+    if(activeFilter==='all'){
+      for(var i=0;i<2;i++){
+        var cs2=document.createElement('div');
+        cs2.className='cs-card';
+        cs2.innerHTML='<div style="font-size:1.8rem;opacity:.4">🎮</div><div style="font-size:.8rem;font-weight:700;">Nowa gra wkrótce</div><div style="font-size:.72rem;">Subskrybenci mają natychmiastowy dostęp</div>';
+        grid.appendChild(cs2);
+      }
+    }
+  });
+}
+function filterG(btn){document.querySelectorAll('.fc').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');activeFilter=btn.dataset.f;buildGames();}
+buildGames();
+
+// PAYMENT
+var PLANS={trial:{name:'Bezpłatny okres próbny 3 dni',price:'€0.00'},starter:{name:'Plan Starter',price:'€4.99/mies.'},family:{name:'Plan Rodzina',price:'€9.99/mies.'},educator:{name:'Plan Pedagog',price:'€19.99/mies.'},school:{name:'Plan Szkoła',price:'€49.99/mies.'}};
+var selMethod='stripe';
+function openPayment(plan){var info=PLANS[plan]||PLANS.family;document.getElementById('pm-sel').innerHTML='<span class="pm-sel-name">'+info.name+'</span><span class="pm-sel-price">'+info.price+'</span>';document.getElementById('pay-modal').classList.add('show');document.body.style.overflow='hidden';}
+function closePay(){document.getElementById('pay-modal').classList.remove('show');document.body.style.overflow='';}
+function selPay(el,m){document.querySelectorAll('.pm-method').forEach(function(mm){mm.classList.remove('sel');var ck=mm.querySelector('span:last-child');if(ck&&ck.textContent==='✓')ck.remove();});el.classList.add('sel');selMethod=m;var ck=document.createElement('span');ck.style.cssText='margin-left:auto;font-size:.72rem;color:var(--g1);font-weight:700;';ck.textContent='✓';el.appendChild(ck);}
+function proceedPay(){alert('Przekierowuję do '+(selMethod==='stripe'?'Stripe':'PayPal')+'…\n\nTwój bezpłatny okres próbny na 3 dni zaczyna się natychmiast po rejestracji!');closePay();}
+document.getElementById('pay-modal').addEventListener('click',function(e){if(e.target===this)closePay();});
+
+// BILLING TOGGLE
+var isAnn=false;
+function toggleBill(){isAnn=!isAnn;var btn=document.getElementById('btog');btn.className='tog-btn'+(isAnn?' ann':'');document.getElementById('lbl-mies').className='pt-lbl'+(isAnn?'':' on');document.getElementById('lbl-rok').className='pt-lbl'+(isAnn?' on':'');document.querySelectorAll('.pv').forEach(function(el){el.textContent=isAnn?el.dataset.a:el.dataset.m;});document.querySelectorAll('.bn').forEach(function(el){el.textContent=isAnn?'rozliczane rocznie':'rozliczane miesięcznie';});}
+
+// COPY
+function copy(text,btn){navigator.clipboard.writeText(text).then(function(){btn.textContent='✅';setTimeout(function(){btn.textContent='Kopiuj';},2000);}).catch(function(){btn.textContent='✅';setTimeout(function(){btn.textContent='Kopiuj';},2000);});}
+
+// SCROLL TO DEMO
+function scrollToDemo(){document.getElementById('demo-konto').scrollIntoView({behavior:'smooth'});}
+</script>
+</body>
+</html>

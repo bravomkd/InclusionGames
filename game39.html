@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Sports Star — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game39 — Sports Star. Which sport is this? */
+var S=[['⚽','Football','Fußball','Piłka nożna','Fútbol'],['🏀','Basketball','Basketball','Koszykówka','Baloncesto'],['🎾','Tennis','Tennis','Tenis','Tenis'],['🏊','Swimming','Schwimmen','Pływanie','Natación'],['🚴','Cycling','Radfahren','Kolarstwo','Ciclismo'],['🏃','Running','Laufen','Bieganie','Atletismo'],['🤸','Gymnastics','Turnen','Gimnastyka','Gimnasia'],['⛷️','Skiing','Skifahren','Narciarstwo','Esquí']];
+var IDX={en:1,de:2,pl:3,es:4};
+var HUD={en:'WHICH SPORT?',de:'WELCHE SPORTART?',pl:'JAKI SPORT?',es:'¿QUÉ DEPORTE?'};
+var ASK={en:'Which sport is this?',de:'Welche Sportart ist das?',pl:'Jaki to sport?',es:'¿Qué deporte es este?'};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game39', icon:'⚽', hero:'🏃', villain:'🦦', castle:'🏰',
+  text:{
+    en:{tag:'Sport · Grades 2–3 · Game #39', title:'Sports ', titleEm:'Star!', desc:'Learn the names of different sports.', quest:'⚽ Win the grand tournament! Name each sport to score points on the way to the castle.', questLbl:'WIN THE TOURNAMENT'},
+    de:{tag:'Sport · Kl. 2–3 · Spiel #39', title:'Sport-', titleEm:'Star!', desc:'Lerne die Namen verschiedener Sportarten.', quest:'⚽ Gewinne das große Turnier! Benenne jede Sportart, um Punkte zur Burg zu holen.', questLbl:'TURNIER GEWINNEN'},
+    pl:{tag:'Sport · Kl. 2–3 · Gra #39', title:'Gwiazda ', titleEm:'Sportu!', desc:'Naucz się nazw różnych sportów.', quest:'⚽ Wygraj wielki turniej! Nazwij każdy sport, aby zdobyć punkty w drodze do zamku.', questLbl:'WYGRAJ TURNIEJ'},
+    es:{tag:'Deporte · Grados 2–3 · Juego #39', title:'Estrella del ', titleEm:'Deporte!', desc:'Aprende los nombres de los deportes.', quest:'⚽ ¡Gana el gran torneo! Nombra cada deporte para sumar puntos camino al castillo.', questLbl:'GANA EL TORNEO'}
+  },
+  rounds:function(lang,level,mode,count){
+    var ix=IDX[lang]||1, out=[], pool=shuf(S);
+    for(var i=0;i<count;i++){var s=pool[i%pool.length];out.push({hud:HUD[lang]||HUD.en,big:s[0],word:null,speech:ASK[lang]||ASK.en,praise:s[ix],correct:s[ix],distractors:shuf(S.filter(function(x){return x[0]!==s[0];}).map(function(x){return x[ix];}))});}
+    return out;
+  }
+});
+</script>
+</body></html>

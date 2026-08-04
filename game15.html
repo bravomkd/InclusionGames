@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Rainbow Numbers — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game15 — Rainbow Numbers. English colours & numbers 1–5. */
+var ITEMS=[['🔴','Red'],['🔵','Blue'],['🟢','Green'],['🟡','Yellow'],['⚫','Black'],['⚪','White'],['🟠','Orange'],['🟣','Purple'],['1','One'],['2','Two'],['3','Three'],['4','Four'],['5','Five']];
+var HUD={en:'IN ENGLISH',de:'AUF ENGLISCH',pl:'PO ANGIELSKU',es:'EN INGLÉS'};
+var ASK={en:'What is this in English?',de:'Wie heißt das auf Englisch?',pl:'Jak to jest po angielsku?',es:'¿Cómo se dice en inglés?'};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game15', icon:'🎨', hero:'🦄', villain:'☁️', castle:'🏰',
+  text:{
+    en:{tag:'English · Grade 3 · Game #15', title:'Rainbow ', titleEm:'Numbers!', desc:'English colours and numbers — pop the right word.', quest:'🌈 Paint the rainbow bridge! Each English word adds a colour that leads to the castle.', questLbl:'PAINT THE RAINBOW'},
+    de:{tag:'Englisch · Kl. 3 · Spiel #15', title:'Regenbogen-', titleEm:'Zahlen!', desc:'Englische Farben und Zahlen — triff das richtige Wort.', quest:'🌈 Male die Regenbogenbrücke! Jedes englische Wort fügt eine Farbe zur Burg hinzu.', questLbl:'REGENBOGEN MALEN'},
+    pl:{tag:'Angielski · Kl. 3 · Gra #15', title:'Tęczowe ', titleEm:'Liczby!', desc:'Angielskie kolory i liczby — trafiaj właściwe słowo.', quest:'🌈 Maluj tęczowy most! Każde angielskie słowo dodaje kolor prowadzący do zamku.', questLbl:'MALUJ TĘCZĘ'},
+    es:{tag:'Inglés · Grado 3 · Juego #15', title:'Números ', titleEm:'Arcoíris!', desc:'Colores y números en inglés — revienta la palabra correcta.', quest:'🌈 ¡Pinta el puente arcoíris! Cada palabra en inglés añade un color hacia el castillo.', questLbl:'PINTA EL ARCOÍRIS'}
+  },
+  rounds:function(lang,level,mode,count){
+    var out=[], pool=shuf(ITEMS);
+    for(var i=0;i<count;i++){
+      var it=pool[i%pool.length];
+      out.push({hud:HUD[lang]||HUD.en, big:it[0], word:null, speech:ASK[lang]||ASK.en, praise:it[1], correct:it[1], distractors:shuf(ITEMS.filter(function(x){return x[1]!==it[1];}).map(function(x){return x[1];}))});
+    }
+    return out;
+  }
+});
+</script>
+</body></html>

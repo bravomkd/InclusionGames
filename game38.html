@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Body Parts — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game38 — Body Parts. What body part is this? */
+var B=[['👁️','Eye','Auge','Oko','Ojo'],['👂','Ear','Ohr','Ucho','Oreja'],['👃','Nose','Nase','Nos','Nariz'],['👄','Mouth','Mund','Usta','Boca'],['✋','Hand','Hand','Dłoń','Mano'],['🦶','Foot','Fuß','Stopa','Pie'],['🦵','Leg','Bein','Noga','Pierna'],['💪','Arm','Arm','Ramię','Brazo']];
+var IDX={en:1,de:2,pl:3,es:4};
+var HUD={en:'WHICH BODY PART?',de:'WELCHER KÖRPERTEIL?',pl:'KTÓRA CZĘŚĆ CIAŁA?',es:'¿QUÉ PARTE DEL CUERPO?'};
+var ASK={en:'Which body part is this?',de:'Welcher Körperteil ist das?',pl:'Która to część ciała?',es:'¿Qué parte del cuerpo es?'};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game38', icon:'🧍', hero:'🤸', villain:'🦠', castle:'🏰',
+  text:{
+    en:{tag:'Sport · Grades 1–2 · Game #38', title:'Body ', titleEm:'Parts!', desc:'Learn the names of body parts.', quest:'🧍 Wake the sleepy giant! Name each body part to help the giant stand and reach the castle.', questLbl:'WAKE THE GIANT'},
+    de:{tag:'Sport · Kl. 1–2 · Spiel #38', title:'Körper-', titleEm:'Teile!', desc:'Lerne die Namen der Körperteile.', quest:'🧍 Wecke den schläfrigen Riesen! Benenne jeden Körperteil, damit der Riese aufsteht und zur Burg kommt.', questLbl:'WECKE DEN RIESEN'},
+    pl:{tag:'Sport · Kl. 1–2 · Gra #38', title:'Części ', titleEm:'Ciała!', desc:'Naucz się nazw części ciała.', quest:'🧍 Obudź śpiącego olbrzyma! Nazwij każdą część ciała, aby olbrzym wstał i dotarł do zamku.', questLbl:'OBUDŹ OLBRZYMA'},
+    es:{tag:'Deporte · Grados 1–2 · Juego #38', title:'Partes del ', titleEm:'Cuerpo!', desc:'Aprende los nombres de las partes del cuerpo.', quest:'🧍 ¡Despierta al gigante dormido! Nombra cada parte del cuerpo para que se levante y llegue al castillo.', questLbl:'DESPIERTA AL GIGANTE'}
+  },
+  rounds:function(lang,level,mode,count){
+    var ix=IDX[lang]||1, out=[], pool=shuf(B);
+    for(var i=0;i<count;i++){var s=pool[i%pool.length];out.push({hud:HUD[lang]||HUD.en,big:s[0],word:null,speech:ASK[lang]||ASK.en,praise:s[ix],correct:s[ix],distractors:shuf(B.filter(function(x){return x[0]!==s[0];}).map(function(x){return x[ix];}))});}
+    return out;
+  }
+});
+</script>
+</body></html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Season Spinner — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game21 — Season Spinner. Which season is this? */
+var SE=[['🌷','Spring','Frühling','Wiosna','Primavera'],['🏖️','Summer','Sommer','Lato','Verano'],['🍂','Autumn','Herbst','Jesień','Otoño'],['⛄','Winter','Winter','Zima','Invierno']];
+var IDX={en:1,de:2,pl:3,es:4};
+var HUD={en:'WHICH SEASON?',de:'WELCHE JAHRESZEIT?',pl:'KTÓRA PORA ROKU?',es:'¿QUÉ ESTACIÓN?'};
+var ASK={en:'Which season is this?',de:'Welche Jahreszeit ist das?',pl:'Która to pora roku?',es:'¿Qué estación es esta?'};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game21', icon:'🌦️', hero:'🧒', villain:'🌨️', castle:'🏰',
+  text:{
+    en:{tag:'Science · Grades 1–2 · Game #21', title:'Season ', titleEm:'Spinner!', desc:'Match the picture to the right season.', quest:'🌦️ Turn the wheel of the year! Each correct season moves time forward toward the castle.', questLbl:'TURN THE YEAR'},
+    de:{tag:'Sachkunde · Kl. 1–2 · Spiel #21', title:'Jahreszeiten-', titleEm:'Rad!', desc:'Ordne das Bild der richtigen Jahreszeit zu.', quest:'🌦️ Dreh das Rad des Jahres! Jede richtige Jahreszeit bringt die Zeit zur Burg voran.', questLbl:'DREH DAS JAHR'},
+    pl:{tag:'Przyroda · Kl. 1–2 · Gra #21', title:'Koło ', titleEm:'Pór Roku!', desc:'Dopasuj obrazek do właściwej pory roku.', quest:'🌦️ Obróć koło roku! Każda poprawna pora roku przesuwa czas do zamku.', questLbl:'OBRÓĆ ROK'},
+    es:{tag:'Ciencia · Grados 1–2 · Juego #21', title:'Rueda de ', titleEm:'Estaciones!', desc:'Une la imagen con la estación correcta.', quest:'🌦️ ¡Gira la rueda del año! Cada estación correcta avanza el tiempo hacia el castillo.', questLbl:'GIRA EL AÑO'}
+  },
+  rounds:function(lang,level,mode,count){
+    var ix=IDX[lang]||1, out=[], pool=shuf(SE);
+    for(var i=0;i<count;i++){var s=pool[i%pool.length];out.push({hud:HUD[lang]||HUD.en,big:s[0],word:null,speech:ASK[lang]||ASK.en,praise:s[ix],correct:s[ix],distractors:shuf(SE.filter(function(x){return x[0]!==s[0];}).map(function(x){return x[ix];}))});}
+    return out;
+  }
+});
+</script>
+</body></html>

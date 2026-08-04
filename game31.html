@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Fast & Slow — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game31 — Fast & Slow. Music tempo: is it fast or slow? */
+var ITEMS=[['🚀',1],['🐆',1],['⚡',1],['🏎️',1],['🐇',1],['🐌',0],['🐢',0],['😴',0],['🦥',0],['🚶',0]];
+var LBL={en:['Fast','Slow'],de:['Schnell','Langsam'],pl:['Szybko','Wolno'],es:['Rápido','Lento']};
+var HUD={en:'FAST OR SLOW?',de:'SCHNELL ODER LANGSAM?',pl:'SZYBKO CZY WOLNO?',es:'¿RÁPIDO O LENTO?'};
+var ASK={en:'Is this fast or slow?',de:'Ist das schnell oder langsam?',pl:'Czy to szybko czy wolno?',es:'¿Es rápido o lento?'};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game31', icon:'🎶', hero:'🩰', villain:'🐢', castle:'🏰',
+  text:{
+    en:{tag:'Music · Grades 1–2 · Game #31', title:'Fast & ', titleEm:'Slow!', desc:'Decide if the tempo is fast or slow.', quest:'🎶 Dance to the castle! Read each tempo right to keep the dancers in step.', questLbl:'DANCE ALONG'},
+    de:{tag:'Musik · Kl. 1–2 · Spiel #31', title:'Schnell & ', titleEm:'Langsam!', desc:'Entscheide, ob das Tempo schnell oder langsam ist.', quest:'🎶 Tanze zur Burg! Erkenne jedes Tempo, damit die Tänzer im Takt bleiben.', questLbl:'TANZE MIT'},
+    pl:{tag:'Muzyka · Kl. 1–2 · Gra #31', title:'Szybko & ', titleEm:'Wolno!', desc:'Zdecyduj, czy tempo jest szybkie czy wolne.', quest:'🎶 Tańcz do zamku! Rozpoznaj każde tempo, aby tancerze trzymali rytm.', questLbl:'TAŃCZ RAZEM'},
+    es:{tag:'Música · Grados 1–2 · Juego #31', title:'Rápido & ', titleEm:'Lento!', desc:'Decide si el tempo es rápido o lento.', quest:'🎶 ¡Baila hasta el castillo! Acierta cada tempo para que los bailarines sigan el paso.', questLbl:'BAILA CON ELLOS'}
+  },
+  rounds:function(lang,level,mode,count){
+    var L=LBL[lang]||LBL.en, out=[], pool=shuf(ITEMS);
+    for(var i=0;i<count;i++){var it=pool[i%pool.length];var c=it[1]?L[0]:L[1];out.push({hud:HUD[lang]||HUD.en,big:it[0],word:null,speech:ASK[lang]||ASK.en,praise:c,correct:c,distractors:[it[1]?L[1]:L[0]]});}
+    return out;
+  }
+});
+</script>
+</body></html>

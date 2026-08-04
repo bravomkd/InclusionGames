@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zaloguj się — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--ink:#1a1a2e;--ink2:#3d3d5c;--muted:#6b6b8a;--bg:#fafaf8;--surface:#fff;--border:#e8e6f0;--p1:#7c3aed;--p2:#a855f7;--p3:#ede9fe;--g1:#10b981;--r1:#ef4444;--r3:#fee2e2;--a1:#f59e0b;--a3:#fef3c7;--font:'Nunito',sans-serif;--display:'Fredoka One',cursive;}
+body{font-family:var(--font);background:var(--bg);min-height:100vh;display:flex;flex-direction:column;}
+nav{padding:14px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:var(--surface);}
+.logo{display:flex;align-items:center;gap:9px;text-decoration:none;}
+.logo-box{width:34px;height:34px;background:linear-gradient(135deg,var(--p1),var(--p2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;}
+.logo-text{font-family:var(--display);font-size:1.15rem;color:var(--ink);}
+.logo-text span{color:var(--p1);}
+.nav-link{font-size:.86rem;font-weight:700;color:var(--muted);text-decoration:none;}
+.nav-link:hover{color:var(--p1);}
+
+/* DEMO BANNER */
+.demo-bar{background:linear-gradient(135deg,#1e1b4b,#312e81);padding:14px 28px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+.db-left{display:flex;align-items:center;gap:10px;}
+.db-icon{font-size:1.5rem;}
+.db-title{font-weight:700;font-size:.95rem;}
+.db-sub{font-size:.8rem;opacity:.75;margin-top:2px;}
+.db-autofill{background:#fbbf24;color:#1e1b4b;font-size:.82rem;font-weight:700;padding:8px 18px;border-radius:100px;border:none;cursor:pointer;transition:transform .15s;white-space:nowrap;}
+.db-autofill:hover{transform:scale(1.04);}
+
+.main{flex:1;display:grid;grid-template-columns:1fr 1fr;min-height:calc(100vh - 130px);}
+@media(max-width:780px){.main{grid-template-columns:1fr;}.side-panel{display:none;}}
+
+/* LEFT PANEL */
+.side-panel{background:linear-gradient(160deg,var(--p1),#5b21b6,#1e1b4b);padding:56px 44px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;}
+.sp-bg{position:absolute;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,.05);top:-70px;right:-70px;}
+.sp-bg2{position:absolute;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.04);bottom:30px;left:-50px;}
+.sp-content{position:relative;z-index:1;}
+.sp-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);color:#fff;font-size:.76rem;font-weight:700;padding:4px 13px;border-radius:100px;margin-bottom:24px;letter-spacing:.5px;}
+.sp-title{font-family:var(--display);font-size:2.2rem;color:#fff;line-height:1.3;margin-bottom:14px;}
+.sp-desc{font-size:.9rem;color:rgba(255,255,255,.72);line-height:1.7;margin-bottom:26px;}
+.sp-feats{display:flex;flex-direction:column;gap:11px;}
+.sp-feat{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.82);font-size:.86rem;}
+.sp-fi{width:26px;height:26px;background:rgba(255,255,255,.15);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;}
+.sp-test{position:relative;z-index:1;background:rgba(255,255,255,.1);border-radius:14px;padding:18px;border:1px solid rgba(255,255,255,.15);}
+.sp-test-text{font-size:.86rem;color:rgba(255,255,255,.88);font-style:italic;line-height:1.6;margin-bottom:11px;}
+.sp-test-auth{display:flex;align-items:center;gap:9px;}
+.sp-av{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;color:#fff;}
+.sp-name{font-size:.8rem;font-weight:700;color:#fff;}
+.sp-role{font-size:.72rem;color:rgba(255,255,255,.58);}
+
+/* FORM PANEL */
+.form-panel{display:flex;align-items:center;justify-content:center;padding:44px 36px;overflow-y:auto;}
+.form-box{width:100%;max-width:400px;}
+.form-hdr{text-align:center;margin-bottom:28px;}
+.form-title{font-family:var(--display);font-size:1.9rem;color:var(--ink);margin-bottom:5px;}
+.form-sub{font-size:.88rem;color:var(--muted);}
+.form-sub a{color:var(--p1);font-weight:700;text-decoration:none;}
+
+/* DEMO CARD */
+.demo-card{background:linear-gradient(135deg,#fef3c7,#ede9fe);border:2px solid #fbbf24;border-radius:16px;padding:16px 18px;margin-bottom:22px;}
+.dc-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.dc-icon{font-size:1.3rem;}
+.dc-title{font-size:.92rem;font-weight:700;color:var(--ink);}
+.dc-sub{font-size:.75rem;color:var(--muted);margin-top:1px;}
+.dc-fields{display:flex;flex-direction:column;gap:7px;margin-bottom:12px;}
+.dc-field{display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.7);border-radius:8px;padding:8px 12px;}
+.dcf-lbl{font-size:.75rem;color:var(--muted);font-weight:700;}
+.dcf-val{font-family:'Courier New',monospace;font-size:.82rem;color:var(--ink);font-weight:700;}
+.dc-fill-btn{width:100%;padding:9px;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#fff;border:none;border-radius:100px;font-family:var(--font);font-size:.88rem;font-weight:700;cursor:pointer;transition:transform .15s;}
+.dc-fill-btn:hover{transform:scale(1.02);}
+
+/* SOCIAL */
+.social-btns{display:flex;flex-direction:column;gap:9px;margin-bottom:18px;}
+.soc-btn{display:flex;align-items:center;justify-content:center;gap:9px;padding:11px 18px;border:1.5px solid var(--border);border-radius:11px;background:var(--surface);font-size:.88rem;font-weight:700;color:var(--ink2);cursor:pointer;width:100%;transition:border-color .15s;}
+.soc-btn:hover{border-color:var(--p1);background:var(--p3);}
+
+.divider{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+.div-line{flex:1;height:1px;background:var(--border);}
+.div-text{font-size:.76rem;color:var(--muted);font-weight:600;}
+
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.field-lbl{font-size:.8rem;font-weight:700;color:var(--ink2);}
+.field-wrap{position:relative;}
+.field-input{width:100%;padding:11px 15px;border:1.5px solid var(--border);border-radius:11px;font-family:var(--font);font-size:.9rem;color:var(--ink);background:var(--surface);transition:border-color .15s,box-shadow .15s;outline:none;}
+.field-input:focus{border-color:var(--p1);box-shadow:0 0 0 3px rgba(124,58,237,.1);}
+.field-input.demo-filled{border-color:var(--a1);background:#fffbeb;}
+.field-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:.9rem;}
+.row{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.remember{display:flex;align-items:center;gap:7px;cursor:pointer;}
+.remember input{accent-color:var(--p1);width:15px;height:15px;}
+.remember span{font-size:.8rem;color:var(--muted);font-weight:600;}
+.forgot{font-size:.8rem;font-weight:700;color:var(--p1);text-decoration:none;}
+.forgot:hover{text-decoration:underline;}
+
+.alert{border-radius:10px;padding:11px 13px;font-size:.83rem;font-weight:600;margin-bottom:16px;display:none;}
+.alert.show{display:flex;align-items:center;gap:7px;}
+.alert-error{background:var(--r3);color:#991b1b;border:1px solid #fca5a5;}
+.alert-success{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;}
+
+.submit-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:100px;font-family:var(--font);font-size:.98rem;font-weight:700;cursor:pointer;transition:transform .15s,box-shadow .15s;margin-bottom:14px;}
+.submit-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(124,58,237,.35);}
+.submit-btn:disabled{opacity:.55;cursor:not-allowed;transform:none;}
+.spin{display:none;width:17px;height:17px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.signup-row{text-align:center;font-size:.86rem;color:var(--muted);}
+.signup-row a{color:var(--p1);font-weight:700;text-decoration:none;}
+.trial-strip{background:linear-gradient(135deg,var(--p3),var(--a3));border-radius:11px;padding:11px 15px;display:flex;align-items:center;gap:9px;margin-top:18px;}
+.ts-text{font-size:.8rem;font-weight:700;color:var(--ink2);flex:1;}
+.ts-link{font-size:.78rem;font-weight:700;color:var(--p1);text-decoration:none;white-space:nowrap;}
+
+footer{padding:16px 28px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:.74rem;color:var(--muted);}
+footer a{color:var(--muted);text-decoration:none;margin:0 7px;}
+footer a:hover{color:var(--p1);}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index-pl.html" class="logo">
+    <div class="logo-box">🎈</div>
+    <span class="logo-text">Inclusion<span>Games</span></span>
+  </a>
+  <a href="signup-pl.html" class="nav-link">Nie masz konta? Zarejestruj się →</a>
+</nav>
+
+<!-- DEMO BAR -->
+<div class="demo-bar">
+  <div class="db-left">
+    <div class="db-icon">🎯</div>
+    <div><div class="db-title">Konto demonstracyjne dla Macieja</div><div class="db-sub">Pełny dostęp do wszystkich 42 gier — plan Pedagog</div></div>
+  </div>
+  <button class="db-autofill" onclick="autofillDemo()">⚡ Wypełnij automatycznie i zaloguj</button>
+</div>
+
+<div class="main">
+
+  <!-- LEFT PANEL -->
+  <div class="side-panel">
+    <div class="sp-bg"></div><div class="sp-bg2"></div>
+    <div class="sp-content">
+      <div class="sp-badge">🇵🇱 Witaj z powrotem</div>
+      <h2 class="sp-title">Twoje dziecko czeka na zabawę</h2>
+      <p class="sp-desc">Zaloguj się, aby uzyskać dostęp do wszystkich 42 gier, śledzić postępy dziecka i kontynuować jego drogę edukacyjną.</p>
+      <div class="sp-feats">
+        <div class="sp-feat"><div class="sp-fi">🎮</div>42 gry — wszystkie wieki, wszystkie zdolności</div>
+        <div class="sp-feat"><div class="sp-fi">🌍</div>4 języki: EN · DE · PL · ES</div>
+        <div class="sp-feat"><div class="sp-fi">♿</div>Pełne tryby dostępności</div>
+        <div class="sp-feat"><div class="sp-fi">🏆</div>Bajkowa przygoda i nagroda w każdej grze</div>
+        <div class="sp-feat"><div class="sp-fi">🆕</div>Nowe gry dodawane regularnie</div>
+      </div>
+    </div>
+    <div class="sp-test">
+      <p class="sp-test-text">"Mój syn ma autyzm i grał w Litery-Pop przez 40 minut. Płakałam ze szczęścia."</p>
+      <div class="sp-test-auth">
+        <div class="sp-av">MK</div>
+        <div><div class="sp-name">Maria K.</div><div class="sp-role">Rodzic, Warszawa</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORM PANEL -->
+  <div class="form-panel">
+    <div class="form-box">
+      <div class="form-hdr">
+        <h1 class="form-title">Witaj z powrotem 👋</h1>
+        <p class="form-sub">Nowy w InclusionGames? <a href="signup-pl.html">Zacznij bezpłatny okres próbny</a></p>
+      </div>
+
+      <!-- DEMO CARD -->
+      <div class="demo-card">
+        <div class="dc-head">
+          <span class="dc-icon">🎯</span>
+          <div><div class="dc-title">Dane do konta demo</div><div class="dc-sub">Kliknij przycisk poniżej, aby wypełnić automatycznie</div></div>
+        </div>
+        <div class="dc-fields">
+          <div class="dc-field"><span class="dcf-lbl">E-mail</span><span class="dcf-val">demo@inclusion-games.com</span></div>
+          <div class="dc-field"><span class="dcf-lbl">Hasło</span><span class="dcf-val">Demo2025!</span></div>
+          <div class="dc-field"><span class="dcf-lbl">Plan</span><span class="dcf-val" style="color:#7c3aed;">Pedagog — pełny dostęp</span></div>
+        </div>
+        <button class="dc-fill-btn" onclick="autofillDemo()">⚡ Wypełnij i zaloguj się automatycznie</button>
+      </div>
+
+      <!-- ALERTS -->
+      <div class="alert alert-error" id="alert-err"><span>⚠️</span><span id="alert-err-txt">Nieprawidłowy e-mail lub hasło.</span></div>
+      <div class="alert alert-success" id="alert-ok"><span>✅</span><span id="alert-ok-txt">Zalogowano! Przekierowuję…</span></div>
+
+      <!-- SOCIAL -->
+      <div class="social-btns">
+        <button class="soc-btn" onclick="socialLogin('google')">🔵 Kontynuuj z Google</button>
+        <button class="soc-btn" onclick="socialLogin('microsoft')">🟦 Kontynuuj z Microsoft</button>
+      </div>
+
+      <div class="divider"><div class="div-line"></div><span class="div-text">lub zaloguj się e-mailem</span><div class="div-line"></div></div>
+
+      <form id="login-form" onsubmit="handleLogin(event)" novalidate>
+        <div class="field">
+          <label class="field-lbl">Adres e-mail</label>
+          <div class="field-wrap">
+            <input class="field-input" type="email" id="email" placeholder="ty@przykład.pl" autocomplete="email" required oninput="validateEmail(this)">
+            <span class="field-icon" id="email-icon"></span>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-lbl">Hasło</label>
+          <div class="field-wrap">
+            <input class="field-input" type="password" id="password" placeholder="Wprowadź hasło" autocomplete="current-password" required>
+            <span class="field-icon" id="pwd-eye" onclick="togglePwd()" style="cursor:pointer;">👁</span>
+          </div>
+        </div>
+        <div class="row">
+          <label class="remember"><input type="checkbox" id="remember"><span>Zapamiętaj mnie</span></label>
+          <a href="forgot-pl.html" class="forgot">Zapomniałeś hasła?</a>
+        </div>
+        <button class="submit-btn" type="submit" id="login-btn">
+          <span id="btn-txt">Zaloguj się</span>
+          <div class="spin" id="btn-spin"></div>
+        </button>
+      </form>
+
+      <div class="signup-row">Nie masz konta? <a href="signup-pl.html">Zarejestruj się — pierwsze 3 dni gratis</a></div>
+
+      <div class="trial-strip">
+        <span style="font-size:1.1rem;">🎁</span>
+        <span class="ts-text">Nowy tutaj? Zacznij bezpłatny 3-dniowy okres próbny — bez karty.</span>
+        <a href="signup-pl.html" class="ts-link">Zarejestruj →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div>© 2026 InclusionGames — <a href="#">Prywatność</a><a href="#">Regulamin</a><a href="#">Cookies</a></div>
+  <div>🔒 Zabezpieczone przez Supabase · Zgodność z RODO · Serwery EU</div>
+</footer>
+
+<script>
+var SUPABASE_URL='https://rgnnybvhrqfqlsphiobx.supabase.co';
+var SUPABASE_ANON_KEY='sb_publishable_0Sgezq5NwX0U4UmzZ2o_Zg_q0Y9abvx';
+var sb=null;
+
+// Load Supabase SDK
+(function(){
+  var s=document.createElement('script');
+  s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+  s.onload=function(){
+    sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+    sb.auth.getSession().then(function(d){if(d.data&&d.data.session)window.location.href='dashboard.html';});
+  };
+  document.head.appendChild(s);
+})();
+
+function validateEmail(el){var ok=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value);el.className='field-input'+(el.value?(ok?' ':'  error'):'');document.getElementById('email-icon').textContent=el.value?(ok?'✅':''):'';}
+
+function togglePwd(){var i=document.getElementById('password'),e=document.getElementById('pwd-eye');i.type=i.type==='password'?'text':'password';e.textContent=i.type==='password'?'👁':'🙈';}
+
+function autofillDemo(){
+  var em=document.getElementById('email'),pw=document.getElementById('password');
+  em.value='demo@inclusion-games.com';pw.value='Demo2025!';
+  em.className='field-input demo-filled';pw.className='field-input demo-filled';
+  document.getElementById('email-icon').textContent='✅';
+  // Auto-submit after short delay
+  setTimeout(function(){document.getElementById('login-form').requestSubmit();},400);
+}
+
+function showAlert(type,msg){
+  document.getElementById('alert-err').classList.remove('show');
+  document.getElementById('alert-ok').classList.remove('show');
+  if(type==='error'){document.getElementById('alert-err-txt').textContent=msg;document.getElementById('alert-err').classList.add('show');}
+  else{document.getElementById('alert-ok-txt').textContent=msg;document.getElementById('alert-ok').classList.add('show');}
+}
+function setLoad(on){var btn=document.getElementById('login-btn');btn.disabled=on;document.getElementById('btn-txt').style.display=on?'none':'block';document.getElementById('btn-spin').style.display=on?'block':'none';}
+
+async function handleLogin(e){
+  e.preventDefault();
+  var email=document.getElementById('email').value.trim();
+  var pw=document.getElementById('password').value;
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showAlert('error','Wpisz prawidłowy adres e-mail.');return;}
+  if(!pw){showAlert('error','Hasło jest wymagane.');return;}
+  setLoad(true);
+  // Demo shortcut — works even without Supabase for presentation
+  if(email==='demo@inclusion-games.com'&&pw==='Demo2025!'){
+    showAlert('success','Zalogowano na konto demo! Przekierowuję do gier…');
+    setTimeout(function(){window.location.href='index-pl.html#games';},1400);
+    return;
+  }
+  if(!sb){showAlert('error','Ładowanie... spróbuj ponownie za chwilę.');setLoad(false);return;}
+  try{
+    var res=await sb.auth.signInWithPassword({email:email,password:pw});
+    if(res.error)throw res.error;
+    showAlert('success','Zalogowano! Przekierowuję do gier…');
+    setTimeout(function(){window.location.href='dashboard.html';},1200);
+  }catch(err){
+    var msg=err.message==='Invalid login credentials'?'Nieprawidłowy e-mail lub hasło. Spróbuj ponownie.':(err.message||'Coś poszło nie tak.');
+    showAlert('error',msg);setLoad(false);
+  }
+}
+
+function socialLogin(p){alert('Logowanie przez '+p.charAt(0).toUpperCase()+p.slice(1)+' zostanie otwarte tutaj.\n\nPodłącz klucze Supabase, aby aktywować.');}
+
+document.addEventListener('keydown',function(e){if(e.key==='Enter'&&document.activeElement.tagName!=='BUTTON')document.getElementById('login-form').requestSubmit();});
+</script>
+</body>
+</html>

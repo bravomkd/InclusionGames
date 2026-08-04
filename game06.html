@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Rhyme Rescue — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game06 — Rhyme Rescue. Hear a word, pop the word that rhymes with it. */
+var PAIRS={
+  en:[['Cat','🐱','Hat'],['Dog','🐶','Frog'],['Star','⭐','Car'],['Bee','🐝','Tree'],['Sun','☀️','Bun'],['Mouse','🐭','House'],['Cake','🍰','Snake'],['Ball','⚽','Wall']],
+  de:[['Maus','🐭','Haus'],['Hund','🐶','Mund'],['Baum','🌳','Traum'],['Hose','👖','Rose'],['Stern','⭐','Kern'],['Eis','🍦','Reis'],['Katze','🐱','Tatze'],['Bär','🐻','Beer']],
+  pl:[['Kot','🐱','Płot'],['Dom','🏠','Tom'],['Las','🌲','Czas'],['Mak','🌺','Rak'],['Sok','🧃','Rok'],['Nos','👃','Los'],['Rak','🦞','Ptak'],['Kos','🐦','Włos']],
+  es:[['Gato','🐱','Pato'],['Sol','☀️','Gol'],['Flor','🌸','Amor'],['Ratón','🐭','Balón'],['Casa','🏠','Masa'],['Pan','🍞','Can'],['Luna','🌙','Cuna'],['Vaca','🐄','Hamaca']]
+};
+var HUD={en:'FIND THE RHYME',de:'FINDE DEN REIM',pl:'ZNAJDŹ RYM',es:'ENCUENTRA LA RIMA'};
+var ASK={
+  en:function(w){return 'Which word rhymes with '+w+'?';},
+  de:function(w){return 'Welches Wort reimt sich auf '+w+'?';},
+  pl:function(w){return 'Które słowo rymuje się z '+w+'?';},
+  es:function(w){return '¿Qué palabra rima con '+w+'?';}
+};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+IG_GAME({
+  id:'game06', icon:'🎶', hero:'🧚', villain:'🦉', castle:'🏰',
+  text:{
+    en:{tag:'Literacy · Grades 1–2 · Game #6', title:'Rhyme ', titleEm:'Rescue!', desc:'Hear a word and pop the word that rhymes with it.', quest:'🎶 Sing the fairy free! Each rhyme you find adds a note to the magic song that opens the castle.', questLbl:'SING THE SONG'},
+    de:{tag:'Sprache · Kl. 1–2 · Spiel #6', title:'Reimwörter-', titleEm:'Blitz!', desc:'Höre ein Wort und triff das Wort, das sich darauf reimt.', quest:'🎶 Singe die Fee frei! Jeder Reim fügt eine Note zum Zauberlied hinzu, das die Burg öffnet.', questLbl:'SINGE DAS LIED'},
+    pl:{tag:'Język polski · Kl. 1–2 · Gra #6', title:'Ratunek ', titleEm:'Rymów!', desc:'Posłuchaj słowa i traf słowo, które się z nim rymuje.', quest:'🎶 Wyśpiewaj wróżkę na wolność! Każdy rym dodaje nutę do magicznej piosenki otwierającej zamek.', questLbl:'ZAŚPIEWAJ PIOSENKĘ'},
+    es:{tag:'Lectura · Grados 1–2 · Juego #6', title:'Rescate de ', titleEm:'Rimas!', desc:'Escucha una palabra y revienta la que rima con ella.', quest:'🎶 ¡Libera al hada cantando! Cada rima añade una nota a la canción mágica que abre el castillo.', questLbl:'CANTA LA CANCIÓN'}
+  },
+  rounds:function(lang,level,mode,count){
+    var data=shuf(PAIRS[lang]||PAIRS.en), out=[];
+    var allRhymes=data.map(function(p){return p[2];});
+    for(var i=0;i<count;i++){
+      var p=data[i%data.length], correct=p[2];
+      var dist=shuf(allRhymes.filter(function(r){return r!==correct;}));
+      out.push({hud:HUD[lang]||HUD.en, big:p[1], word:p[0], speech:(ASK[lang]||ASK.en)(p[0]), praise:p[0]+' — '+correct, correct:correct, distractors:dist});
+    }
+    return out;
+  }
+});
+</script>
+</body></html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Move It — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game40 — Move It! Which movement is this? Try it with your body too. */
+var M=[['🤸','Jump','Springen','Skok','Salto'],['🏃','Run','Laufen','Bieg','Correr'],['👏','Clap','Klatschen','Klaskanie','Aplauso'],['🙆','Stretch','Strecken','Rozciąganie','Estirar'],['💃','Spin','Drehen','Obrót','Girar'],['🦵','Kick','Treten','Kopnięcie','Patada'],['🙌','Reach up','Hochstrecken','Sięganie','Alcanzar'],['🚶','Walk','Gehen','Marsz','Caminar']];
+var IDX={en:1,de:2,pl:3,es:4};
+var HUD={en:'WHICH MOVE?',de:'WELCHE BEWEGUNG?',pl:'JAKI RUCH?',es:'¿QUÉ MOVIMIENTO?'};
+var ASK={en:'Which movement is this? Try it too!',de:'Welche Bewegung ist das? Mach sie nach!',pl:'Jaki to ruch? Spróbuj też!',es:'¿Qué movimiento es? ¡Hazlo tú también!'};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game40', icon:'🤾', hero:'🕺', villain:'🛋️', castle:'🏰',
+  text:{
+    en:{tag:'Sport · Grades 1–2 · Game #40', title:'Move ', titleEm:'It!', desc:'Name each movement — and try doing it with your body.', quest:'🤾 Energise the sleepy kingdom! Each move you name wakes the castle a little more.', questLbl:'ENERGISE THE KINGDOM'},
+    de:{tag:'Sport · Kl. 1–2 · Spiel #40', title:'Beweg ', titleEm:'dich!', desc:'Benenne jede Bewegung — und mach sie mit deinem Körper nach.', quest:'🤾 Wecke das schläfrige Königreich! Jede Bewegung weckt die Burg ein Stück mehr.', questLbl:'KÖNIGREICH WECKEN'},
+    pl:{tag:'Sport · Kl. 1–2 · Gra #40', title:'Rusz ', titleEm:'się!', desc:'Nazwij każdy ruch — i spróbuj go wykonać.', quest:'🤾 Pobudź śpiące królestwo! Każdy ruch budzi zamek odrobinę bardziej.', questLbl:'POBUDŹ KRÓLESTWO'},
+    es:{tag:'Deporte · Grados 1–2 · Juego #40', title:'¡A ', titleEm:'Moverse!', desc:'Nombra cada movimiento — y trata de hacerlo con tu cuerpo.', quest:'🤾 ¡Despierta el reino dormido! Cada movimiento despierta un poco más el castillo.', questLbl:'DESPIERTA EL REINO'}
+  },
+  rounds:function(lang,level,mode,count){
+    var ix=IDX[lang]||1, out=[], pool=shuf(M);
+    for(var i=0;i<count;i++){var s=pool[i%pool.length];out.push({hud:HUD[lang]||HUD.en,big:s[0],word:null,speech:ASK[lang]||ASK.en,praise:s[ix],correct:s[ix],distractors:shuf(M.filter(function(x){return x[0]!==s[0];}).map(function(x){return x[ix];}))});}
+    return out;
+  }
+});
+</script>
+</body></html>

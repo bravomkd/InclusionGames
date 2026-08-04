@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Letter-Pop — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;}
+:root{--bg:#0d1a2e;--panel:rgba(255,255,255,.08);--border:rgba(255,255,255,.14);--text:#fff;--muted:rgba(255,255,255,.6);--gold:#FFD700;--green:#4ade80;--red:#f87171;--blue:#60a5fa;--font:"Fredoka One",cursive;--body:"Nunito",sans-serif;}
+body{font-family:var(--body);background:var(--bg);overflow:hidden;height:100vh;width:100vw;color:var(--text);}
+.screen{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:safe center;padding:20px;overflow-y:auto;gap:12px;}
+.screen.hidden{display:none!important;}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;}
+.brand{display:flex;align-items:center;gap:8px;font-family:var(--font);font-size:1rem;}
+.brand-box{width:30px;height:30px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.back{background:rgba(0,0,0,.5);border:1.5px solid var(--border);color:#fff;font-size:.8rem;font-weight:700;padding:6px 13px;border-radius:100px;text-decoration:none;}
+.hero{text-align:center;}
+.tag{font-size:.68rem;font-weight:700;letter-spacing:2px;color:var(--blue);text-transform:uppercase;margin-bottom:5px;}
+.game-icon{font-size:2.8rem;display:block;margin-bottom:6px;}
+.gtitle{font-family:var(--font);font-size:clamp(1.8rem,6vw,3rem);color:#fff;line-height:1.1;}
+.gtitle em{color:var(--gold);font-style:normal;}
+.gdesc{font-size:.85rem;color:var(--muted);max-width:360px;margin:5px auto 0;line-height:1.5;}
+.quest{font-size:.92rem;color:var(--gold);font-weight:700;max-width:380px;margin:6px auto 0;line-height:1.45;}
+.langrow{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;}
+.langbtn{display:flex;align-items:center;gap:6px;background:var(--panel);border:1.5px solid var(--border);color:var(--muted);font-family:var(--body);font-weight:700;font-size:.8rem;padding:7px 13px;border-radius:100px;cursor:pointer;transition:all .15s;}
+.langbtn.on{border-color:var(--gold);color:var(--gold);background:rgba(255,215,0,.12);}
+.langbtn .fl{font-size:1rem;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:500px;width:100%;}
+.card{background:var(--panel);border:1.5px solid var(--border);border-radius:14px;padding:12px 14px;}
+.clabel{font-size:.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:7px;font-weight:700;}
+.sel{width:100%;background:rgba(255,255,255,.09);border:1.5px solid var(--border);color:#fff;font-family:var(--body);font-size:.85rem;font-weight:700;padding:7px 9px;border-radius:8px;cursor:pointer;outline:none;}
+.sel option{background:#0d1a2e;}
+.toglist{display:flex;flex-direction:column;gap:6px;}
+.togrow{display:flex;align-items:center;justify-content:space-between;}
+.toglbl{font-size:.8rem;font-weight:700;}
+.tog{width:36px;height:19px;background:rgba(255,255,255,.15);border-radius:10px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;}
+.tog.on{background:var(--green);}
+.tog::after{content:"";position:absolute;top:3px;left:3px;width:13px;height:13px;background:#fff;border-radius:50%;transition:transform .2s;}
+.tog.on::after{transform:translateX(17px);}
+.cambox{background:var(--panel);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;max-width:500px;width:100%;}
+.camrow{display:flex;gap:12px;align-items:center;}
+.camprevbox{width:150px;flex-shrink:0;aspect-ratio:4/3;background:#000;border-radius:9px;overflow:hidden;border:2px solid var(--border);}
+#camprev{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);}
+.caminfo{flex:1;display:flex;flex-direction:column;gap:7px;}
+.sline{font-size:.77rem;font-weight:700;display:flex;align-items:center;gap:6px;color:var(--muted);}
+.sline.ok{color:var(--green);} .sline.warn{color:var(--gold);}
+.sdot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.gobtn{width:100%;padding:11px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:100px;font-family:var(--font);font-size:.95rem;cursor:pointer;margin-top:4px;}
+.gobtn:disabled{opacity:.35;cursor:not-allowed;}
+.snbtn{font-family:var(--body);font-size:.77rem;padding:7px 16px;background:rgba(139,92,246,.25);color:#c4b5fd;border:1px solid rgba(139,92,246,.4);border-radius:100px;cursor:pointer;font-weight:700;}
+.hidden{display:none!important;}
+#vid{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);z-index:0;opacity:0;transition:opacity 1s;}
+#vid.vis{opacity:1;}
+#gc,#hc{position:fixed;inset:0;width:100%;height:100%;z-index:1;}
+#hc{z-index:2;pointer-events:none;}
+#wf{position:fixed;inset:0;z-index:9;pointer-events:none;border:16px solid transparent;transition:border-color .15s;}
+#wf.fl{border-color:rgba(239,68,68,.6);}
+/* Quest / adventure bar */
+#questbar{position:fixed;top:50px;left:50%;transform:translateX(-50%);z-index:11;width:min(440px,92vw);background:rgba(0,0,0,.74);border:2px solid rgba(255,255,255,.14);border-radius:16px;padding:8px 12px 10px;backdrop-filter:blur(10px);}
+.quest-head{display:flex;justify-content:space-between;align-items:center;font-size:.62rem;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+.quest-time{color:var(--gold);font-family:var(--font);letter-spacing:1px;}
+.quest-track{position:relative;height:30px;background:linear-gradient(90deg,rgba(96,165,250,.15),rgba(255,215,0,.15));border-radius:100px;border:1.5px solid rgba(255,255,255,.12);}
+.q-castle{position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:1.3rem;}
+.q-hero{position:absolute;top:50%;left:4%;transform:translate(-50%,-50%);font-size:1.35rem;transition:left .5s cubic-bezier(.34,1.4,.64,1);filter:drop-shadow(0 0 4px rgba(255,215,0,.6));}
+.q-dragon{position:absolute;top:50%;left:0%;transform:translate(-60%,-50%);font-size:1.15rem;opacity:.85;transition:left .6s ease;}
+#hud{position:fixed;top:118px;left:0;right:0;z-index:10;pointer-events:none;padding:0 12px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.hp{background:rgba(0,0,0,.82);border:2px solid rgba(255,255,255,.15);border-radius:14px;padding:10px 15px;backdrop-filter:blur(10px);text-align:center;max-width:64vw;}
+.hp .wordhint{white-space:normal;word-break:break-word;}
+.hplbl{font-size:.54rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;font-weight:900;margin-bottom:2px;}
+.bigletter{font-family:var(--font);font-size:clamp(4.8rem,17vw,10rem);color:var(--gold);line-height:1;display:block;}
+.wordhint{font-size:clamp(2.1rem,7vw,4rem);color:#fff;margin-top:6px;font-weight:900;line-height:1.1;}
+.hscore{font-family:var(--font);font-size:1.4rem;color:var(--gold);line-height:1;}
+.hround{font-size:.58rem;color:var(--muted);font-weight:700;margin-top:2px;}
+#praise{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);z-index:20;text-align:center;pointer-events:none;transition:transform .3s cubic-bezier(.34,1.56,.64,1);}
+#praise.show{transform:translate(-50%,-50%) scale(1);}
+.pw{font-family:var(--font);font-size:clamp(2.8rem,9vw,5.5rem);color:var(--gold);text-shadow:0 0 40px rgba(255,215,0,.5);line-height:1;}
+.ps{font-family:var(--font);font-size:clamp(.85rem,2.5vw,1.5rem);color:#fff;background:rgba(0,0,0,.7);border-radius:100px;padding:5px 18px;margin-top:5px;}
+#pill{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:var(--muted);font-size:.78rem;padding:7px 16px;border-radius:100px;z-index:15;font-weight:700;border:1.5px solid transparent;backdrop-filter:blur(8px);white-space:nowrap;}
+#pill.on{color:var(--green);border-color:rgba(74,222,128,.4);}
+#pill.wait{color:var(--gold);border-color:rgba(255,215,0,.4);}
+#resultscreen{gap:10px;}
+.remoji{font-size:3.8rem;line-height:1;}
+.rtitle{font-family:var(--font);font-size:clamp(1.8rem,6vw,3.5rem);color:var(--gold);text-align:center;}
+.rsub{font-size:.92rem;color:var(--muted);font-weight:700;}
+.rstars{font-size:1.4rem;letter-spacing:3px;}
+.rstats{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+.rstat{background:var(--panel);border:1.5px solid var(--border);border-radius:12px;padding:10px 16px;text-align:center;}
+.rsn{font-family:var(--font);font-size:1.7rem;color:#fff;line-height:1;}
+.rsl{font-size:.68rem;color:var(--muted);font-weight:700;margin-top:2px;}
+.rbtns{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;}
+.btn{font-family:var(--font);font-size:.95rem;padding:11px 24px;border:none;border-radius:100px;cursor:pointer;transition:transform .2s;}
+.btn:hover{transform:scale(1.05);}
+.btnp{background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;}
+.btns{background:var(--panel);color:var(--text);border:2px solid var(--border);}
+.btnr{background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;}
+.mrow{display:flex;gap:7px;}
+.mbt{flex:1;padding:8px 4px;border-radius:9px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-family:var(--body);font-size:.75rem;font-weight:700;cursor:pointer;text-align:center;transition:all .15s;line-height:1.3;}
+.mbt.on{border-color:var(--blue);color:var(--blue);background:rgba(96,165,250,.12);}
+/* Reward box */
+#rewardbox{background:linear-gradient(135deg,rgba(255,215,0,.14),rgba(139,92,246,.14));border:1.5px solid rgba(255,215,0,.4);border-radius:16px;padding:16px;max-width:420px;width:100%;text-align:center;}
+.rw-title{font-family:var(--font);color:var(--gold);font-size:1.05rem;margin-bottom:4px;}
+.rw-desc{font-size:.8rem;color:var(--muted);margin-bottom:10px;line-height:1.45;}
+.rw-input{width:100%;background:rgba(255,255,255,.1);border:1.5px solid var(--border);color:#fff;font-family:var(--body);font-size:.85rem;font-weight:700;padding:9px 12px;border-radius:9px;outline:none;margin-bottom:8px;}
+.rw-input::placeholder{color:rgba(255,255,255,.45);font-weight:400;}
+.rw-send{width:100%;padding:11px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;border-radius:100px;font-family:var(--font);font-size:.92rem;cursor:pointer;}
+.rw-send:disabled{opacity:.5;cursor:not-allowed;}
+.rw-status{font-size:.82rem;font-weight:700;color:var(--green);margin-top:8px;min-height:1em;}
+#pauseov{position:fixed;inset:0;z-index:18;background:rgba(0,0,0,.78);display:flex;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
+</style></head><body>
+<div class="topnav"><div class="brand"><div class="brand-box">🎈</div>InclusionGames</div><a href="/dashboard.html" class="back" id="backlink">← All games</a></div>
+
+<div id="setupscreen" class="screen">
+  <div class="langrow" id="langrow">
+    <button class="langbtn" data-l="en" onclick="setLang('en')"><span class="fl">🇬🇧</span>English</button>
+    <button class="langbtn" data-l="de" onclick="setLang('de')"><span class="fl">🇩🇪</span>Deutsch</button>
+    <button class="langbtn" data-l="pl" onclick="setLang('pl')"><span class="fl">🇵🇱</span>Polski</button>
+    <button class="langbtn" data-l="es" onclick="setLang('es')"><span class="fl">🇪🇸</span>Español</button>
+  </div>
+  <div class="hero">
+    <div class="tag" id="uiTag"></div>
+    <span class="game-icon">🏰</span>
+    <h1 class="gtitle"><span id="uiTitle"></span><em id="uiTitleEm"></em></h1>
+    <p class="gdesc" id="uiDesc"></p>
+    <p class="quest" id="uiQuest"></p>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="clabel" id="uiModeLbl">🎮 Mode</div>
+      <div class="mrow" id="mrow">
+        <button class="mbt on" data-m="g2k" onclick="setMode(this)"><span id="uiModeBig">A-a</span><br><small id="uiModeBigSub">Big→Small</small></button>
+        <button class="mbt" data-m="k2g" onclick="setMode(this)"><span id="uiModeSmall">a-A</span><br><small id="uiModeSmallSub">Small→Big</small></button>
+        <button class="mbt" data-m="mix" onclick="setMode(this)"><span id="uiModeMix">Aa</span><br><small id="uiModeMixSub">Mixed</small></button>
+      </div>
+    </div>
+    <div class="card"><div class="clabel" id="uiLevelLbl">📊 Level</div>
+      <select class="sel" id="lvl">
+        <option value="gentle" id="uiLvlGentle">Gentle · 2 bubbles</option>
+        <option value="standard" selected id="uiLvlStandard">Standard · 3 bubbles</option>
+        <option value="challenge" id="uiLvlChallenge">Challenge · 4 bubbles</option>
+      </select></div>
+    <div class="card" style="grid-column:1/-1"><div class="clabel" id="uiAccessLbl">Accessibility</div>
+      <div class="toglist">
+        <div class="togrow"><span class="toglbl" id="uiSlow">Slow motion</span><div class="tog" id="tslow" onclick="this.classList.toggle('on')"></div></div>
+        <div class="togrow"><span class="toglbl" id="uiBig">Big letters</span><div class="tog" id="txl" onclick="this.classList.toggle('on')"></div></div>
+        <div class="togrow"><span class="toglbl" id="uiVoice">Voice</span><div class="tog on" id="tvoice" onclick="this.classList.toggle('on')"></div></div>
+      </div>
+      <button class="snbtn" id="uiSpe" onclick="document.getElementById('tslow').classList.add('on');document.getElementById('txl').classList.add('on');document.getElementById('lvl').value='gentle';" style="margin-top:9px;">⭐ Special-needs mode</button></div>
+  </div>
+  <div class="cambox"><div class="camrow">
+    <div class="camprevbox"><video id="camprev" autoplay playsinline muted></video></div>
+    <div class="caminfo">
+      <div id="scam" class="sline"><span class="sdot"></span><span id="uiCam">Camera…</span></div>
+      <div id="smp" class="sline"><span class="sdot"></span><span id="uiTrack">Tracking…</span></div>
+      <button class="gobtn" id="gobtn" onclick="startGame()" disabled>Play!</button>
+    </div>
+  </div></div>
+</div>
+
+<video id="vid" autoplay playsinline muted></video>
+<canvas id="gc"></canvas><canvas id="hc"></canvas><div id="wf"></div>
+
+<div id="questbar" class="hidden">
+  <div class="quest-head"><span id="questLbl">RESCUE THE PRINCESS</span><span class="quest-time">⏱️ <span id="qtime">0:00</span></span></div>
+  <div class="quest-track">
+    <span class="q-dragon" id="qdragon">🐉</span>
+    <span class="q-hero" id="qhero">🦸</span>
+    <span class="q-castle">🏰</span>
+  </div>
+</div>
+
+<div id="hud" class="hidden">
+  <div class="hp"><div class="hplbl" id="hudlbl">FIND THE LETTER</div><span class="bigletter" id="hl">A</span><div class="wordhint" id="hw"></div></div>
+  <div class="hp"><div class="hplbl" id="uiPoints">POINTS</div><div class="hscore" id="hs">0</div><div class="hround" id="hr">1/10</div></div>
+</div>
+<div id="praise"><div id="pw" class="pw"></div><div id="ps" class="ps"></div></div>
+<div id="pill" class="hidden">Show your hand!</div>
+
+<div id="resultscreen" class="screen hidden">
+  <div id="re" class="remoji">🏆</div><div id="rt" class="rtitle"></div><div id="rsub" class="rsub"></div><div id="rstar" class="rstars"></div>
+  <div class="rstats">
+    <div class="rstat"><div class="rsn" id="rs1">0</div><div class="rsl" id="uiCorrect">Correct</div></div>
+    <div class="rstat"><div class="rsn" id="rs2">0</div><div class="rsl" id="uiRounds">Rounds</div></div>
+    <div class="rstat"><div class="rsn" id="rs3">0:00</div><div class="rsl" id="uiTime">Time</div></div>
+  </div>
+  <div id="rewardbox" class="hidden">
+    <div class="rw-title" id="uiRwTitle">✨ Win a surprise!</div>
+    <div class="rw-desc" id="uiRwDesc">Grown-ups: send this perfect result to us and we'll reply with a little surprise.</div>
+    <div id="rwform">
+      <input class="rw-input" type="email" id="rwemail" placeholder="Parent / teacher email">
+      <input class="rw-input" type="text" id="rwnote" placeholder="Message (optional)">
+      <button class="rw-send" id="rwsend" onclick="sendReward()">Send my result</button>
+    </div>
+    <div class="rw-status" id="rwstatus"></div>
+  </div>
+  <div class="rbtns"><button class="btn btnp" id="uiAgain" onclick="restart()">Play again!</button><button class="btn btns" id="uiSettings" onclick="goMenu()">Settings</button><a href="/dashboard.html" class="btn btnr" id="uiAllGames2" style="text-decoration:none;">All games</a></div>
+</div>
+<div id="pauseov" class="hidden"><div style="font-family:'Fredoka One',cursive;font-size:3.5rem;color:#fff" id="uiPauseTitle">⏸️ BREAK</div><div style="color:rgba(255,255,255,.7);margin-top:10px;font-size:1.1rem" id="uiPauseHint">Show two open palms to continue</div></div>
+
+<script>
+/* ============================================================
+ * Letter-Pop — unified 4-language adventure game
+ * Story: free the princess by popping the right letters.
+ * Hand: one finger to play, TWO OPEN PALMS (~1.2s) to pause.
+ * Cooldown between questions so lowering the hand can't mis-pick.
+ * ============================================================ */
+function mk(arr){return arr.map(function(x){return {id:x[0],word:x[1],emoji:x[2]};});}
+var CONTENT={
+  en:mk([['A','Apple','🍎'],['B','Ball','⚽'],['C','Cat','🐱'],['D','Dog','🐶'],['E','Egg','🥚'],['F','Fish','🐟'],['G','Goat','🐐'],['H','House','🏠'],['I','Igloo','🛖'],['J','Juice','🧃'],['K','Kite','🪁'],['L','Lion','🦁'],['M','Moon','🌙']]),
+  de:mk([['A','Apfel','🍎'],['B','Ball','⚽'],['C','Clown','🤡'],['D','Delfin','🐬'],['E','Elefant','🐘'],['F','Fisch','🐟'],['G','Giraffe','🦒'],['H','Haus','🏠'],['I','Igel','🦔'],['J','Jacke','🧥'],['K','Katze','🐱'],['L','Löwe','🦁'],['M','Mond','🌙']]),
+  pl:mk([['A','Arbuz','🍉'],['B','Balon','🎈'],['C','Cytryna','🍋'],['D','Dom','🏠'],['E','Ekran','📺'],['F','Foka','🦭'],['G','Gwiazda','⭐'],['H','Hipopotam','🦛'],['I','Igła','🪡'],['J','Jabłko','🍎'],['K','Kot','🐱'],['L','Lew','🦁'],['M','Motyl','🦋']]),
+  es:mk([['A','Avión','✈️'],['B','Barco','⛵'],['C','Casa','🏠'],['D','Dado','🎲'],['E','Elefante','🐘'],['F','Foca','🦭'],['G','Gato','🐱'],['H','Hueso','🦴'],['I','Iglú','🛖'],['J','Jirafa','🦒'],['K','Koala','🐨'],['L','León','🦁'],['M','Mariposa','🦋']])
+};
+
+var LANGS={
+  en:{voice:'en-US',
+    tag:'Letters · Grades 1–2 · Game #1', title:'Letter ', titleEm:'Pop!',
+    desc:'Recognise capital and small letters — pop the right bubble!',
+    quest:'🏰 Free Princess Lumi! Pop the right letter to take a step. Every correct letter brings the hero closer to the tower.',
+    questLbl:'RESCUE THE PRINCESS',
+    modeLbl:'🎮 Mode', modeBig:'A-a', modeBigSub:'Big→Small', modeSmall:'a-A', modeSmallSub:'Small→Big', modeMix:'Aa', modeMixSub:'Mixed',
+    levelLbl:'📊 Level', lvlGentle:'Gentle · 2 bubbles', lvlStandard:'Standard · 3 bubbles', lvlChallenge:'Challenge · 4 bubbles',
+    accessLbl:'Accessibility', slow:'Slow motion', big:'Big letters', voiceLbl:'Voice', spe:'⭐ Special-needs mode',
+    cam:'Camera…', camReady:'Camera ready!', camMouse:'Mouse active', track:'Tracking…', trackReady:'Tracking ready!',
+    play:'Play!', allGames:'← All games',
+    findSmall:'FIND THE SMALL LETTER', findBig:'FIND THE CAPITAL LETTER', points:'POINTS', timeLbl:'Time',
+    showHand:'Show your hand!', swipe:'Swipe to pop!', getReady:'Get ready…',
+    pauseTitle:'⏸️ BREAK', pauseHint:'Show two open palms to continue',
+    praises:['Great!','Super!','Fantastic!','Excellent!','WOW!','Brilliant!','Well done!','Hurray!'],
+    sFindSmall:function(L,W){return 'Find the small letter for '+L+', like '+W;},
+    sFindBig:function(L,W){return 'Find the capital letter for '+L+', like '+W;},
+    wonTitle:'You freed the Princess! 👑', wonSub:'All letters correct — you are a hero!',
+    resMaster:'Letter Master!', resMasterSub:'You know all the letters!', resGood:'Great job!', resGoodSub:'You learn fast!', resKeep:'Keep practising!', resKeepSub:'Try again!',
+    correct:'Correct', rounds:'Rounds', again:'Play again!', settings:'Settings',
+    scored:function(s,t){return 'You scored '+s+' out of '+t+'!';}, wonSpeech:'You freed the princess! Amazing!',
+    rwTitle:'✨ Win a surprise!', rwDesc:'Grown-ups: send this perfect result and we\'ll reply with a little surprise.',
+    rwEmail:'Parent / teacher email', rwNote:'Message (optional)', rwSend:'Send my result',
+    rwSent:'Sent! 🎁 We\'ll be in touch with a surprise.', rwBad:'Please enter a valid email.', rwErr:'Could not send — please try again.'
+  },
+  de:{voice:'de-DE',
+    tag:'Buchstaben · Kl. 1–2 · Spiel #1', title:'Buchstaben-', titleEm:'Pop!',
+    desc:'Groß- und Kleinbuchstaben erkennen — triff die richtige Blase!',
+    quest:'🏰 Befreie Prinzessin Lumi! Triff den richtigen Buchstaben für einen Schritt. Jeder richtige Buchstabe bringt den Helden näher zum Turm.',
+    questLbl:'RETTE DIE PRINZESSIN',
+    modeLbl:'🎮 Modus', modeBig:'A-a', modeBigSub:'Groß→Klein', modeSmall:'a-A', modeSmallSub:'Klein→Groß', modeMix:'Aa', modeMixSub:'Gemischt',
+    levelLbl:'📊 Level', lvlGentle:'Sanft · 2 Blasen', lvlStandard:'Normal · 3 Blasen', lvlChallenge:'Herausforderung · 4 Blasen',
+    accessLbl:'Barrierefreiheit', slow:'Langsames Tempo', big:'Große Buchstaben', voiceLbl:'Sprachausgabe', spe:'⭐ Förder-Modus',
+    cam:'Kamera…', camReady:'Kamera bereit!', camMouse:'Maus aktiv', track:'Tracking…', trackReady:'Tracking bereit!',
+    play:'Los geht’s!', allGames:'← Alle Spiele',
+    findSmall:'FINDE DEN KLEINEN BUCHSTABEN', findBig:'FINDE DEN GROSSEN BUCHSTABEN', points:'PUNKTE', timeLbl:'Zeit',
+    showHand:'Zeige deine Hand!', swipe:'Wischen zum Treffen!', getReady:'Bereit machen…',
+    pauseTitle:'⏸️ PAUSE', pauseHint:'Zeige zwei offene Handflächen zum Weiterspielen',
+    praises:['Bravo!','Super!','Fantastisch!','Ausgezeichnet!','WOW!','Klasse!','Toll gemacht!','Hurra!'],
+    sFindSmall:function(L,W){return 'Finde den kleinen Buchstaben zu '+L+' wie '+W;},
+    sFindBig:function(L,W){return 'Finde den großen Buchstaben zu '+L+' wie '+W;},
+    wonTitle:'Du hast die Prinzessin befreit! 👑', wonSub:'Alle Buchstaben richtig — du bist ein Held!',
+    resMaster:'Buchstaben-Meister!', resMasterSub:'Du kennst alle Buchstaben!', resGood:'Super gemacht!', resGoodSub:'Du lernst schnell!', resKeep:'Weiter üben!', resKeepSub:'Versuch es nochmal!',
+    correct:'Richtig', rounds:'Runden', again:'Nochmal!', settings:'Einstellungen',
+    scored:function(s,t){return 'Du hast '+s+' von '+t+' geschafft!';}, wonSpeech:'Du hast die Prinzessin befreit! Wunderbar!',
+    rwTitle:'✨ Gewinne eine Überraschung!', rwDesc:'Für Erwachsene: Sende dieses perfekte Ergebnis und wir antworten mit einer kleinen Überraschung.',
+    rwEmail:'E-Mail (Eltern / Lehrkraft)', rwNote:'Nachricht (optional)', rwSend:'Ergebnis senden',
+    rwSent:'Gesendet! 🎁 Wir melden uns mit einer Überraschung.', rwBad:'Bitte gültige E-Mail eingeben.', rwErr:'Senden fehlgeschlagen — bitte erneut versuchen.'
+  },
+  pl:{voice:'pl-PL',
+    tag:'Język polski · Kl. 1–2 · Gra #1', title:'Litery-', titleEm:'Pop!',
+    desc:'Rozpoznaj duże i małe litery — trafiaj w odpowiednią bańkę!',
+    quest:'🏰 Uwolnij Księżniczkę Lumi! Trafiaj w odpowiednią literę, by zrobić krok. Każda poprawna litera przybliża bohatera do wieży.',
+    questLbl:'URATUJ KSIĘŻNICZKĘ',
+    modeLbl:'🎮 Tryb gry', modeBig:'A-a', modeBigSub:'Duże→Małe', modeSmall:'a-A', modeSmallSub:'Małe→Duże', modeMix:'Aa', modeMixSub:'Mieszany',
+    levelLbl:'📊 Poziom', lvlGentle:'Łagodny · 2 bańki', lvlStandard:'Normalny · 3 bańki', lvlChallenge:'Wyzwanie · 4 bańki',
+    accessLbl:'Dostępność', slow:'Zwolnione tempo', big:'Duże litery', voiceLbl:'Głos', spe:'⭐ Tryb SPE',
+    cam:'Kamera…', camReady:'Kamera gotowa!', camMouse:'Mysz aktywna', track:'Tracking…', trackReady:'Tracking gotowy!',
+    play:'Gramy!', allGames:'← Wszystkie gry',
+    findSmall:'ZNAJDŹ MAŁĄ LITERĘ', findBig:'ZNAJDŹ DUŻĄ LITERĘ', points:'PUNKTY', timeLbl:'Czas',
+    showHand:'Pokaż rękę!', swipe:'Przesuń palcem!', getReady:'Przygotuj się…',
+    pauseTitle:'⏸️ PRZERWA', pauseHint:'Pokaż dwie otwarte dłonie, aby grać dalej',
+    praises:['Brawo!','Super!','Fantastycznie!','Doskonale!','WOW!','Świetnie!','Prima!','Hurra!'],
+    sFindSmall:function(L,W){return 'Znajdź małą literę do '+L+' jak '+W;},
+    sFindBig:function(L,W){return 'Znajdź dużą literę do '+L+' jak '+W;},
+    wonTitle:'Uwolniłeś Księżniczkę! 👑', wonSub:'Wszystkie litery poprawne — jesteś bohaterem!',
+    resMaster:'Mistrz liter!', resMasterSub:'Znasz wszystkie litery!', resGood:'Świetnie!', resGoodSub:'Uczysz się szybko!', resKeep:'Ćwicz dalej!', resKeepSub:'Spróbuj jeszcze raz!',
+    correct:'Poprawnie', rounds:'Rund', again:'Jeszcze raz!', settings:'Ustawienia',
+    scored:function(s,t){return 'Zdobyłeś '+s+' z '+t+'!';}, wonSpeech:'Uwolniłeś księżniczkę! Wspaniale!',
+    rwTitle:'✨ Wygraj niespodziankę!', rwDesc:'Dla dorosłych: wyślij ten idealny wynik, a odpowiemy z małą niespodzianką.',
+    rwEmail:'E-mail rodzica / nauczyciela', rwNote:'Wiadomość (opcjonalnie)', rwSend:'Wyślij wynik',
+    rwSent:'Wysłano! 🎁 Odezwiemy się z niespodzianką.', rwBad:'Podaj poprawny e-mail.', rwErr:'Nie udało się wysłać — spróbuj ponownie.'
+  },
+  es:{voice:'es-ES',
+    tag:'Letras · Grados 1–2 · Juego #1', title:'¡Letras ', titleEm:'Pop!',
+    desc:'Reconoce las letras mayúsculas y minúsculas — ¡revienta la burbuja correcta!',
+    quest:'🏰 ¡Libera a la Princesa Lumi! Revienta la letra correcta para dar un paso. Cada acierto acerca al héroe a la torre.',
+    questLbl:'RESCATA A LA PRINCESA',
+    modeLbl:'🎮 Modo', modeBig:'A-a', modeBigSub:'Mayús→Minús', modeSmall:'a-A', modeSmallSub:'Minús→Mayús', modeMix:'Aa', modeMixSub:'Mixto',
+    levelLbl:'📊 Nivel', lvlGentle:'Suave · 2 burbujas', lvlStandard:'Normal · 3 burbujas', lvlChallenge:'Reto · 4 burbujas',
+    accessLbl:'Accesibilidad', slow:'Cámara lenta', big:'Letras grandes', voiceLbl:'Voz', spe:'⭐ Modo necesidades especiales',
+    cam:'Cámara…', camReady:'¡Cámara lista!', camMouse:'Ratón activo', track:'Seguimiento…', trackReady:'¡Seguimiento listo!',
+    play:'¡A jugar!', allGames:'← Todos los juegos',
+    findSmall:'ENCUENTRA LA MINÚSCULA', findBig:'ENCUENTRA LA MAYÚSCULA', points:'PUNTOS', timeLbl:'Tiempo',
+    showHand:'¡Muestra tu mano!', swipe:'¡Desliza para reventar!', getReady:'Prepárate…',
+    pauseTitle:'⏸️ PAUSA', pauseHint:'Muestra dos palmas abiertas para continuar',
+    praises:['¡Bravo!','¡Súper!','¡Fantástico!','¡Excelente!','¡GUAU!','¡Genial!','¡Muy bien!','¡Hurra!'],
+    sFindSmall:function(L,W){return 'Encuentra la letra minúscula de '+L+', como '+W;},
+    sFindBig:function(L,W){return 'Encuentra la letra mayúscula de '+L+', como '+W;},
+    wonTitle:'¡Liberaste a la Princesa! 👑', wonSub:'¡Todas las letras correctas — eres un héroe!',
+    resMaster:'¡Maestro de letras!', resMasterSub:'¡Conoces todas las letras!', resGood:'¡Muy bien!', resGoodSub:'¡Aprendes rápido!', resKeep:'¡Sigue practicando!', resKeepSub:'¡Inténtalo otra vez!',
+    correct:'Correctas', rounds:'Rondas', again:'¡Otra vez!', settings:'Ajustes',
+    scored:function(s,t){return '¡Conseguiste '+s+' de '+t+'!';}, wonSpeech:'¡Liberaste a la princesa! ¡Increíble!',
+    rwTitle:'✨ ¡Gana una sorpresa!', rwDesc:'Adultos: envíen este resultado perfecto y responderemos con una pequeña sorpresa.',
+    rwEmail:'Email de padre / profesor', rwNote:'Mensaje (opcional)', rwSend:'Enviar mi resultado',
+    rwSent:'¡Enviado! 🎁 Te contactaremos con una sorpresa.', rwBad:'Introduce un email válido.', rwErr:'No se pudo enviar — inténtalo de nuevo.'
+  }
+};
+
+var lang='en', ITEMS=CONTENT.en, T=LANGS.en;
+function setLang(l){
+  if(!LANGS[l])l='en';
+  lang=l; ITEMS=CONTENT[l]; T=LANGS[l];
+  try{localStorage.setItem('ig_lang',l);}catch(e){}
+  document.documentElement.lang=l;
+  document.querySelectorAll('.langbtn').forEach(function(b){b.classList.toggle('on',b.dataset.l===l);});
+  applyUI();
+}
+function setText(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
+function applyUI(){
+  setText('uiTag',T.tag); setText('uiTitle',T.title); setText('uiTitleEm',T.titleEm); setText('uiDesc',T.desc); setText('uiQuest',T.quest);
+  setText('uiModeLbl',T.modeLbl); setText('uiModeBig',T.modeBig); setText('uiModeBigSub',T.modeBigSub);
+  setText('uiModeSmall',T.modeSmall); setText('uiModeSmallSub',T.modeSmallSub); setText('uiModeMix',T.modeMix); setText('uiModeMixSub',T.modeMixSub);
+  setText('uiLevelLbl',T.levelLbl); setText('uiLvlGentle',T.lvlGentle); setText('uiLvlStandard',T.lvlStandard); setText('uiLvlChallenge',T.lvlChallenge);
+  setText('uiAccessLbl',T.accessLbl); setText('uiSlow',T.slow); setText('uiBig',T.big); setText('uiVoice',T.voiceLbl); setText('uiSpe',T.spe);
+  setText('uiCam',T.cam); setText('uiTrack',T.track); setText('gobtn',T.play);
+  setText('backlink',T.allGames); setText('uiAllGames2',T.allGames.replace('← ',''));
+  setText('uiPoints',T.points); setText('uiCorrect',T.correct); setText('uiRounds',T.rounds); setText('uiTime',T.timeLbl);
+  setText('uiAgain',T.again); setText('uiSettings',T.settings); setText('questLbl',T.questLbl);
+  setText('uiPauseTitle',T.pauseTitle); setText('uiPauseHint',T.pauseHint);
+  setText('uiRwTitle',T.rwTitle); setText('uiRwDesc',T.rwDesc); setText('rwsend',T.rwSend);
+  var em=document.getElementById('rwemail'); if(em)em.placeholder=T.rwEmail;
+  var nt=document.getElementById('rwnote'); if(nt)nt.placeholder=T.rwNote;
+  document.getElementById('pill').textContent=T.showHand;
+}
+
+var COLS=["#3b82f6","#8b5cf6","#ec4899","#f59e0b","#10b981","#06b6d4","#f97316","#6366f1"];
+var LCFG={gentle:{n:2,sp:.6,sz:1.5,r:8},standard:{n:3,sp:1.0,sz:1.1,r:10},challenge:{n:4,sp:1.5,sz:.85,r:14}};
+var W,H,score=0,rnum=0,total=0,cur=null,queue=[],gameMode="g2k";
+var bubbles=[],parts=[],stars=[];
+var paused=false,locked=false,running=false;
+var cx=-999,cy=-999,indexTip=null,prevTip=null,handOn=false;
+var mpHands=null;
+var lvl="standard",slow=false,xl=false,voice=true;
+var AC,musicNodes=[],musicGoing=false,videoStream=null;
+var startTime=0,endTime=0,timerInt=null;
+var GC=document.getElementById("gc"),HC=document.getElementById("hc");
+var ctx=GC.getContext("2d"),hctx=HC.getContext("2d");
+function resize(){W=GC.width=HC.width=innerWidth;H=GC.height=HC.height=innerHeight;}
+window.addEventListener("resize",resize);resize();
+function setMode(btn){document.querySelectorAll(".mbt").forEach(function(b){b.classList.remove("on");});btn.classList.add("on");gameMode=btn.dataset.m;}
+
+window.MP_OK=false;window.MP_FAIL=false;
+(function(){var s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js";s.crossOrigin="anonymous";s.onload=function(){window.MP_OK=true;};s.onerror=function(){window.MP_FAIL=true;};document.head.appendChild(s);})();
+
+function initCam(){navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:"user"},audio:false}).then(function(s){videoStream=s;document.getElementById("camprev").srcObject=s;document.getElementById("vid").srcObject=s;document.getElementById("camprev").play().catch(function(){});document.getElementById("scam").className="sline ok";document.getElementById("scam").innerHTML="<span class=sdot></span>"+T.camReady;document.getElementById("gobtn").disabled=false;loadMP();}).catch(function(){document.getElementById("scam").className="sline warn";document.getElementById("scam").innerHTML="<span class=sdot></span>"+T.camMouse;document.getElementById("gobtn").disabled=false;loadMP();});}
+function loadMP(){var w=0,c=setInterval(function(){w++;if(window.MP_OK&&typeof Hands!=="undefined"){clearInterval(c);try{mpHands=new Hands({locateFile:function(f){return "https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/"+f;}});mpHands.setOptions({maxNumHands:2,modelComplexity:0,minDetectionConfidence:.55,minTrackingConfidence:.45});mpHands.onResults(onHands);mpHands.initialize().then(function(){document.getElementById("smp").className="sline ok";document.getElementById("smp").innerHTML="<span class=sdot></span>"+T.trackReady;}).catch(function(){});}catch(e){}}if(window.MP_FAIL||w>80){clearInterval(c);}},100);}
+function startMPLoop(){var v=document.getElementById("vid");function p(){if(!running)return;if(mpHands&&v.readyState>=2)try{mpHands.send({image:v}).catch(function(){});}catch(e){}requestAnimationFrame(p);}requestAnimationFrame(p);}
+
+window.addEventListener("mousemove",function(e){cx=e.clientX;cy=e.clientY;});
+window.addEventListener("touchmove",function(e){if(e.touches[0]){cx=e.touches[0].clientX;cy=e.touches[0].clientY;}},{passive:true});
+window.addEventListener("touchstart",function(e){if(e.touches[0]){cx=e.touches[0].clientX;cy=e.touches[0].clientY;}},{passive:true});
+window.addEventListener("click",function(e){if(!running||paused||locked)return;bubbles.forEach(function(b){if(!b.popped&&Math.hypot(e.clientX-b.x,e.clientY-b.y)<b.r+14)tryPop(b);});});
+window.addEventListener("touchend",function(e){if(!running||paused||locked)return;var t=e.changedTouches[0];if(!t)return;bubbles.forEach(function(b){if(!b.popped&&Math.hypot(t.clientX-b.x,t.clientY-b.y)<b.r+18)tryPop(b);});},{passive:true});
+
+function initAC(){if(!AC)try{AC=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}
+document.addEventListener("click",function(){initAC();if(AC&&AC.state==="suspended")AC.resume();},{once:true});
+function mkO(f,t,v,st,d){if(!AC)return;var o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.setValueAtTime(v,st);g.gain.exponentialRampToValueAtTime(.001,st+d);o.connect(g);g.connect(AC.destination);o.start(st);o.stop(st+d);musicNodes.push(o);}
+function startMus(){stopMus();if(!AC)return;musicGoing=true;playHappy();}
+function stopMus(){musicGoing=false;musicNodes.forEach(function(n){try{n.stop();}catch(e){}});musicNodes=[];}
+function playHappy(){if(!musicGoing)return;var m=[523,587,659,698,784,880,988,1047];var now=AC.currentTime,st=slow?.38:.22;m.forEach(function(f,i){mkO(f,"sine",.05,now+i*st,st*.85);});setTimeout(function(){if(musicGoing)playHappy();},m.length*st*1000);}
+function snd(t){if(!AC)return;try{if(t==="ok"){[523,659,784,1047,1319].forEach(function(f,i){var o=AC.createOscillator(),g=AC.createGain();o.connect(g);g.connect(AC.destination);o.type="sine";o.frequency.value=f;g.gain.setValueAtTime(0,AC.currentTime+i*.08);g.gain.linearRampToValueAtTime(.15,AC.currentTime+i*.08+.05);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+i*.08+.3);o.start(AC.currentTime+i*.08);o.stop(AC.currentTime+i*.08+.3);});}else if(t==="no"){var o=AC.createOscillator(),g=AC.createGain();o.connect(g);g.connect(AC.destination);o.type="sine";o.frequency.setValueAtTime(280,AC.currentTime);o.frequency.exponentialRampToValueAtTime(150,AC.currentTime+.25);g.gain.setValueAtTime(.09,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+.28);o.start();o.stop(AC.currentTime+.28);}else if(t==="fin"){[392,494,587,784,988,1175].forEach(function(f,i){var o=AC.createOscillator(),g=AC.createGain();o.connect(g);g.connect(AC.destination);o.type="triangle";o.frequency.value=f;g.gain.setValueAtTime(0,AC.currentTime+i*.12);g.gain.linearRampToValueAtTime(.14,AC.currentTime+i*.12+.06);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+i*.12+.5);o.start(AC.currentTime+i*.12);o.stop(AC.currentTime+i*.12+.5);});}}catch(e){}}
+function say(txt){if(!voice)return;try{window.speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(txt);u.lang=T.voice;u.rate=slow?.78:.95;u.pitch=1.15;window.speechSynthesis.speak(u);}catch(e){}}
+
+function showPill(txt,cls){var p=document.getElementById('pill');if(p.classList.contains('hidden'))return;p.textContent=txt;p.className=cls||'';}
+
+/* Timer + quest progress */
+function elapsedMs(){return (endTime||Date.now())-startTime;}
+function fmtTime(ms){var s=Math.max(0,Math.round(ms/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
+function startTimer(){startTime=Date.now();endTime=0;clearInterval(timerInt);timerInt=setInterval(function(){if(running&&!paused)setText('qtime',fmtTime(Date.now()-startTime));},500);}
+function stopTimer(){endTime=Date.now();clearInterval(timerInt);timerInt=null;}
+function updateQuest(){var prog=total?score/total:0;var hero=document.getElementById('qhero');var drag=document.getElementById('qdragon');if(hero)hero.style.left=(4+prog*88)+'%';if(drag)drag.style.left=Math.max(0,(prog*88-14))+'%';}
+
+function shuffle(a){var b=a.slice();for(var i=b.length-1;i>0;i--){var j=Math.random()*(i+1)|0;var t=b[i];b[i]=b[j];b[j]=t;}return b;}
+function buildQ(){total=LCFG[lvl].r;queue=shuffle(ITEMS.slice()).slice(0,total);}
+function getRound(item){var m=gameMode;if(m==="mix")m=Math.random()>.5?"g2k":"k2g";return{m:m,item:item,shown:m==="g2k"?item.id:item.id.toLowerCase(),target:m==="g2k"?item.id.toLowerCase():item.id,isSmall:m==="g2k"};}
+var curRound=null;
+function praiseLine(){return cur.id+" "+cur.id.toLowerCase()+" — "+cur.word+"!";}
+function nextRound(){
+  if(rnum>=total){endGame();return;}
+  cur=queue[rnum++];curRound=getRound(cur);bubbles=[];parts=[];locked=true;  // start locked (cooldown)
+  document.getElementById("hudlbl").textContent=curRound.isSmall?T.findSmall:T.findBig;
+  document.getElementById("hl").textContent=curRound.shown;
+  document.getElementById("hw").textContent=cur.emoji+" "+cur.word;
+  document.getElementById("hs").textContent=score+" ";
+  document.getElementById("hr").textContent=rnum+" / "+total;
+  showPill(T.getReady,'wait');
+  spawnBubbles();
+  // grace period so lowering the hand can't immediately mis-pick the next answer
+  setTimeout(function(){ if(running){ locked=false; showPill(T.swipe,'on'); } }, slow?1500:1050);
+  setTimeout(function(){ say(curRound.isSmall?T.sFindSmall(curRound.shown,cur.word):T.sFindBig(curRound.shown,cur.word)); },350);
+}
+function spawnBubbles(){var cfg=LCFG[lvl];var R=Math.min(82,W*.1)*cfg.sz*(xl?1.3:1);var sp=(slow?.6:1)*cfg.sp;var pool=ITEMS.filter(function(x){return x.id!==cur.id;});var dist=shuffle(pool).slice(0,cfg.n-1);var items=[{label:curRound.target,correct:true}].concat(dist.map(function(x){return {label:curRound.isSmall?x.id.toLowerCase():x.id,correct:false};}));var all=shuffle(items);var xs=shuffle(all.map(function(_,i){return .1+i*.8/(all.length-1||1);}));all.forEach(function(item,i){bubbles.push({item:item,col:COLS[Math.random()*COLS.length|0],x:xs[i]*W+(Math.random()-.5)*18,y:H+R+i*70,r:R,vy:-(sp*(1+Math.random()*.3)),vx:(Math.random()-.5)*.45,phase:Math.random()*Math.PI*2,scale:0,opacity:0,popped:false,fading:false,shake:0,hov:false});});}
+var loopStarted=false;
+function startLoop(){if(!loopStarted){loopStarted=true;requestAnimationFrame(loop);}}
+function loop(ts){requestAnimationFrame(loop);ctx.clearRect(0,0,W,H);if(!running)return;ctx.fillStyle="rgba(8,14,30,.44)";ctx.fillRect(0,0,W,H);drawStars(ts);update();drawBubbles();drawParts();checkRespawn();drawCursor();}
+function drawStars(ts){var t=ts/1000;stars.forEach(function(s){ctx.globalAlpha=.06+.24*(Math.sin(t*1.4+s.ph)+1)/2;ctx.fillStyle="#93c5fd";ctx.beginPath();ctx.arc(s.x%W,s.y%H,s.r,0,Math.PI*2);ctx.fill();});ctx.globalAlpha=1;}
+function drawCursor(){if(handOn)return;ctx.save();ctx.globalAlpha=.7;ctx.beginPath();ctx.arc(cx,cy,16,0,Math.PI*2);ctx.strokeStyle="rgba(255,215,0,.8)";ctx.lineWidth=3;ctx.stroke();ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.fillStyle="rgba(255,215,0,.9)";ctx.fill();ctx.restore();}
+function update(){if(paused)return;var t=Date.now()/1000;var px=handOn?indexTip.x*W:cx;var py=handOn?indexTip.y*H:cy;bubbles.forEach(function(b){if(b.popped)return;b.scale=Math.min(1,b.scale+.06);b.opacity=b.fading?Math.max(0,b.opacity-.07):Math.min(1,b.opacity+.06);b.y+=b.vy;b.x+=Math.sin(t*1.3+b.phase)*.65+b.vx;if(b.shake>0){b.x+=Math.sin(b.shake*28)*9;b.shake=Math.max(0,b.shake-.08);}var hit=Math.hypot(px-b.x,py-b.y)<b.r+14;b.hov=hit;if(hit&&handOn&&!locked&&prevTip&&indexTip){var dvx=(indexTip.x-prevTip.x)*W,dvy=(indexTip.y-prevTip.y)*H;if(Math.hypot(dvx,dvy)>3.5)tryPop(b);}});parts.forEach(function(p){p.x+=p.vx;p.y+=p.vy;p.vy+=.2;p.life-=.026;p.r=Math.max(0,p.r-.3);});parts=parts.filter(function(p){return p.life>0;});}
+function checkRespawn(){if(locked||paused)return;var alive=bubbles.filter(function(b){return !b.popped&&b.y>-b.r-120;});if(alive.length===0&&bubbles.length>0){bubbles=[];say(curRound.shown+" — "+cur.word);setTimeout(function(){if(!locked)spawnBubbles();},900);}}
+function tryPop(b){if(b.popped||b.fading||locked)return;if(b.item.correct){b.popped=true;score++;locked=true;snd("ok");spawn(b.x,b.y,b.col,40);updateQuest();var pr=T.praises[Math.random()*T.praises.length|0];document.getElementById("pw").textContent=pr;document.getElementById("ps").textContent=praiseLine();var p=document.getElementById("praise");p.classList.add("show");setTimeout(function(){p.classList.remove("show");},slow?2800:2000);say(pr+" "+praiseLine());document.getElementById("hs").textContent=score+" ";setTimeout(function(){nextRound();},slow?2900:2100);}else{b.fading=true;b.shake=1;snd("no");spawn(b.x,b.y,"#fff",5);var e=document.getElementById("wf");e.classList.add("fl");setTimeout(function(){e.classList.remove("fl");},320);setTimeout(function(){b.popped=true;},680);}}
+function lig(h,a){var n=parseInt(h.slice(1),16);return "rgb("+Math.min(255,((n>>16)&255)+Math.round(a*255))+","+Math.min(255,((n>>8)&255)+Math.round(a*255))+","+Math.min(255,(n&255)+Math.round(a*255))+")";}
+function drk(h,a){var n=parseInt(h.slice(1),16);return "rgb("+Math.max(0,((n>>16)&255)-Math.round(a*255))+","+Math.max(0,((n>>8)&255)-Math.round(a*255))+","+Math.max(0,(n&255)-Math.round(a*255))+")";}
+function drawBubbles(){bubbles.forEach(function(b){if(b.popped)return;ctx.save();ctx.globalAlpha=b.opacity;ctx.translate(b.x,b.y);ctx.scale(b.scale,b.scale);var gw=ctx.createRadialGradient(0,0,b.r*.3,0,0,b.r*1.8);gw.addColorStop(0,b.col+"44");gw.addColorStop(1,b.col+"00");ctx.fillStyle=gw;ctx.beginPath();ctx.arc(0,0,b.r*1.8,0,Math.PI*2);ctx.fill();var gr=ctx.createRadialGradient(-b.r*.28,-b.r*.28,0,0,0,b.r);gr.addColorStop(0,lig(b.col,.5));gr.addColorStop(.65,b.col);gr.addColorStop(1,drk(b.col,.28));ctx.fillStyle=gr;ctx.beginPath();ctx.arc(0,0,b.r,0,Math.PI*2);ctx.fill();ctx.fillStyle="rgba(255,255,255,.3)";ctx.beginPath();ctx.ellipse(-b.r*.2,-b.r*.3,b.r*.27,b.r*.16,-.3,0,Math.PI*2);ctx.fill();if(b.hov&&!handOn){ctx.strokeStyle="rgba(255,255,255,.7)";ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,0,b.r+6,0,Math.PI*2);ctx.stroke();}ctx.strokeStyle="rgba(255,255,255,.28)";ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(0,0,b.r,0,Math.PI*2);ctx.stroke();var fs=xl?b.r*1.2:b.r*1.05;ctx.font=(fs|0)+"px 'Fredoka One',cursive";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="rgba(0,0,0,.2)";ctx.fillText(b.item.label,2,7);ctx.fillStyle="#fff";ctx.shadowColor="rgba(0,0,0,.35)";ctx.shadowBlur=10;ctx.fillText(b.item.label,0,3);ctx.shadowBlur=0;ctx.restore();});}
+function drawParts(){parts.forEach(function(p){ctx.save();ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();ctx.restore();});}
+function spawn(x,y,col,n){for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,sp=2.5+Math.random()*7.5;parts.push({x:x,y:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-3,col:col,r:4+Math.random()*9,life:1});}}
+var CONN=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]];
+function isFist(lm){return [8,12,16,20].every(function(t){return lm[t].y>lm[t-2].y;});}
+function openPalm(lm){return [8,12,16,20].every(function(t){return lm[t].y<lm[t-2].y;});}
+var twoHoldStart=0;
+function checkBreak(hands){var twoOpen=hands.length>=2&&openPalm(hands[0])&&openPalm(hands[1]);if(twoOpen){if(!twoHoldStart)twoHoldStart=Date.now();else if(Date.now()-twoHoldStart>1200){paused=!paused;document.getElementById("pauseov").classList.toggle("hidden",!paused);twoHoldStart=0;}}else{twoHoldStart=0;}}
+function onHands(r){hctx.clearRect(0,0,W,H);var allHands=(r.multiHandLandmarks||[]);checkBreak(allHands);var pill=document.getElementById("pill");if(!r.multiHandLandmarks||!r.multiHandLandmarks.length){handOn=false;indexTip=null;prevTip=null;if(pill&&!pill.classList.contains("hidden")&&!locked){pill.textContent=T.showHand;pill.className="";}return;}handOn=true;var lm=r.multiHandLandmarks[0];prevTip=indexTip;indexTip={x:1-lm[8].x,y:lm[8].y};hctx.save();hctx.lineWidth=2.5;hctx.strokeStyle="rgba(147,197,253,.22)";CONN.forEach(function(ab){hctx.beginPath();hctx.moveTo((1-lm[ab[0]].x)*W,lm[ab[0]].y*H);hctx.lineTo((1-lm[ab[1]].x)*W,lm[ab[1]].y*H);hctx.stroke();});for(var i=0;i<21;i++){var x=(1-lm[i].x)*W,y=lm[i].y*H,tip=i===8;hctx.beginPath();hctx.arc(x,y,tip?18:4.5,0,Math.PI*2);if(tip){hctx.fillStyle="rgba(255,215,0,.92)";hctx.shadowBlur=26;hctx.shadowColor="rgba(255,215,0,.85)";}else{hctx.fillStyle="rgba(147,197,253,.5)";hctx.shadowBlur=0;}hctx.fill();hctx.shadowBlur=0;}hctx.restore();if(pill&&!pill.classList.contains("hidden")&&!locked){pill.textContent=T.swipe;pill.className="on";}}
+
+function startGame(){lvl=document.getElementById("lvl").value;slow=document.getElementById("tslow").classList.contains("on");xl=document.getElementById("txl").classList.contains("on");voice=document.getElementById("tvoice").classList.contains("on");document.getElementById("setupscreen").classList.add("hidden");document.getElementById("hud").classList.remove("hidden");document.getElementById("questbar").classList.remove("hidden");document.getElementById("pill").classList.remove("hidden");document.getElementById("vid").classList.add("vis");score=0;rnum=0;bubbles=[];parts=[];paused=false;locked=false;running=true;buildQ();updateQuest();setText('qtime','0:00');stars=Array.from({length:50},function(){return{x:Math.random()*2000,y:Math.random()*1200,r:Math.random()*1.8+.3,ph:Math.random()*Math.PI*2};});startLoop();if(videoStream&&mpHands)startMPLoop();initAC();startMus();startTimer();nextRound();}
+function restart(){document.getElementById("resultscreen").classList.add("hidden");document.getElementById("hud").classList.remove("hidden");document.getElementById("questbar").classList.remove("hidden");document.getElementById("pill").classList.remove("hidden");document.getElementById("rewardbox").classList.add("hidden");document.getElementById("rwstatus").textContent="";document.getElementById("rwform").style.display="";score=0;rnum=0;bubbles=[];parts=[];paused=false;locked=false;running=true;buildQ();updateQuest();setText('qtime','0:00');startMus();startTimer();nextRound();}
+function goMenu(){stopMus();stopTimer();running=false;bubbles=[];parts=[];document.getElementById("resultscreen").classList.add("hidden");document.getElementById("hud").classList.add("hidden");document.getElementById("questbar").classList.add("hidden");document.getElementById("pill").classList.add("hidden");document.getElementById("vid").classList.remove("vis");document.getElementById("setupscreen").classList.remove("hidden");}
+function endGame(){stopMus();stopTimer();snd("fin");running=false;document.getElementById("hud").classList.add("hidden");document.getElementById("questbar").classList.add("hidden");document.getElementById("pill").classList.add("hidden");ctx.clearRect(0,0,W,H);
+  var perfect=(score===total&&total>0);var pct=total?score/total:0;var emoji,title,sub;
+  if(perfect){emoji="👑";title=T.wonTitle;sub=T.wonSub;}
+  else if(pct>=.85){emoji="🏆";title=T.resMaster;sub=T.resMasterSub;}
+  else if(pct>=.5){emoji="🌟";title=T.resGood;sub=T.resGoodSub;}
+  else{emoji="⭐";title=T.resKeep;sub=T.resKeepSub;}
+  document.getElementById("re").textContent=emoji;document.getElementById("rt").textContent=title;document.getElementById("rsub").textContent=sub;
+  document.getElementById("rstar").textContent="⭐".repeat(score);
+  document.getElementById("rs1").textContent=score;document.getElementById("rs2").textContent=total;document.getElementById("rs3").textContent=fmtTime(elapsedMs());
+  // reward only on a perfect run
+  var rb=document.getElementById("rewardbox");
+  if(perfect){rb.classList.remove("hidden");}else{rb.classList.add("hidden");}
+  document.getElementById("resultscreen").classList.remove("hidden");
+  if(voice)say((perfect?T.wonSpeech+" ":"")+title+" "+T.scored(score,total));
+}
+
+function sendReward(){
+  var email=(document.getElementById('rwemail').value||'').trim();
+  var st=document.getElementById('rwstatus');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){st.style.color='var(--gold)';st.textContent=T.rwBad;return;}
+  var btn=document.getElementById('rwsend');btn.disabled=true;
+  var tok=null;try{tok=localStorage.getItem('ig_token');}catch(e){}
+  fetch('/api/reward',{method:'POST',headers:{'Content-Type':'application/json',Authorization:tok?('Bearer '+tok):''},
+    body:JSON.stringify({game:'Letter-Pop (game01)',lang:lang,score:score,total:total,timeMs:elapsedMs(),parentEmail:email,note:(document.getElementById('rwnote').value||'').trim()})
+  }).then(function(r){if(!r.ok)throw 0;document.getElementById('rwform').style.display='none';st.style.color='var(--green)';st.textContent=T.rwSent;})
+   .catch(function(){st.style.color='var(--red)';st.textContent=T.rwErr;btn.disabled=false;});
+}
+
+(function(){
+  var saved='en';
+  try{ saved=localStorage.getItem('ig_lang')||'en'; }catch(e){}
+  var url=new URLSearchParams(location.search).get('lang');
+  if(url)saved=url;
+  setLang(LANGS[saved]?saved:'en');
+  initCam();
+})();
+</script>
+</body></html>

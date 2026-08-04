@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>First Sound — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game03 — First Sound (Anlaute). See a picture + HEAR the word, pop the
+   starting letter. The word is never written — child works from the sound. */
+var WORDS={
+  en:[['Apple','🍎','A'],['Bee','🐝','B'],['Cat','🐱','C'],['Dog','🐶','D'],['Egg','🥚','E'],['Fish','🐟','F'],['Goat','🐐','G'],['House','🏠','H'],['Lion','🦁','L'],['Moon','🌙','M'],['Sun','☀️','S'],['Tree','🌳','T']],
+  de:[['Apfel','🍎','A'],['Bär','🐻','B'],['Clown','🤡','C'],['Elefant','🐘','E'],['Fisch','🐟','F'],['Giraffe','🦒','G'],['Haus','🏠','H'],['Igel','🦔','I'],['Löwe','🦁','L'],['Mond','🌙','M'],['Sonne','☀️','S'],['Tiger','🐯','T']],
+  pl:[['Arbuz','🍉','A'],['Balon','🎈','B'],['Dom','🏠','D'],['Gwiazda','⭐','G'],['Kot','🐱','K'],['Lis','🦊','L'],['Motyl','🦋','M'],['Pies','🐶','P'],['Ryba','🐟','R'],['Słoń','🐘','S'],['Tygrys','🐯','T'],['Zegar','⏰','Z']],
+  es:[['Avión','✈️','A'],['Barco','⛵','B'],['Casa','🏠','C'],['Dado','🎲','D'],['Elefante','🐘','E'],['Foca','🦭','F'],['Gato','🐱','G'],['León','🦁','L'],['Mariposa','🦋','M'],['Ratón','🐭','R'],['Sol','☀️','S'],['Tigre','🐯','T']]
+};
+var HUD={en:'FIND THE FIRST LETTER',de:'FINDE DEN ANLAUT',pl:'ZNAJDŹ PIERWSZĄ LITERĘ',es:'ENCUENTRA LA PRIMERA LETRA'};
+var ASK={
+  en:function(w){return 'Listen: '+w+'. Which letter does it start with?';},
+  de:function(w){return 'Hör zu: '+w+'. Mit welchem Buchstaben beginnt es?';},
+  pl:function(w){return 'Posłuchaj: '+w+'. Na jaką literę się zaczyna?';},
+  es:function(w){return 'Escucha: '+w+'. ¿Con qué letra empieza?';}
+};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+IG_GAME({
+  id:'game03', icon:'🔮', hero:'🧒', villain:'🦇', castle:'🏰',
+  text:{
+    en:{tag:'Literacy · Grades 1–2 · Game #3', title:'First ', titleEm:'Sound!', desc:'See the picture, hear the word, and pop the letter it starts with.', quest:'🔮 Escape the Sound Cave! Pick the right first letter to light the path and reach the castle.', questLbl:'LIGHT THE PATH'},
+    de:{tag:'Sprache · Kl. 1–2 · Spiel #3', title:'Anlaute-', titleEm:'Finder!', desc:'Sieh das Bild, höre das Wort und triff den Anfangsbuchstaben.', quest:'🔮 Entkomme der Klanghöhle! Wähle den richtigen Anlaut, um den Weg zu erleuchten und zur Burg zu gelangen.', questLbl:'ERLEUCHTE DEN WEG'},
+    pl:{tag:'Język polski · Kl. 1–2 · Gra #3', title:'Pierwsza ', titleEm:'Litera!', desc:'Zobacz obrazek, posłuchaj słowa i traf pierwszą literę.', quest:'🔮 Ucieknij z Jaskini Dźwięków! Wybierz właściwą pierwszą literę, aby oświetlić drogę do zamku.', questLbl:'OŚWIETL DROGĘ'},
+    es:{tag:'Lectura · Grados 1–2 · Juego #3', title:'Primer ', titleEm:'Sonido!', desc:'Mira el dibujo, escucha la palabra y revienta la letra inicial.', quest:'🔮 ¡Escapa de la Cueva de Sonidos! Elige la primera letra correcta para iluminar el camino al castillo.', questLbl:'ILUMINA EL CAMINO'}
+  },
+  rounds:function(lang,level,mode,count){
+    var data=WORDS[lang]||WORDS.en, pool=shuf(data), out=[];
+    var letters=data.map(function(w){return w[2];}).filter(function(v,i,a){return a.indexOf(v)===i;});
+    for(var i=0;i<count;i++){
+      var w=pool[i%pool.length], correct=w[2];
+      var dist=shuf(letters.filter(function(L){return L!==correct;}));
+      out.push({hud:HUD[lang]||HUD.en, big:w[1], word:null, speech:(ASK[lang]||ASK.en)(w[0]), praise:w[0]+' — '+correct, correct:correct, distractors:dist});
+    }
+    return out;
+  }
+});
+</script>
+</body></html>

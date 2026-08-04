@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--ink:#1a1a2e;--ink2:#3d3d5c;--muted:#6b6b8a;--bg:#fafaf8;--surface:#fff;--border:#e8e6f0;--p1:#7c3aed;--p2:#a855f7;--p3:#ede9fe;--g1:#10b981;--g3:#d1fae5;--a3:#fef3c7;--r1:#ef4444;--font:'Nunito',sans-serif;--display:'Fredoka One',cursive;}
+body{font-family:var(--font);background:var(--bg);color:var(--ink2);line-height:1.6;}
+nav{background:var(--surface);border-bottom:1px solid var(--border);}
+.nav-in{max-width:640px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;}
+.logo{display:flex;align-items:center;gap:9px;font-family:var(--display);font-size:1.2rem;color:var(--ink);}
+.logo-box{width:34px;height:34px;background:linear-gradient(135deg,var(--p1),var(--p2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;}
+.logo span{color:var(--p1);}
+.back{font-size:.85rem;font-weight:700;color:var(--p1);text-decoration:none;}
+main{max-width:560px;margin:0 auto;padding:34px 22px 70px;}
+h1{font-family:var(--display);font-size:1.8rem;color:var(--ink);margin-bottom:6px;}
+.lead{color:var(--muted);margin-bottom:22px;font-size:.95rem;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px;margin-bottom:18px;}
+.plan-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;}
+.plan-name{font-family:var(--display);font-size:1.4rem;color:var(--ink);}
+.plan-price{font-family:var(--display);font-size:1.8rem;color:var(--p1);line-height:1;text-align:right;}
+.plan-price small{display:block;font-family:var(--font);font-size:.72rem;color:var(--muted);font-weight:700;}
+.inc{list-style:none;display:flex;flex-direction:column;gap:8px;}
+.inc li{font-size:.9rem;color:var(--ink2);display:flex;gap:8px;}
+.inc li::before{content:'✓';color:var(--g1);font-weight:900;}
+.waiver{display:flex;gap:11px;align-items:flex-start;background:var(--a3);border:1px solid #fcd34d;border-radius:12px;padding:14px 16px;margin-bottom:6px;cursor:pointer;}
+.waiver input{margin-top:3px;width:18px;height:18px;flex-shrink:0;cursor:pointer;}
+.waiver label{font-size:.84rem;color:#7c5b09;font-weight:700;line-height:1.5;cursor:pointer;}
+.terms-row{font-size:.78rem;color:var(--muted);margin:10px 2px 18px;}
+.terms-row a{color:var(--p1);}
+.pay-btn{width:100%;padding:15px;border:none;border-radius:100px;font-family:var(--font);font-weight:800;font-size:1.02rem;cursor:pointer;margin-bottom:10px;transition:transform .15s,box-shadow .15s,opacity .15s;display:flex;align-items:center;justify-content:center;gap:9px;}
+.pay-btn:hover:not(:disabled){transform:translateY(-2px);}
+.pay-card{background:linear-gradient(135deg,#635bff,#4f46e5);color:#fff;}
+.pay-pp{background:#ffc439;color:#0a2540;}
+.pay-btn:disabled{opacity:.45;cursor:not-allowed;}
+.or{text-align:center;font-size:.8rem;color:var(--muted);margin:6px 0 12px;}
+.secure{text-align:center;font-size:.82rem;color:var(--muted);margin-top:14px;}
+.secure .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;}
+.chip{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-size:.76rem;font-weight:700;color:var(--ink2);}
+.msg{font-size:.86rem;font-weight:700;color:var(--r1);min-height:1em;text-align:center;margin-top:8px;}
+</style>
+</head>
+<body>
+<nav><div class="nav-in">
+  <a href="/" class="logo"><span class="logo-box">🎈</span>Inclusion<span>Games</span></a>
+  <a href="/index.html#pricing" class="back">← Plans</a>
+</div></nav>
+
+<main>
+  <h1>Complete your subscription</h1>
+  <p class="lead">Secure checkout. Cancel anytime from your account.</p>
+
+  <div class="card">
+    <div class="plan-head">
+      <div>
+        <div class="plan-name" id="planName">Family</div>
+        <div style="font-size:.82rem;color:var(--muted);" id="planFor">All 42 games · 4 languages · all accessibility modes</div>
+      </div>
+      <div class="plan-price"><span id="planPrice">€19.99</span><small id="planPer">per month · incl. VAT</small></div>
+    </div>
+    <ul class="inc">
+      <li>All 42 games + every new game we add</li>
+      <li>4 languages with voice (EN · DE · PL · ES)</li>
+      <li>All accessibility modes</li>
+      <li>Cancel anytime — no commitment</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="waiver" onclick="var c=document.getElementById('waiver');if(event.target.tagName!=='INPUT'){c.checked=!c.checked;} sync();">
+      <input type="checkbox" id="waiver" onchange="sync()">
+      <label for="waiver">I agree that my paid subscription begins <strong>immediately</strong> and I expressly request that the service start now. I understand that I therefore <strong>lose my 14-day right of withdrawal</strong> once access has started (§ 356(5) BGB).</label>
+    </div>
+    <div class="terms-row">By continuing you agree to our <a href="/terms.html" target="_blank">Terms</a> and <a href="/privacy.html" target="_blank">Privacy Policy</a>.</div>
+
+    <button class="pay-btn pay-card" id="btnCard" disabled onclick="payStripe()">💳 Pay with card</button>
+    <div class="or">— or —</div>
+    <button class="pay-btn pay-pp" id="btnPP" disabled onclick="payPaypal()">Pay with PayPal</button>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="secure">
+    🔒 Payments secured by <b>Stripe</b> & <b>PayPal</b> · prices include VAT · cancel anytime.
+    <div class="row"><span class="chip">💳 Visa · Mastercard · Amex</span><span class="chip">🅿️ PayPal</span><span class="chip">🔒 SSL</span></div>
+  </div>
+</main>
+
+<script src="assets/auth.js"></script>
+<script>
+IG.requireAuth('login.html');
+
+var PLANS = {
+  starter:  { name:'Starter',  for:'All 42 games · 1 child', monthly:9.99,  annual:6.99 },
+  family:   { name:'Family',   for:'All 42 games · up to 3 children', monthly:19.99, annual:13.99 },
+  educator: { name:'Educator', for:'All 42 games · up to 10 children', monthly:39.99, annual:27.99 },
+  school:   { name:'School',   for:'All 42 games · unlimited', monthly:99.99, annual:69.99 }
+};
+var q = new URLSearchParams(location.search);
+var plan = PLANS[q.get('plan')] ? q.get('plan') : 'family';
+var billing = q.get('billing') === 'annual' ? 'annual' : 'monthly';
+var P = PLANS[plan];
+
+document.getElementById('planName').textContent = P.name;
+document.getElementById('planFor').textContent = P.for;
+document.getElementById('planPrice').textContent = '€' + (billing === 'annual' ? P.annual : P.monthly).toFixed(2);
+document.getElementById('planPer').textContent = (billing === 'annual' ? 'per month, billed yearly' : 'per month') + ' · incl. VAT';
+
+function sync(){
+  var ok = document.getElementById('waiver').checked;
+  document.getElementById('btnCard').disabled = !ok;
+  document.getElementById('btnPP').disabled = !ok;
+}
+function showMsg(m){ document.getElementById('msg').textContent = m || ''; }
+
+async function payStripe(){
+  if(!document.getElementById('waiver').checked) return;
+  var b = document.getElementById('btnCard'); b.disabled = true; showMsg('');
+  try{
+    var res = await IG.apiFetch('/payments/create-checkout-session', {
+      method:'POST', body: JSON.stringify({ plan: plan, billing: billing, waiver: true })
+    });
+    window.location.href = res.url;   // Stripe Checkout (or demo success page)
+  }catch(e){ showMsg(e.message || 'Could not start checkout.'); b.disabled = false; }
+}
+
+async function payPaypal(){
+  if(!document.getElementById('waiver').checked) return;
+  var b = document.getElementById('btnPP'); b.disabled = true; showMsg('');
+  try{
+    var order = await IG.apiFetch('/payments/paypal/create-order', {
+      method:'POST', body: JSON.stringify({ plan: plan, billing: billing, waiver: true })
+    });
+    if(order.demo){
+      await IG.apiFetch('/payments/paypal/capture', { method:'POST', body: JSON.stringify({ orderID: order.id, plan: plan, billing: billing }) });
+      window.location.href = 'payment-success.html?method=paypal&plan=' + encodeURIComponent(plan) + '&billing=' + billing;
+    } else {
+      window.location.href = 'https://www.paypal.com/checkoutnow?token=' + encodeURIComponent(order.id);
+    }
+  }catch(e){ showMsg(e.message || 'Could not start PayPal.'); b.disabled = false; }
+}
+</script>
+</body>
+</html>

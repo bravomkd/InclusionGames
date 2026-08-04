@@ -1,0 +1,25 @@
+{
+  "name": "inclusion-games",
+  "version": "1.0.0",
+  "description": "InclusionGames backend for auth, payments and static hosting.",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^6.10.0",
+    "pdf-lib": "^1.17.1",
+    "stripe": "^17.5.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

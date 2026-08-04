@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Tasty Words — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game18 — Tasty Words. Food & drinks in English. */
+var ITEMS=[['🍎','Apple'],['🍞','Bread'],['🥛','Milk'],['💧','Water'],['🧀','Cheese'],['🍌','Banana'],['🍚','Rice'],['🥚','Egg'],['🍪','Cookie'],['🧃','Juice']];
+var HUD={en:'IN ENGLISH',de:'AUF ENGLISCH',pl:'PO ANGIELSKU',es:'EN INGLÉS'};
+var ASK={en:'What food in English?',de:'Welches Essen auf Englisch?',pl:'Jakie jedzenie po angielsku?',es:'¿Qué comida en inglés?'};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game18', icon:'🍎', hero:'👩‍🍳', villain:'🐀', castle:'🏰',
+  text:{
+    en:{tag:'English · Grades 3–4 · Game #18', title:'Tasty ', titleEm:'Words!', desc:'Learn food & drink words in English — pop the right one.', quest:'🍎 Fill the royal picnic! Each English word adds a treat to the basket for the castle.', questLbl:'FILL THE PICNIC'},
+    de:{tag:'Englisch · Kl. 3–4 · Spiel #18', title:'Leckere ', titleEm:'Wörter!', desc:'Lerne Essen & Trinken auf Englisch — triff das richtige.', quest:'🍎 Füll das königliche Picknick! Jedes englische Wort legt einen Leckerbissen in den Korb für die Burg.', questLbl:'PICKNICK FÜLLEN'},
+    pl:{tag:'Angielski · Kl. 3–4 · Gra #18', title:'Smaczne ', titleEm:'Słowa!', desc:'Ucz się jedzenia i napojów po angielsku — trafiaj właściwe.', quest:'🍎 Napełnij królewski piknik! Każde angielskie słowo dodaje przysmak do kosza dla zamku.', questLbl:'NAPEŁNIJ PIKNIK'},
+    es:{tag:'Inglés · Grados 3–4 · Juego #18', title:'Palabras ', titleEm:'Ricas!', desc:'Aprende comidas y bebidas en inglés — revienta la correcta.', quest:'🍎 ¡Llena el pícnic real! Cada palabra en inglés añade un manjar a la cesta del castillo.', questLbl:'LLENA EL PÍCNIC'}
+  },
+  rounds:function(lang,level,mode,count){
+    var out=[], pool=shuf(ITEMS);
+    for(var i=0;i<count;i++){var it=pool[i%pool.length];out.push({hud:HUD[lang]||HUD.en,big:it[0],word:null,speech:ASK[lang]||ASK.en,praise:it[1],correct:it[1],distractors:shuf(ITEMS.filter(function(x){return x[1]!==it[1];}).map(function(x){return x[1];}))});}
+    return out;
+  }
+});
+</script>
+</body></html>

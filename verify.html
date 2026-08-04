@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>InclusionGames — Verify your email</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet"/>
+<style>
+:root { --bg:#0f0e17;--card:#1e1d2e;--accent:#6C63FF;--accent2:#ff6584;--text:#fffffe;--text2:#a7a9be;--green:#43e97b; }
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(108,99,255,0.15) 0%,transparent 60%);pointer-events:none;}
+.container{width:100%;max-width:440px;text-align:center;}
+.logo{font-family:'Fredoka One',cursive;font-size:2rem;background:linear-gradient(135deg,#6C63FF,#ff6584);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:32px;display:block;}
+.card{background:var(--card);border-radius:20px;padding:40px 32px;border:1px solid rgba(255,255,255,0.06);}
+.icon{font-size:4rem;margin-bottom:16px;display:block;}
+h2{font-family:'Fredoka One',cursive;font-size:1.8rem;margin-bottom:12px;}
+p{color:var(--text2);font-size:0.95rem;line-height:1.6;margin-bottom:24px;}
+.btn{display:inline-block;padding:14px 32px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;font-family:'Nunito',sans-serif;font-weight:900;font-size:1rem;cursor:pointer;text-decoration:none;transition:opacity 0.2s;}
+.btn:hover{opacity:0.9;}
+.spinner{width:48px;height:48px;border:4px solid rgba(108,99,255,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.success{color:var(--green);}
+.error-msg{color:#ff6b6b;}
+</style>
+</head>
+<body>
+<div class="container">
+  <span class="logo">🎈 InclusionGames</span>
+  <div class="card" id="card">
+    <div class="spinner"></div>
+    <p>Verifying your email…</p>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+
+async function verify() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  const card = document.getElementById('card');
+
+  if (!token) {
+    card.innerHTML = `
+      <span class="icon">❌</span>
+      <h2 class="error-msg">Invalid link</h2>
+      <p>This verification link is invalid. Please sign up again.</p>
+      <a href="signup.html" class="btn">Go to sign up</a>`;
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/auth/verify?token=${encodeURIComponent(token)}`);
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      card.innerHTML = `
+        <span class="icon">✅</span>
+        <h2 class="success">Email verified!</h2>
+        <p>Your account is now active. Sign in to start your free trial and play every game!</p>
+        <a href="login.html" class="btn">Sign in now →</a>`;
+    } else {
+      card.innerHTML = `
+        <span class="icon">❌</span>
+        <h2 class="error-msg">Verification failed</h2>
+        <p>${data.error || 'This link is invalid or has expired.'}</p>
+        <a href="signup.html" class="btn">Sign up again</a>`;
+    }
+  } catch (err) {
+    card.innerHTML = `
+      <span class="icon">❌</span>
+      <h2 class="error-msg">Connection error</h2>
+      <p>Please try again in a moment.</p>
+      <a href="signup.html" class="btn">Back</a>`;
+  }
+}
+
+verify();
+</script>
+</body>
+</html>

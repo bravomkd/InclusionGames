@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Number Mountain — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game08 — Number Mountain. Numbers to 100: pop the biggest number. */
+var HUD={en:'BIGGEST NUMBER',de:'GRÖSSTE ZAHL',pl:'NAJWIĘKSZA LICZBA',es:'EL NÚMERO MAYOR'};
+var ASK={en:'Pop the biggest number!',de:'Triff die größte Zahl!',pl:'Trafiaj największą liczbę!',es:'¡Revienta el número mayor!'};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game08', icon:'⛰️', hero:'🧗', villain:'❄️', castle:'🏰',
+  text:{
+    en:{tag:'Math · Grade 2 · Game #8', title:'Number ', titleEm:'Mountain!', desc:'Numbers up to 100 — pop the biggest one.', quest:'⛰️ Climb Number Mountain! Pick the biggest number to take the next step up to the castle.', questLbl:'CLIMB THE MOUNTAIN'},
+    de:{tag:'Mathe · Kl. 2 · Spiel #8', title:'Zahlen-', titleEm:'Berg!', desc:'Zahlen bis 100 — triff die größte.', quest:'⛰️ Erklimme den Zahlenberg! Wähle die größte Zahl für den nächsten Schritt zur Burg.', questLbl:'ERKLIMME DEN BERG'},
+    pl:{tag:'Matematyka · Kl. 2 · Gra #8', title:'Liczbowa ', titleEm:'Góra!', desc:'Liczby do 100 — trafiaj największą.', quest:'⛰️ Wejdź na Liczbową Górę! Wybierz największą liczbę, aby zrobić kolejny krok do zamku.', questLbl:'WEJDŹ NA GÓRĘ'},
+    es:{tag:'Mates · Grado 2 · Juego #8', title:'Montaña de ', titleEm:'Números!', desc:'Números hasta 100 — revienta el mayor.', quest:'⛰️ ¡Escala la Montaña de Números! Elige el número mayor para subir un paso hacia el castillo.', questLbl:'ESCALA LA MONTAÑA'}
+  },
+  rounds:function(lang,level,mode,count){
+    var out=[], n=(level==='challenge'?4:level==='gentle'?2:3);
+    for(var i=0;i<count;i++){
+      var set={}; while(Object.keys(set).length<n){var v=2+(Math.random()*98|0);set[v]=1;}
+      var nums=Object.keys(set).map(Number); var mx=Math.max.apply(null,nums);
+      out.push({hud:HUD[lang]||HUD.en, big:null, word:null, speech:ASK[lang]||ASK.en, praise:String(mx), correct:String(mx), distractors:nums.filter(function(x){return x!==mx;}).map(String)});
+    }
+    return out;
+  }
+});
+</script>
+</body></html>

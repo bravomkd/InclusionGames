@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Set a new password — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--ink:#1a1a2e;--ink2:#3d3d5c;--muted:#6b6b8a;--bg:#fafaf8;--surface:#fff;--border:#e8e6f0;--p1:#7c3aed;--p2:#a855f7;--p3:#ede9fe;--g1:#10b981;--a1:#f59e0b;--r1:#ef4444;--r3:#fee2e2;--a3:#fef3c7;--font:'Nunito',sans-serif;--display:'Fredoka One',cursive;}
+body{font-family:var(--font);background:var(--bg);min-height:100vh;display:flex;flex-direction:column;}
+nav{padding:16px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:var(--surface);}
+.nav-logo{display:flex;align-items:center;gap:9px;text-decoration:none;}
+.nav-logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--p1),var(--p2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;}
+.nav-logo-text{font-family:var(--display);font-size:1.15rem;color:var(--ink);}
+.nav-logo-text span{color:var(--p1);}
+.main{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 20px;}
+.form-box{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:44px 40px;width:100%;max-width:420px;box-shadow:0 8px 40px rgba(124,58,237,.08);}
+.box-icon{width:60px;height:60px;background:linear-gradient(135deg,var(--p3),#fce7f3);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto 20px;}
+.form-title{font-family:var(--display);font-size:1.8rem;color:var(--ink);text-align:center;margin-bottom:8px;}
+.form-desc{font-size:.9rem;color:var(--muted);text-align:center;line-height:1.6;margin-bottom:28px;}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:20px;}
+.field-label{font-size:.82rem;font-weight:700;color:var(--ink2);}
+.field-wrap{position:relative;}
+.field-input{width:100%;padding:12px 44px 12px 16px;border:1.5px solid var(--border);border-radius:12px;font-family:var(--font);font-size:.92rem;color:var(--ink);outline:none;transition:border-color .15s,box-shadow .15s;}
+.field-input:focus{border-color:var(--p1);box-shadow:0 0 0 3px rgba(124,58,237,.12);}
+.field-input.ok{border-color:var(--g1);}
+.field-input.error{border-color:var(--r1);}
+.field-icon{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:1rem;}
+.field-error{font-size:.78rem;color:var(--r1);display:none;}
+.field-error.show{display:block;}
+.pwd-strength{display:flex;align-items:center;gap:10px;margin-top:2px;}
+.pwd-bars{display:flex;gap:4px;flex:1;}
+.pwd-bar{height:4px;flex:1;background:var(--border);border-radius:2px;transition:background .2s;}
+.pwd-bar.weak{background:var(--r1);}.pwd-bar.medium{background:var(--a1);}.pwd-bar.strong{background:var(--g1);}
+.pwd-label{font-size:.74rem;font-weight:700;color:var(--muted);white-space:nowrap;}
+.alert{border-radius:10px;padding:12px 14px;font-size:.85rem;font-weight:600;margin-bottom:18px;display:none;}
+.alert.show{display:flex;align-items:center;gap:8px;}
+.alert-error{background:var(--r3);color:#991b1b;border:1px solid #fca5a5;}
+.submit-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:12px;font-family:var(--font);font-size:1rem;font-weight:700;cursor:pointer;transition:transform .15s,box-shadow .15s;margin-bottom:16px;}
+.submit-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(124,58,237,.35);}
+.submit-btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+.btn-spinner{display:none;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.back-link{display:flex;align-items:center;justify-content:center;gap:6px;font-size:.88rem;color:var(--muted);text-decoration:none;transition:color .15s;}
+.back-link:hover{color:var(--p1);}
+.done-state{display:none;text-align:center;}
+.done-state.show{display:block;}
+.done-icon{font-size:3rem;margin-bottom:12px;}
+.done-title{font-family:var(--display);font-size:1.6rem;color:var(--ink);margin-bottom:8px;}
+.done-desc{font-size:.9rem;color:var(--muted);line-height:1.6;margin-bottom:24px;}
+footer{padding:18px 32px;border-top:1px solid var(--border);text-align:center;font-size:.75rem;color:var(--muted);}
+footer a{color:var(--muted);text-decoration:none;margin:0 8px;}
+</style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-icon">🎈</div>
+    <span class="nav-logo-text">Inclusion<span>Games</span></span>
+  </a>
+</nav>
+
+<div class="main">
+  <div class="form-box">
+
+    <!-- FORM STATE -->
+    <div id="form-state">
+      <div class="box-icon">🔐</div>
+      <h1 class="form-title">Set a new password</h1>
+      <p class="form-desc">Choose a strong new password for your account.</p>
+
+      <div class="alert alert-error" id="alert-error"><span>⚠️</span><span id="alert-error-text">Something went wrong.</span></div>
+
+      <form onsubmit="handleSubmit(event)" novalidate>
+        <div class="field">
+          <label class="field-label" for="password">New password</label>
+          <div class="field-wrap">
+            <input class="field-input" type="password" id="password" placeholder="Minimum 8 characters" required autocomplete="new-password" oninput="checkStrength(this.value)">
+            <span class="field-icon" id="pwd-toggle" onclick="togglePwd('password','pwd-toggle')" style="cursor:pointer;">👁</span>
+          </div>
+          <div class="pwd-strength">
+            <div class="pwd-bars"><div class="pwd-bar" id="bar1"></div><div class="pwd-bar" id="bar2"></div><div class="pwd-bar" id="bar3"></div><div class="pwd-bar" id="bar4"></div></div>
+            <span class="pwd-label" id="pwd-label">Enter a password</span>
+          </div>
+          <span class="field-error" id="pwd-error">Password must be at least 8 characters.</span>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="confirm">Confirm password</label>
+          <div class="field-wrap">
+            <input class="field-input" type="password" id="confirm" placeholder="Re-enter your password" required autocomplete="new-password">
+          </div>
+          <span class="field-error" id="confirm-error">Passwords do not match.</span>
+        </div>
+
+        <button class="submit-btn" type="submit" id="submit-btn">
+          <span id="btn-text">Update password</span>
+          <div class="btn-spinner" id="btn-spinner"></div>
+        </button>
+      </form>
+      <a href="login.html" class="back-link">← Back to sign in</a>
+    </div>
+
+    <!-- DONE STATE -->
+    <div class="done-state" id="done-state">
+      <div class="done-icon">✅</div>
+      <div class="done-title">Password updated!</div>
+      <p class="done-desc">Your password has been changed. You can now sign in with your new password.</p>
+      <a href="login.html" class="submit-btn" style="display:block;text-align:center;text-decoration:none;">Sign in →</a>
+    </div>
+
+  </div>
+</div>
+
+<footer>© 2026 InclusionGames — <a href="#">Privacy</a><a href="#">Terms</a> — 🔒 GDPR Compliant</footer>
+
+<script src="assets/auth.js"></script>
+<script src="assets/i18n.js"></script>
+<script>
+const token = new URLSearchParams(window.location.search).get('token');
+
+function showError(msg) {
+  document.getElementById('alert-error-text').textContent = msg;
+  document.getElementById('alert-error').classList.add('show');
+}
+
+if (!token) {
+  showError('This reset link is invalid or incomplete. Please request a new one from the “Forgot password” page.');
+}
+
+function togglePwd(id, iconId) {
+  const i = document.getElementById(id), icon = document.getElementById(iconId);
+  i.type = i.type === 'password' ? 'text' : 'password';
+  icon.textContent = i.type === 'password' ? '👁' : '🙈';
+}
+
+function checkStrength(val) {
+  const bars = ['bar1','bar2','bar3','bar4'];
+  const label = document.getElementById('pwd-label');
+  let score = 0;
+  if (val.length >= 8) score++;
+  if (/[A-Z]/.test(val)) score++;
+  if (/[0-9]/.test(val)) score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+  const classes = ['','weak','medium','medium','strong'];
+  const levels = ['Too short','Weak','Fair','Good','Strong 💪'];
+  bars.forEach((b, i) => { document.getElementById(b).className = 'pwd-bar ' + (i < score ? classes[score] : ''); });
+  label.textContent = val.length ? levels[score] : 'Enter a password';
+  label.style.color = score >= 3 ? 'var(--g1)' : score >= 2 ? 'var(--a1)' : 'var(--r1)';
+}
+
+function setLoading(on) {
+  document.getElementById('submit-btn').disabled = on;
+  document.getElementById('btn-text').style.display = on ? 'none' : 'block';
+  document.getElementById('btn-spinner').style.display = on ? 'block' : 'none';
+}
+
+async function handleSubmit(e) {
+  e.preventDefault();
+  document.getElementById('alert-error').classList.remove('show');
+  document.getElementById('pwd-error').classList.remove('show');
+  document.getElementById('confirm-error').classList.remove('show');
+
+  const password = document.getElementById('password').value;
+  const confirm = document.getElementById('confirm').value;
+
+  if (password.length < 8) { document.getElementById('pwd-error').classList.add('show'); return; }
+  if (password !== confirm) { document.getElementById('confirm-error').classList.add('show'); return; }
+  if (!token) { showError('Missing reset token. Please request a new reset link.'); return; }
+
+  setLoading(true);
+  try {
+    await IG.apiFetch('/auth/reset', {
+      method: 'POST',
+      body: JSON.stringify({ token, password })
+    });
+    document.getElementById('form-state').style.display = 'none';
+    document.getElementById('done-state').classList.add('show');
+  } catch (err) {
+    showError(err.message || 'Could not reset your password. The link may have expired.');
+    setLoading(false);
+  }
+}
+</script>
+</body>
+</html>

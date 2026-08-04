@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Unit Detective — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game13 — Unit Detective. Which unit measures this? */
+var ITEMS={
+  en:[['✏️','cm','How long is a pencil?'],['🚶','m','How far is a short walk?'],['🍎','g','How heavy is an apple?'],['🧑','kg','How heavy is a person?'],['💧','l','How much water?'],['🌡️','°C','How warm is it?']],
+  de:[['✏️','cm','Wie lang ist ein Stift?'],['🚶','m','Wie weit ist ein kurzer Weg?'],['🍎','g','Wie schwer ist ein Apfel?'],['🧑','kg','Wie schwer ist ein Mensch?'],['💧','l','Wie viel Wasser?'],['🌡️','°C','Wie warm ist es?']],
+  pl:[['✏️','cm','Jak długi jest ołówek?'],['🚶','m','Jak daleko jest krótki spacer?'],['🍎','g','Jak ciężkie jest jabłko?'],['🧑','kg','Jak ciężki jest człowiek?'],['💧','l','Ile wody?'],['🌡️','°C','Jak ciepło jest?']],
+  es:[['✏️','cm','¿Qué largo tiene un lápiz?'],['🚶','m','¿Qué distancia es un paseo corto?'],['🍎','g','¿Cuánto pesa una manzana?'],['🧑','kg','¿Cuánto pesa una persona?'],['💧','l','¿Cuánta agua?'],['🌡️','°C','¿Qué temperatura hace?']]
+};
+var HUD={en:'WHICH UNIT?',de:'WELCHE EINHEIT?',pl:'JAKA JEDNOSTKA?',es:'¿QUÉ UNIDAD?'};
+var ALL=['cm','m','g','kg','l','°C'];
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game13', icon:'📏', hero:'🕵️', villain:'🦹', castle:'🏰',
+  text:{
+    en:{tag:'Math · Grades 3–4 · Game #13', title:'Unit ', titleEm:'Detective!', desc:'Pick the right unit to measure each thing.', quest:'📏 Crack the case! Choose the right unit to unlock each clue on the way to the castle.', questLbl:'CRACK THE CASE'},
+    de:{tag:'Mathe · Kl. 3–4 · Spiel #13', title:'Einheiten-', titleEm:'Detektiv!', desc:'Wähle die richtige Einheit für jede Sache.', quest:'📏 Löse den Fall! Wähle die richtige Einheit, um jeden Hinweis auf dem Weg zur Burg zu knacken.', questLbl:'LÖSE DEN FALL'},
+    pl:{tag:'Matematyka · Kl. 3–4 · Gra #13', title:'Detektyw ', titleEm:'Jednostek!', desc:'Wybierz właściwą jednostkę dla każdej rzeczy.', quest:'📏 Rozwiąż zagadkę! Wybierz właściwą jednostkę, aby odkryć każdy trop w drodze do zamku.', questLbl:'ROZWIĄŻ ZAGADKĘ'},
+    es:{tag:'Mates · Grados 3–4 · Juego #13', title:'Detective de ', titleEm:'Unidades!', desc:'Elige la unidad correcta para medir cada cosa.', quest:'📏 ¡Resuelve el caso! Elige la unidad correcta para descubrir cada pista camino al castillo.', questLbl:'RESUELVE EL CASO'}
+  },
+  rounds:function(lang,level,mode,count){
+    var data=shuf(ITEMS[lang]||ITEMS.en), out=[];
+    for(var i=0;i<count;i++){
+      var it=data[i%data.length];
+      out.push({hud:HUD[lang]||HUD.en, big:it[0], word:null, speech:it[2], praise:it[1], correct:it[1], distractors:shuf(ALL.filter(function(u){return u!==it[1];}))});
+    }
+    return out;
+  }
+});
+</script>
+</body></html>

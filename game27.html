@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Job Heroes — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game27 — Job Heroes. Which profession is this? */
+var J=[['👨‍🚒','Firefighter','Feuerwehr','Strażak','Bombero'],['👮','Police','Polizei','Policjant','Policía'],['👩‍⚕️','Doctor','Arzt','Lekarz','Médico'],['👨‍🍳','Cook','Koch','Kucharz','Cocinero'],['👩‍🏫','Teacher','Lehrer','Nauczyciel','Profesor'],['👨‍🌾','Farmer','Bauer','Rolnik','Granjero'],['👩‍🔬','Scientist','Forscher','Naukowiec','Científico'],['👨‍🎨','Painter','Maler','Malarz','Pintor']];
+var IDX={en:1,de:2,pl:3,es:4};
+var HUD={en:'WHICH JOB?',de:'WELCHER BERUF?',pl:'JAKI ZAWÓD?',es:'¿QUÉ TRABAJO?'};
+var ASK={en:'What is this job?',de:'Welcher Beruf ist das?',pl:'Jaki to zawód?',es:'¿Qué trabajo es este?'};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game27', icon:'👷', hero:'🦸', villain:'🐉', castle:'🏰',
+  text:{
+    en:{tag:'Science · Grades 2–4 · Game #27', title:'Job ', titleEm:'Heroes!', desc:'Learn the names of jobs people do.', quest:'👷 Build the helper town! Name each job to add a worker on the way to the castle.', questLbl:'BUILD THE TOWN'},
+    de:{tag:'Sachkunde · Kl. 2–4 · Spiel #27', title:'Berufe-', titleEm:'Helden!', desc:'Lerne die Namen der Berufe.', quest:'👷 Baue die Helferstadt! Benenne jeden Beruf, um einen Helfer zur Burg zu schicken.', questLbl:'STADT BAUEN'},
+    pl:{tag:'Przyroda · Kl. 2–4 · Gra #27', title:'Bohaterowie ', titleEm:'Zawodów!', desc:'Naucz się nazw zawodów.', quest:'👷 Zbuduj miasto pomocników! Nazwij każdy zawód, aby dodać pracownika w drodze do zamku.', questLbl:'ZBUDUJ MIASTO'},
+    es:{tag:'Ciencia · Grados 2–4 · Juego #27', title:'Héroes del ', titleEm:'Trabajo!', desc:'Aprende los nombres de los trabajos.', quest:'👷 ¡Construye la ciudad de ayudantes! Nombra cada trabajo para sumar un trabajador hacia el castillo.', questLbl:'CONSTRUYE LA CIUDAD'}
+  },
+  rounds:function(lang,level,mode,count){
+    var ix=IDX[lang]||1, out=[], pool=shuf(J);
+    for(var i=0;i<count;i++){var s=pool[i%pool.length];out.push({hud:HUD[lang]||HUD.en,big:s[0],word:null,speech:ASK[lang]||ASK.en,praise:s[ix],correct:s[ix],distractors:shuf(J.filter(function(x){return x[0]!==s[0];}).map(function(x){return x[ix];}))});}
+    return out;
+  }
+});
+</script>
+</body></html>

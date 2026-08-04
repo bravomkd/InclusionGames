@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Account — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--ink:#1a1a2e;--ink2:#3d3d5c;--muted:#6b6b8a;--bg:#fafaf8;--surface:#fff;--border:#e8e6f0;--p1:#7c3aed;--p2:#a855f7;--p3:#ede9fe;--g1:#10b981;--g3:#d1fae5;--r1:#ef4444;--r3:#fee2e2;--a3:#fef3c7;--font:'Nunito',sans-serif;--display:'Fredoka One',cursive;}
+body{font-family:var(--font);background:var(--bg);color:var(--ink2);line-height:1.6;}
+nav{background:var(--surface);border-bottom:1px solid var(--border);}
+.nav-in{max-width:760px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.logo{display:flex;align-items:center;gap:9px;font-family:var(--display);font-size:1.2rem;color:var(--ink);}
+.logo-box{width:34px;height:34px;background:linear-gradient(135deg,var(--p1),var(--p2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;}
+.logo span{color:var(--p1);}
+.nav-links{display:flex;gap:10px;align-items:center;}
+.nav-links a,.logout{font-size:.85rem;font-weight:700;color:var(--p1);text-decoration:none;cursor:pointer;background:none;border:none;font-family:var(--font);}
+main{max-width:760px;margin:0 auto;padding:34px 22px 70px;}
+h1{font-family:var(--display);font-size:1.9rem;color:var(--ink);margin-bottom:22px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 24px;margin-bottom:18px;}
+.card h2{font-family:var(--display);font-size:1.1rem;color:var(--ink);margin-bottom:14px;}
+.row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:.95rem;}
+.row:last-child{border-bottom:none;}
+.row .k{color:var(--muted);font-weight:700;}
+.row .v{color:var(--ink);font-weight:700;text-align:right;}
+.badge{display:inline-block;font-size:.74rem;font-weight:800;padding:3px 11px;border-radius:100px;}
+.b-trial{background:var(--a3);color:#92400e;}.b-active{background:var(--g3);color:#065f46;}.b-off{background:var(--r3);color:#991b1b;}
+.note{font-size:.86rem;color:var(--muted);line-height:1.6;}
+label{display:block;font-size:.82rem;font-weight:700;color:var(--ink2);margin:12px 0 5px;}
+input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:11px;font-family:var(--font);font-size:.92rem;color:var(--ink);outline:none;}
+input:focus{border-color:var(--p1);box-shadow:0 0 0 3px rgba(124,58,237,.12);}
+.btn{margin-top:14px;padding:12px 22px;border:none;border-radius:100px;font-family:var(--font);font-weight:800;font-size:.95rem;cursor:pointer;}
+.btn-p{background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;}
+.btn-d{background:#fff;color:var(--r1);border:2px solid var(--r1);}
+.btn:disabled{opacity:.55;cursor:not-allowed;}
+.msg{font-size:.86rem;font-weight:700;margin-top:10px;min-height:1em;}
+.danger{border-color:#fca5a5;}
+.danger h2{color:var(--r1);}
+.hidden{display:none;}
+</style>
+</head>
+<body>
+<nav><div class="nav-in">
+  <a href="/" class="logo"><span class="logo-box">🎈</span>Inclusion<span>Games</span></a>
+  <div class="nav-links">
+    <a href="/dashboard.html">🎮 My Games</a>
+    <button class="logout" onclick="IG.logout('index.html')">Log out</button>
+  </div>
+</div></nav>
+
+<main>
+  <h1>My Account</h1>
+
+  <div class="card">
+    <h2>Your plan</h2>
+    <div class="row"><span class="k">Name</span><span class="v" id="acc-name">—</span></div>
+    <div class="row"><span class="k">Email</span><span class="v" id="acc-email">—</span></div>
+    <div class="row"><span class="k">Plan</span><span class="v" id="acc-plan">—</span></div>
+    <div class="row"><span class="k">Status</span><span class="v" id="acc-status">—</span></div>
+    <div class="row" id="acc-trial-row"><span class="k">Trial ends</span><span class="v" id="acc-trial">—</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Subscription &amp; billing</h2>
+    <p class="note">Your subscription renews automatically until you cancel. To update your payment method or <strong>cancel</strong>, email us at <a href="mailto:info@inclusion-games.com">info@inclusion-games.com</a> (or use the cancellation link in your invoice) and we'll take care of it right away. You keep access until the end of your current paid period.</p>
+  </div>
+
+  <div class="card">
+    <h2>Change password</h2>
+    <label for="cur">Current password</label>
+    <input type="password" id="cur" autocomplete="current-password">
+    <label for="new">New password (min 8 characters)</label>
+    <input type="password" id="new" autocomplete="new-password">
+    <button class="btn btn-p" id="pw-btn" onclick="changePw()">Update password</button>
+    <div class="msg" id="pw-msg"></div>
+  </div>
+
+  <div class="card danger">
+    <h2>Delete account</h2>
+    <p class="note">This permanently deletes your account and all associated data. This cannot be undone. (Invoice records are retained as required by law.)</p>
+    <label for="del-pw">Confirm your password to delete</label>
+    <input type="password" id="del-pw" autocomplete="current-password">
+    <button class="btn btn-d" id="del-btn" onclick="delAccount()">Delete my account</button>
+    <div class="msg" id="del-msg"></div>
+  </div>
+</main>
+
+<script src="assets/auth.js"></script>
+<script>
+IG.requireAuth('login.html');
+
+var PLAN_NAMES = { trial:'Free trial', starter:'Starter', family:'Family', educator:'Educator', school:'School' };
+
+(async function load(){
+  try {
+    const { user } = await IG.apiFetch('/auth/me');
+    document.getElementById('acc-name').textContent = user.name || '—';
+    document.getElementById('acc-email').textContent = user.email;
+    document.getElementById('acc-plan').textContent = PLAN_NAMES[user.plan] || user.plan || '—';
+    const st = document.getElementById('acc-status');
+    if (user.status === 'active') st.innerHTML = '<span class="badge b-active">Active</span>';
+    else if (user.status === 'trialing') st.innerHTML = '<span class="badge b-trial">Free trial</span>';
+    else st.innerHTML = '<span class="badge b-off">' + (user.status || 'Inactive') + '</span>';
+    const trialRow = document.getElementById('acc-trial-row');
+    if (user.status === 'trialing' && user.trialEnds) {
+      document.getElementById('acc-trial').textContent = new Date(user.trialEnds).toLocaleDateString();
+    } else { trialRow.style.display = 'none'; }
+  } catch (e) { /* requireAuth handles missing token */ }
+})();
+
+async function changePw(){
+  const m = document.getElementById('pw-msg'); m.textContent = '';
+  const cur = document.getElementById('cur').value;
+  const nw = document.getElementById('new').value;
+  if (nw.length < 8) { m.style.color = 'var(--r1)'; m.textContent = 'New password must be at least 8 characters.'; return; }
+  const btn = document.getElementById('pw-btn'); btn.disabled = true;
+  try {
+    await IG.apiFetch('/auth/change-password', { method:'POST', body: JSON.stringify({ currentPassword: cur, newPassword: nw }) });
+    m.style.color = 'var(--g1)'; m.textContent = '✅ Password updated.';
+    document.getElementById('cur').value = ''; document.getElementById('new').value = '';
+  } catch (e) { m.style.color = 'var(--r1)'; m.textContent = e.message || 'Could not update password.'; }
+  btn.disabled = false;
+}
+
+async function delAccount(){
+  const m = document.getElementById('del-msg'); m.textContent = '';
+  const pw = document.getElementById('del-pw').value;
+  if (!pw) { m.style.color = 'var(--r1)'; m.textContent = 'Enter your password to confirm.'; return; }
+  if (!confirm('Permanently delete your account? This cannot be undone.')) return;
+  const btn = document.getElementById('del-btn'); btn.disabled = true;
+  try {
+    await IG.apiFetch('/auth/delete-account', { method:'POST', body: JSON.stringify({ password: pw }) });
+    IG.clear();
+    alert('Your account has been deleted.');
+    window.location.href = 'index.html';
+  } catch (e) { m.style.color = 'var(--r1)'; m.textContent = e.message || 'Could not delete account.'; btn.disabled = false; }
+}
+</script>
+</body>
+</html>

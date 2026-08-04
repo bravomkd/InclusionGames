@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Beat Counter — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game30 — Beat Counter. How many beats in the bar? (2, 3 or 4) */
+var HUD={en:'HOW MANY BEATS?',de:'WIE VIELE TAKTE?',pl:'ILE UDERZEŃ?',es:'¿CUÁNTOS TIEMPOS?'};
+var ASK={en:'Count the beats! How many?',de:'Zähle die Schläge! Wie viele?',pl:'Policz uderzenia! Ile?',es:'¡Cuenta los tiempos! ¿Cuántos?'};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game30', icon:'🥁', hero:'🧒', villain:'🎭', castle:'🏰',
+  text:{
+    en:{tag:'Music · Grades 2–3 · Game #30', title:'Beat ', titleEm:'Counter!', desc:'Count the drum beats in each bar (2, 3 or 4).', quest:'🥁 Keep the parade marching! Count each bar right to drum the way to the castle.', questLbl:'KEEP THE BEAT'},
+    de:{tag:'Musik · Kl. 2–3 · Spiel #30', title:'Takt-', titleEm:'Zähler!', desc:'Zähle die Schläge im Takt (2, 3 oder 4).', quest:'🥁 Halte die Parade in Bewegung! Zähle jeden Takt richtig, um zur Burg zu trommeln.', questLbl:'HALTE DEN TAKT'},
+    pl:{tag:'Muzyka · Kl. 2–3 · Gra #30', title:'Licznik ', titleEm:'Uderzeń!', desc:'Policz uderzenia w takcie (2, 3 lub 4).', quest:'🥁 Niech parada maszeruje! Policz każdy takt, aby wybębnić drogę do zamku.', questLbl:'TRZYMAJ RYTM'},
+    es:{tag:'Música · Grados 2–3 · Juego #30', title:'Cuenta ', titleEm:'Tiempos!', desc:'Cuenta los golpes de cada compás (2, 3 o 4).', quest:'🥁 ¡Que el desfile siga! Cuenta cada compás para tamborilear hasta el castillo.', questLbl:'SIGUE EL RITMO'}
+  },
+  rounds:function(lang,level,mode,count){
+    var out=[], opts=['2','3','4'];
+    for(var i=0;i<count;i++){
+      var n=2+(Math.random()*3|0); if(n>4)n=4;
+      out.push({hud:HUD[lang]||HUD.en, big:null, word:new Array(n+1).join('🥁'), speech:ASK[lang]||ASK.en, praise:String(n), correct:String(n), distractors:shuf(opts.filter(function(o){return o!==String(n);}))});
+    }
+    return out;
+  }
+});
+</script>
+</body></html>

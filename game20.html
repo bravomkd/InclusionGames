@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Action Heroes — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game20 — Action Heroes. Verbs in English. */
+var ITEMS=[['🏃','Run'],['🦘','Jump'],['🏊','Swim'],['🍽️','Eat'],['😴','Sleep'],['📖','Read'],['✍️','Write'],['🎵','Sing'],['💃','Dance'],['🗣️','Talk']];
+var HUD={en:'IN ENGLISH',de:'AUF ENGLISCH',pl:'PO ANGIELSKU',es:'EN INGLÉS'};
+var ASK={en:'What action in English?',de:'Welche Tätigkeit auf Englisch?',pl:'Jaka czynność po angielsku?',es:'¿Qué acción en inglés?'};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game20', icon:'🏃', hero:'🦸', villain:'🦾', castle:'🏰',
+  text:{
+    en:{tag:'English · Grade 4 · Game #20', title:'Action ', titleEm:'Heroes!', desc:'Learn action words (verbs) in English — pop the right one.', quest:'🏃 Train the hero squad! Each English verb teaches a new move on the way to the castle.', questLbl:'TRAIN THE SQUAD'},
+    de:{tag:'Englisch · Kl. 4 · Spiel #20', title:'Action-', titleEm:'Helden!', desc:'Lerne Tätigkeitswörter (Verben) auf Englisch — triff das richtige.', quest:'🏃 Trainiere das Heldenteam! Jedes englische Verb lehrt einen neuen Move zur Burg.', questLbl:'TEAM TRAINIEREN'},
+    pl:{tag:'Angielski · Kl. 4 · Gra #20', title:'Bohaterowie ', titleEm:'Akcji!', desc:'Ucz się czasowników po angielsku — trafiaj właściwe.', quest:'🏃 Trenuj drużynę bohaterów! Każdy angielski czasownik uczy nowego ruchu w drodze do zamku.', questLbl:'TRENUJ DRUŻYNĘ'},
+    es:{tag:'Inglés · Grado 4 · Juego #20', title:'Héroes de ', titleEm:'Acción!', desc:'Aprende verbos en inglés — revienta el correcto.', quest:'🏃 ¡Entrena al equipo de héroes! Cada verbo en inglés enseña un movimiento camino al castillo.', questLbl:'ENTRENA AL EQUIPO'}
+  },
+  rounds:function(lang,level,mode,count){
+    var out=[], pool=shuf(ITEMS);
+    for(var i=0;i<count;i++){var it=pool[i%pool.length];out.push({hud:HUD[lang]||HUD.en,big:it[0],word:null,speech:ASK[lang]||ASK.en,praise:it[1],correct:it[1],distractors:shuf(ITEMS.filter(function(x){return x[1]!==it[1];}).map(function(x){return x[1];}))});}
+    return out;
+  }
+});
+</script>
+</body></html>

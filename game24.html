@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>World Explorer — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game24 — World Explorer (replaces Saxony-only). Match the flag to the country.
+   Country names are shown in the player's own language. The player's home
+   country (by chosen language) is always included in the set. */
+var C=[['🇩🇪','Germany','Deutschland','Niemcy','Alemania'],['🇵🇱','Poland','Polen','Polska','Polonia'],['🇪🇸','Spain','Spanien','Hiszpania','España'],['🇬🇧','England','England','Anglia','Inglaterra'],['🇫🇷','France','Frankreich','Francja','Francia'],['🇮🇹','Italy','Italien','Włochy','Italia'],['🇺🇸','USA','USA','USA','EE.UU.'],['🇵🇹','Portugal','Portugal','Portugalia','Portugal']];
+var IDX={en:1,de:2,pl:3,es:4};
+var HOME={en:'🇬🇧',de:'🇩🇪',pl:'🇵🇱',es:'🇪🇸'};
+var HUD={en:'WHICH COUNTRY?',de:'WELCHES LAND?',pl:'KTÓRY KRAJ?',es:'¿QUÉ PAÍS?'};
+var ASK={en:'Which country is this flag?',de:'Zu welchem Land gehört diese Flagge?',pl:'Do którego kraju należy ta flaga?',es:'¿De qué país es esta bandera?'};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game24', icon:'🗺️', hero:'🧭', villain:'🐙', castle:'🏰',
+  text:{
+    en:{tag:'Geography · Grades 2–4 · Game #24', title:'World ', titleEm:'Explorer!', desc:'Match each flag to its country (shown in your language).', quest:'🗺️ Sail around the world! Name each flag to chart the course to the castle.', questLbl:'CHART THE COURSE'},
+    de:{tag:'Geografie · Kl. 2–4 · Spiel #24', title:'Welt-', titleEm:'Entdecker!', desc:'Ordne jede Flagge ihrem Land zu (in deiner Sprache).', quest:'🗺️ Segle um die Welt! Benenne jede Flagge, um den Kurs zur Burg zu setzen.', questLbl:'KURS SETZEN'},
+    pl:{tag:'Geografia · Kl. 2–4 · Gra #24', title:'Odkrywca ', titleEm:'Świata!', desc:'Dopasuj każdą flagę do kraju (w twoim języku).', quest:'🗺️ Opłyń świat! Nazwij każdą flagę, aby wyznaczyć kurs do zamku.', questLbl:'WYZNACZ KURS'},
+    es:{tag:'Geografía · Grados 2–4 · Juego #24', title:'Explorador del ', titleEm:'Mundo!', desc:'Une cada bandera con su país (en tu idioma).', quest:'🗺️ ¡Navega por el mundo! Nombra cada bandera para trazar el rumbo al castillo.', questLbl:'TRAZA EL RUMBO'}
+  },
+  rounds:function(lang,level,mode,count){
+    var ix=IDX[lang]||1, out=[], pool=shuf(C), home=HOME[lang];
+    for(var i=0;i<count;i++){
+      var c=pool[i%pool.length];
+      var dist=shuf(C.filter(function(x){return x[0]!==c[0];}).map(function(x){return x[ix];}));
+      out.push({hud:HUD[lang]||HUD.en,big:c[0],word:null,speech:ASK[lang]||ASK.en,praise:c[ix],correct:c[ix],distractors:dist});
+    }
+    return out;
+  }
+});
+</script>
+</body></html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Loud & Quiet — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game29 — Loud & Quiet. Music dynamics: is this loud or quiet? */
+var ITEMS=[['🦁',1],['📢',1],['🥁',1],['🚨',1],['🎉',1],['🐭',0],['🤫',0],['🍃',0],['😴',0],['🐌',0]];
+var LBL={en:['Loud','Quiet'],de:['Laut','Leise'],pl:['Głośno','Cicho'],es:['Fuerte','Suave']};
+var HUD={en:'LOUD OR QUIET?',de:'LAUT ODER LEISE?',pl:'GŁOŚNO CZY CICHO?',es:'¿FUERTE O SUAVE?'};
+var ASK={en:'Is this loud or quiet?',de:'Ist das laut oder leise?',pl:'Czy to głośno czy cicho?',es:'¿Es fuerte o suave?'};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game29', icon:'🔊', hero:'🎧', villain:'📣', castle:'🏰',
+  text:{
+    en:{tag:'Music · Grades 1–2 · Game #29', title:'Loud & ', titleEm:'Quiet!', desc:'Decide if the sound is loud or quiet.', quest:'🔊 Conduct the magic orchestra! Read each sound right to keep the music flowing to the castle.', questLbl:'CONDUCT THE MUSIC'},
+    de:{tag:'Musik · Kl. 1–2 · Spiel #29', title:'Laut & ', titleEm:'Leise!', desc:'Entscheide, ob der Klang laut oder leise ist.', quest:'🔊 Dirigiere das Zauberorchester! Erkenne jeden Klang, damit die Musik zur Burg fließt.', questLbl:'MUSIK DIRIGIEREN'},
+    pl:{tag:'Muzyka · Kl. 1–2 · Gra #29', title:'Głośno & ', titleEm:'Cicho!', desc:'Zdecyduj, czy dźwięk jest głośny czy cichy.', quest:'🔊 Dyryguj magiczną orkiestrą! Rozpoznaj każdy dźwięk, aby muzyka płynęła do zamku.', questLbl:'DYRYGUJ MUZYKĄ'},
+    es:{tag:'Música · Grados 1–2 · Juego #29', title:'Fuerte & ', titleEm:'Suave!', desc:'Decide si el sonido es fuerte o suave.', quest:'🔊 ¡Dirige la orquesta mágica! Acierta cada sonido para que la música llegue al castillo.', questLbl:'DIRIGE LA MÚSICA'}
+  },
+  rounds:function(lang,level,mode,count){
+    var L=LBL[lang]||LBL.en, out=[], pool=shuf(ITEMS);
+    for(var i=0;i<count;i++){var it=pool[i%pool.length];var c=it[1]?L[0]:L[1];out.push({hud:HUD[lang]||HUD.en,big:it[0],word:null,speech:ASK[lang]||ASK.en,praise:c,correct:c,distractors:[it[1]?L[1]:L[0]]});}
+    return out;
+  }
+});
+</script>
+</body></html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Plant Parts — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game23 — Plant Parts. Hear a part name, pop the matching part. */
+var P=[['🍃','leaf','Blatt','liść','hoja'],['🌸','flower','Blüte','kwiat','flor'],['🌰','seed','Samen','nasiono','semilla'],['🥕','root','Wurzel','korzeń','raíz'],['🌿','stem','Stängel','łodyga','tallo']];
+var IDX={en:1,de:2,pl:3,es:4};
+var HUD={en:'FIND THE PART',de:'FINDE DEN TEIL',pl:'ZNAJDŹ CZĘŚĆ',es:'ENCUENTRA LA PARTE'};
+var ASK={en:'Find the ',de:'Finde: ',pl:'Znajdź: ',es:'Encuentra: '};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game23', icon:'🌱', hero:'🧑‍🌾', villain:'🐛', castle:'🏰',
+  text:{
+    en:{tag:'Science · Grades 2–3 · Game #23', title:'Plant ', titleEm:'Parts!', desc:'Hear a plant part and pop the matching picture.', quest:'🌱 Grow the giant beanstalk! Each correct part grows the plant higher toward the castle.', questLbl:'GROW THE BEANSTALK'},
+    de:{tag:'Sachkunde · Kl. 2–3 · Spiel #23', title:'Pflanzen-', titleEm:'Teile!', desc:'Höre einen Pflanzenteil und triff das passende Bild.', quest:'🌱 Lass die Bohnenranke wachsen! Jeder richtige Teil lässt die Pflanze höher zur Burg wachsen.', questLbl:'RANKE WACHSEN LASSEN'},
+    pl:{tag:'Przyroda · Kl. 2–3 · Gra #23', title:'Części ', titleEm:'Rośliny!', desc:'Posłuchaj nazwy części rośliny i traf obrazek.', quest:'🌱 Wyhoduj olbrzymią fasolę! Każda poprawna część sprawia, że roślina rośnie wyżej do zamku.', questLbl:'WYHODUJ FASOLĘ'},
+    es:{tag:'Ciencia · Grados 2–3 · Juego #23', title:'Partes de la ', titleEm:'Planta!', desc:'Escucha una parte de la planta y revienta la imagen correcta.', quest:'🌱 ¡Haz crecer la planta gigante! Cada parte correcta sube la planta hacia el castillo.', questLbl:'HAZ CRECER LA PLANTA'}
+  },
+  rounds:function(lang,level,mode,count){
+    var ix=IDX[lang]||1, out=[], pool=shuf(P);
+    for(var i=0;i<count;i++){var s=pool[i%pool.length];out.push({hud:HUD[lang]||HUD.en,big:null,word:null,speech:(ASK[lang]||ASK.en)+s[ix],praise:s[ix],correct:s[0],distractors:shuf(P.filter(function(x){return x[0]!==s[0];}).map(function(x){return x[0];}))});}
+    return out;
+  }
+});
+</script>
+</body></html>

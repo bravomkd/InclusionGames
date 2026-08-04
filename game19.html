@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>School Quest — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game19 — School Quest. School things in English. */
+var ITEMS=[['📖','Book'],['✏️','Pencil'],['📏','Ruler'],['🎒','Bag'],['✂️','Scissors'],['🖊️','Pen'],['🧽','Eraser'],['🖍️','Crayon'],['📐','Triangle'],['🗒️','Notebook']];
+var HUD={en:'IN ENGLISH',de:'AUF ENGLISCH',pl:'PO ANGIELSKU',es:'EN INGLÉS'};
+var ASK={en:'What school thing in English?',de:'Welche Schulsache auf Englisch?',pl:'Jaki przybor szkolny po angielsku?',es:'¿Qué objeto escolar en inglés?'};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+IG_GAME({
+  id:'game19', icon:'🎒', hero:'🧑‍🎓', villain:'👺', castle:'🏰',
+  text:{
+    en:{tag:'English · Grades 3–4 · Game #19', title:'School ', titleEm:'Quest!', desc:'Learn school object words in English — pop the right one.', quest:'🎒 Pack the magic backpack! Each English word drops a tool inside for the journey to the castle.', questLbl:'PACK THE BACKPACK'},
+    de:{tag:'Englisch · Kl. 3–4 · Spiel #19', title:'Schul-', titleEm:'Quest!', desc:'Lerne Schulsachen auf Englisch — triff das richtige.', quest:'🎒 Pack den Zauberrucksack! Jedes englische Wort legt ein Werkzeug für den Weg zur Burg hinein.', questLbl:'RUCKSACK PACKEN'},
+    pl:{tag:'Angielski · Kl. 3–4 · Gra #19', title:'Szkolna ', titleEm:'Misja!', desc:'Ucz się przyborów szkolnych po angielsku — trafiaj właściwe.', quest:'🎒 Spakuj magiczny plecak! Każde angielskie słowo wkłada narzędzie na drogę do zamku.', questLbl:'SPAKUJ PLECAK'},
+    es:{tag:'Inglés · Grados 3–4 · Juego #19', title:'Misión ', titleEm:'Escolar!', desc:'Aprende objetos del cole en inglés — revienta el correcto.', quest:'🎒 ¡Llena la mochila mágica! Cada palabra en inglés guarda una herramienta para el viaje al castillo.', questLbl:'LLENA LA MOCHILA'}
+  },
+  rounds:function(lang,level,mode,count){
+    var out=[], pool=shuf(ITEMS);
+    for(var i=0;i<count;i++){var it=pool[i%pool.length];out.push({hud:HUD[lang]||HUD.en,big:it[0],word:null,speech:ASK[lang]||ASK.en,praise:it[1],correct:it[1],distractors:shuf(ITEMS.filter(function(x){return x[1]!==it[1];}).map(function(x){return x[1];}))});}
+    return out;
+  }
+});
+</script>
+</body></html>

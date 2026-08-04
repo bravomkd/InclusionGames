@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Word Wizard — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game04 — Word Wizard. Find a word of the named type (noun/verb/adjective). */
+var WORDS={
+  en:{noun:['Dog','Cat','Sun','Ball','Fish','Tree'],verb:['Run','Jump','Sing','Eat','Swim','Read'],adj:['Big','Red','Hot','Sad','Fast','New']},
+  de:{noun:['Hund','Ball','Baum','Fisch','Haus','Stern'],verb:['Gehen','Essen','Lesen','Malen','Singen','Rufen'],adj:['Rot','Groß','Alt','Neu','Kalt','Blau']},
+  pl:{noun:['Pies','Kot','Dom','Ryba','Ptak','Las'],verb:['Biec','Jeść','Pić','Spać','Grać','Czytać'],adj:['Duży','Mały','Nowy','Stary','Zimny','Niski']},
+  es:{noun:['Perro','Gato','Sol','Casa','Pez','Árbol'],verb:['Correr','Comer','Leer','Saltar','Cantar','Beber'],adj:['Rojo','Alto','Frío','Nuevo','Bajo','Largo']}
+};
+var CATS={
+  en:[{k:'noun',e:'📦',hud:'FIND A NOUN',ask:'Find a naming word — a noun!'},{k:'verb',e:'🏃',hud:'FIND A VERB',ask:'Find an action word — a verb!'},{k:'adj',e:'🎨',hud:'FIND AN ADJECTIVE',ask:'Find a describing word — an adjective!'}],
+  de:[{k:'noun',e:'📦',hud:'FINDE EIN NOMEN',ask:'Finde ein Namenwort — ein Nomen!'},{k:'verb',e:'🏃',hud:'FINDE EIN VERB',ask:'Finde ein Tuwort — ein Verb!'},{k:'adj',e:'🎨',hud:'FINDE EIN ADJEKTIV',ask:'Finde ein Wiewort — ein Adjektiv!'}],
+  pl:[{k:'noun',e:'📦',hud:'ZNAJDŹ RZECZOWNIK',ask:'Znajdź rzeczownik — nazwę rzeczy!'},{k:'verb',e:'🏃',hud:'ZNAJDŹ CZASOWNIK',ask:'Znajdź czasownik — słowo czynności!'},{k:'adj',e:'🎨',hud:'ZNAJDŹ PRZYMIOTNIK',ask:'Znajdź przymiotnik — słowo opisujące!'}],
+  es:[{k:'noun',e:'📦',hud:'ENCUENTRA UN SUSTANTIVO',ask:'¡Encuentra un sustantivo — un nombre!'},{k:'verb',e:'🏃',hud:'ENCUENTRA UN VERBO',ask:'¡Encuentra un verbo — una acción!'},{k:'adj',e:'🎨',hud:'ENCUENTRA UN ADJETIVO',ask:'¡Encuentra un adjetivo — algo que describe!'}]
+};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+IG_GAME({
+  id:'game04', icon:'🧙', hero:'🧙', villain:'👹', castle:'🏰',
+  text:{
+    en:{tag:'Grammar · Grades 3–4 · Game #4', title:'Word ', titleEm:'Wizard!', desc:'Pop the word that matches the type — noun, verb or adjective.', quest:'🧙 Break the ogre’s spell! Pick the right word type to charge your wand and free the castle.', questLbl:'BREAK THE SPELL'},
+    de:{tag:'Grammatik · Kl. 3–4 · Spiel #4', title:'Wort-', titleEm:'Zauberer!', desc:'Triff das Wort der richtigen Wortart — Nomen, Verb oder Adjektiv.', quest:'🧙 Brich den Zauber des Oger! Wähle die richtige Wortart, um deinen Zauberstab zu laden und die Burg zu befreien.', questLbl:'BRICH DEN ZAUBER'},
+    pl:{tag:'Gramatyka · Kl. 3–4 · Gra #4', title:'Czarodziej ', titleEm:'Słów!', desc:'Trafiaj słowo właściwej części mowy — rzeczownik, czasownik lub przymiotnik.', quest:'🧙 Złam zaklęcie ogra! Wybierz właściwą część mowy, aby naładować różdżkę i uwolnić zamek.', questLbl:'ZŁAM ZAKLĘCIE'},
+    es:{tag:'Gramática · Grados 3–4 · Juego #4', title:'Mago de ', titleEm:'Palabras!', desc:'Revienta la palabra del tipo correcto — sustantivo, verbo o adjetivo.', quest:'🧙 ¡Rompe el hechizo del ogro! Elige el tipo de palabra correcto para cargar tu varita y liberar el castillo.', questLbl:'ROMPE EL HECHIZO'}
+  },
+  rounds:function(lang,level,mode,count){
+    var C=CATS[lang]||CATS.en, Wd=WORDS[lang]||WORDS.en, out=[];
+    for(var i=0;i<count;i++){
+      var cat=C[i%C.length];
+      var correct=shuf(Wd[cat.k])[0];
+      var others=[]; C.forEach(function(c){if(c.k!==cat.k)others=others.concat(Wd[c.k]);});
+      out.push({hud:cat.hud, big:cat.e, word:null, speech:cat.ask, praise:correct, correct:correct, distractors:shuf(others)});
+    }
+    return out;
+  }
+});
+</script>
+</body></html>

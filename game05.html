@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Mark Hunter — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+</head><body>
+<script src="assets/game-engine.js"></script>
+<script>
+/* game05 — Mark Hunter. Hear a sentence, pop the right end mark (. ? !). */
+var SENT={
+  en:[['The cat sleeps','.'],['Where is the dog','?'],['What a big cake','!'],['I see a bird','.'],['Do you like cats','?'],['Watch out','!'],['The sun is hot','.'],['How old are you','?'],['I love it','!']],
+  de:[['Die Katze schläft','.'],['Wo ist der Hund','?'],['Was für ein Haus','!'],['Ich sehe einen Vogel','.'],['Magst du Katzen','?'],['Pass auf','!'],['Die Sonne scheint','.'],['Wie alt bist du','?'],['Ich liebe es','!']],
+  pl:[['Kot śpi','.'],['Gdzie jest pies','?'],['Jaki duży dom','!'],['Widzę ptaka','.'],['Lubisz koty','?'],['Uważaj','!'],['Słońce świeci','.'],['Ile masz lat','?'],['Kocham to','!']],
+  es:[['El gato duerme','.'],['Dónde está el perro','?'],['Qué casa tan grande','!'],['Veo un pájaro','.'],['Te gustan los gatos','?'],['Cuidado','!'],['El sol brilla','.'],['Cuántos años tienes','?'],['Me encanta','!']]
+};
+var HUD={en:'WHICH MARK?',de:'WELCHES ZEICHEN?',pl:'JAKI ZNAK?',es:'¿QUÉ SIGNO?'};
+var ASK={
+  en:function(s){return s+'. Which mark belongs at the end — full stop, question mark, or exclamation mark?';},
+  de:function(s){return s+'. Welches Satzzeichen passt — Punkt, Fragezeichen oder Ausrufezeichen?';},
+  pl:function(s){return s+'. Jaki znak pasuje na końcu — kropka, pytajnik czy wykrzyknik?';},
+  es:function(s){return s+'. ¿Qué signo va al final — punto, interrogación o exclamación?';}
+};
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+IG_GAME({
+  id:'game05', icon:'🗡️', hero:'🦸', villain:'🐉', castle:'🏰',
+  text:{
+    en:{tag:'Literacy · Grades 2–3 · Game #5', title:'Mark ', titleEm:'Hunter!', desc:'Hear a sentence and pop the right end mark: . ? or !', quest:'🗡️ Tame the punctuation dragon! Choose the right mark to calm its fire and reach the castle.', questLbl:'TAME THE DRAGON'},
+    de:{tag:'Sprache · Kl. 2–3 · Spiel #5', title:'Satzzeichen-', titleEm:'Jäger!', desc:'Höre einen Satz und triff das richtige Zeichen: . ? oder !', quest:'🗡️ Zähme den Satzzeichen-Drachen! Wähle das richtige Zeichen, um sein Feuer zu beruhigen und die Burg zu erreichen.', questLbl:'ZÄHME DEN DRACHEN'},
+    pl:{tag:'Język polski · Kl. 2–3 · Gra #5', title:'Łowca ', titleEm:'Znaków!', desc:'Posłuchaj zdania i traf właściwy znak: . ? lub !', quest:'🗡️ Oswój smoka znaków! Wybierz właściwy znak, aby uspokoić jego ogień i dotrzeć do zamku.', questLbl:'OSWÓJ SMOKA'},
+    es:{tag:'Lectura · Grados 2–3 · Juego #5', title:'Cazador de ', titleEm:'Signos!', desc:'Escucha una frase y revienta el signo final: . ? o !', quest:'🗡️ ¡Doma al dragón de los signos! Elige el signo correcto para calmar su fuego y llegar al castillo.', questLbl:'DOMA AL DRAGÓN'}
+  },
+  rounds:function(lang,level,mode,count){
+    var data=shuf(SENT[lang]||SENT.en), out=[], marks=['.','?','!'];
+    for(var i=0;i<count;i++){
+      var s=data[i%data.length], correct=s[1];
+      out.push({hud:HUD[lang]||HUD.en, big:null, word:s[0], speech:(ASK[lang]||ASK.en)(s[0]), praise:s[0]+' '+correct, correct:correct, distractors:marks.filter(function(m){return m!==correct;})});
+    }
+    return out;
+  }
+});
+</script>
+</body></html>
