@@ -1047,13 +1047,61 @@ app.get('/api/health', (req, res) => res.json({ ok: true, time: now() }));
 // ═══════════════════════════════════════════════════════════
 //  STATIC SITE
 // ═══════════════════════════════════════════════════════════
+// ── What must never leave the server ────────────────────────
+// The public site is served straight out of the project folder, and that same
+// folder also holds the database, the .env and the backend source. Everything
+// that is not part of the public site is refused HERE, before express.static
+// ever gets a chance to hand it out.
+const PRIVATE_DIRS = [DATA_DIR, path.join(ROOT, 'node_modules'), path.join(ROOT, '.git')]
+  .map(d => d.toLowerCase());
+const PRIVATE_FILES = new Set(
+  ['server.js', 'package.json', 'package-lock.json', '.env', '.env.example', 'README.md', 'DEPLOY-hetzner.md']
+    .map(f => path.join(ROOT, f).toLowerCase())
+);
+
+// Decode the request path once and normalise the slashes, so the checks below
+// can't be walked around with %2e%2e, backslashes or doubled slashes.
+function normalisePath(urlPath) {
+  let p;
+  try { p = decodeURIComponent(urlPath); } catch { return null; } // malformed → refuse
+  p = p.replace(/\\/g, '/').replace(/\/{2,}/g, '/');
+  return p.startsWith('/') ? p : '/' + p;
+}
+
+// Compared case-insensitively on purpose: on a case-insensitive filesystem
+// (Windows, macOS) "/SERVER.JS" and "/Data/users.json" resolve to the same
+// files, so matching only the exact spelling would leave a way straight past
+// these checks.
+function isPrivatePath(p) {
+  const abs = path.resolve(ROOT, '.' + p);
+  if (abs !== ROOT && !abs.startsWith(ROOT + path.sep)) return true; // escaped the site root
+  const lower = abs.toLowerCase();
+  if (PRIVATE_FILES.has(lower)) return true;
+  return PRIVATE_DIRS.some(d => lower === d || lower.startsWith(d + path.sep));
+}
+
+// express.static runs with extensions:['html'], so "/game02" serves game02.html.
+// The gate has to see the same page name either way, or it only gates one spelling.
+function pageName(p) {
+  const trimmed = p.replace(/\/+$/, '');
+  if (!trimmed) return '/index.html';
+  return /\.[a-z0-9]+$/i.test(trimmed) ? trimmed : trimmed + '.html';
+}
+
 // ── Access gate ─────────────────────────────────────────────
 // Game pages, the games folder and the dashboard require an active
 // trial or subscription. Everything else (landing, auth, legal,
 // sales page, assets) stays public.
 app.use((req, res, next) => {
-  const p = req.path;
-  const gated = p === '/dashboard.html' || /^\/game[\w-]*\.html$/.test(p) || p.startsWith('/games/');
+  const p = normalisePath(req.path);
+  if (p === null || isPrivatePath(p)) return res.status(404).type('text/plain').send('Not found');
+
+  // Lower-cased for the same reason as isPrivatePath: "/GAME02" serves
+  // game02.html on a case-insensitive filesystem and must be gated too.
+  const page = pageName(p).toLowerCase();
+  const gated = page === '/dashboard.html'
+    || /^\/game[\w-]*\.html$/.test(page)
+    || page.startsWith('/games/');
   if (!gated) return next();
   const u = userFromSession(req);
   if (!u) return res.redirect('/login.html');
@@ -1062,7 +1110,7 @@ app.use((req, res, next) => {
 });
 
 app.get('/', (req, res) => res.sendFile(path.join(ROOT, 'index.html')));
-app.use(express.static(ROOT, { extensions: ['html'] }));
+app.use(express.static(ROOT, { extensions: ['html'], dotfiles: 'ignore', index: false }));
 
 // 404 fallback for unknown /api routes
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
