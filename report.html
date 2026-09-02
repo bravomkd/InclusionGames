@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Reports — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#f6f5fb; --card:#fff; --ink:#1a1a2e; --muted:#6b6b85; --line:#e8e6f0;
+  --accent:#6C63FF; --accent2:#ff6584;
+  --good:#0f9d58; --ok:#d98a0b; --low:#d32f2f;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);}
+a{color:inherit;}
+
+.topbar{background:#1e1d2e;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.brand{font-family:'Fredoka One',cursive;font-size:1.05rem;display:flex;align-items:center;gap:8px;}
+.brand .dot{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-size:.85rem;}
+.topbar .sp{flex:1;}
+.tb{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);color:#fff;font-family:inherit;font-weight:800;font-size:.8rem;padding:7px 14px;border-radius:100px;text-decoration:none;cursor:pointer;}
+.tb.on{background:linear-gradient(135deg,var(--accent),#a855f7);border-color:transparent;}
+
+.wrap{max-width:1080px;margin:0 auto;padding:22px 18px 64px;}
+h1{font-family:'Fredoka One',cursive;font-size:1.6rem;margin-bottom:4px;}
+.sub{color:var(--muted);font-size:.9rem;margin-bottom:18px;}
+
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px;}
+.sel{font-family:inherit;font-weight:700;font-size:.88rem;padding:9px 12px;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;}
+.btn{font-family:inherit;font-weight:800;font-size:.88rem;padding:10px 18px;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;text-decoration:none;display:inline-block;}
+.btn.ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px;}
+.card h2{font-size:1rem;font-family:'Fredoka One',cursive;margin-bottom:2px;}
+.card .hint{color:var(--muted);font-size:.8rem;margin-bottom:14px;}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+.stat{background:#faf9ff;border:1px solid var(--line);border-radius:12px;padding:13px 14px;}
+.stat .n{font-family:'Fredoka One',cursive;font-size:1.5rem;line-height:1.1;}
+.stat .l{color:var(--muted);font-size:.74rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-top:3px;}
+
+.skill{display:grid;grid-template-columns:150px 1fr 92px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);}
+.skill:last-child{border-bottom:none;}
+.skill .nm{font-weight:800;font-size:.9rem;display:flex;align-items:center;gap:7px;}
+.skill .mid{display:block;}
+/* Block-level, or the height and width of an inline span collapse to nothing. */
+.track{display:block;height:12px;border-radius:100px;background:#eeecf6;overflow:hidden;}
+.fill{display:block;height:100%;border-radius:100px;transition:width .3s;}
+.meta{display:block;font-size:.72rem;color:var(--muted);margin-top:4px;}
+.skill .rt{text-align:right;font-weight:900;font-size:.9rem;}
+.skill .rt small{display:block;font-weight:700;font-size:.68rem;color:var(--muted);}
+
+table{width:100%;border-collapse:collapse;font-size:.87rem;}
+th{text-align:left;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;padding:7px 8px;border-bottom:1px solid var(--line);}
+td{padding:9px 8px;border-bottom:1px solid var(--line);}
+tr:last-child td{border-bottom:none;}
+.tw{overflow-x:auto;}
+.pill{display:inline-block;font-size:.7rem;font-weight:900;padding:3px 9px;border-radius:100px;}
+.p-strong{background:#e3f5ea;color:var(--good);}
+.p-steady{background:#fdf1dc;color:var(--ok);}
+.p-practise{background:#fce8e8;color:var(--low);}
+.p-na{background:#eeecf6;color:var(--muted);}
+
+.spark{display:flex;align-items:flex-end;gap:2px;height:64px;}
+.spark i{flex:1;background:#dcd8f2;border-radius:2px 2px 0 0;min-height:2px;display:block;}
+.spark i.has{background:linear-gradient(180deg,var(--accent),#a855f7);}
+.axis{display:flex;justify-content:space-between;color:var(--muted);font-size:.7rem;margin-top:6px;}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:760px){.two{grid-template-columns:1fr;} .skill{grid-template-columns:110px 1fr 78px;}}
+
+.note{background:#fff8e6;border:1px solid #f3e2b4;color:#7a5b06;border-radius:12px;padding:11px 14px;font-size:.85rem;margin-bottom:16px;}
+.empty{text-align:center;padding:40px 20px;color:var(--muted);}
+.empty .big{font-size:2.6rem;display:block;margin-bottom:10px;}
+
+.list{list-style:none;}
+.list li{padding:6px 0;font-size:.88rem;display:flex;gap:8px;align-items:baseline;}
+.list li b{font-weight:900;}
+
+dialog{border:none;border-radius:16px;padding:0;max-width:440px;width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+dialog::backdrop{background:rgba(20,18,40,.5);}
+.dlg{padding:22px;}
+.dlg h3{font-family:'Fredoka One',cursive;font-size:1.15rem;margin-bottom:6px;}
+.dlg p{color:var(--muted);font-size:.86rem;margin-bottom:14px;}
+.in{width:100%;font-family:inherit;font-size:.9rem;padding:11px 12px;border-radius:10px;border:1.5px solid var(--line);margin-bottom:10px;}
+textarea.in{min-height:78px;resize:vertical;}
+.dlg .row{display:flex;gap:8px;justify-content:flex-end;margin-top:6px;}
+.msg{font-size:.85rem;font-weight:700;margin-top:10px;}
+.msg.ok{color:var(--good);} .msg.err{color:var(--low);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand"><span class="dot">🎈</span>InclusionGames</span>
+  <a href="dashboard.html" class="tb">← Games</a>
+  <a href="teacher.html" class="tb">Profiles</a>
+  <span class="tb on">Reports</span>
+  <span class="sp"></span>
+  <a href="account.html" class="tb">Account</a>
+</div>
+
+<div class="wrap">
+  <h1>Reports</h1>
+  <p class="sub">How each child is getting on — what they played, how much, and which skills are strong or need practice. Download it or email it to a parent or guardian.</p>
+
+  <div class="controls">
+    <select id="childSel" class="sel" aria-label="Child"></select>
+    <select id="rangeSel" class="sel" aria-label="Time period">
+      <option value="7">Last 7 days</option>
+      <option value="30" selected>Last 30 days</option>
+      <option value="90">Last 90 days</option>
+      <option value="365">Last year</option>
+      <option value="all">All time</option>
+    </select>
+    <select id="langSel" class="sel" aria-label="Report language">
+      <option value="en" selected>Report in English</option>
+      <option value="de">Bericht auf Deutsch</option>
+      <option value="pl">Raport po polsku</option>
+      <option value="es">Informe en español</option>
+    </select>
+    <span class="sp" style="flex:1"></span>
+    <a id="dlBtn" class="btn ghost" href="#" target="_blank" rel="noopener">⬇ Download PDF</a>
+    <button id="sendBtn" class="btn">✉ Send to parent</button>
+  </div>
+
+  <div id="body"><div class="card"><p class="hint">Loading…</p></div></div>
+</div>
+
+<dialog id="sendDlg">
+  <form method="dialog" class="dlg" id="sendForm">
+    <h3>Email this report</h3>
+    <p>The PDF is attached. Replies go to your account address.</p>
+    <input class="in" type="email" id="toEmail" placeholder="parent@example.com" required>
+    <textarea class="in" id="sendNote" placeholder="Optional message to include…"></textarea>
+    <div class="row">
+      <button class="btn ghost" value="cancel" type="submit">Cancel</button>
+      <button class="btn" id="sendGo" value="send" type="button">Send report</button>
+    </div>
+    <div class="msg" id="sendMsg"></div>
+  </form>
+</dialog>
+
+<script src="assets/auth.js"></script>
+<script src="assets/catalogue.js"></script>
+<script>
+if (!IG.requireAuth('login.html')) { /* redirected */ }
+
+var $ = function (id) { return document.getElementById(id); };
+var state = { children: [], childId: null, report: null, lastSentTo: null };
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+function fmtTime(ms){
+  var m = Math.round((ms||0)/60000);
+  if (m < 60) return m + ' min';
+  return Math.floor(m/60) + ' h ' + (m%60) + ' min';
+}
+function fmtDate(ts){ return ts ? new Date(ts).toLocaleDateString() : '—'; }
+function pctText(v){ return v == null ? '—' : v + '%'; }
+
+var BAND_LABEL = { strong:'Going well', steady:'Steady', practise:'Needs practice' };
+var TREND_LABEL = { up:'↗ improving', down:'↘ dipping', flat:'→ steady' };
+
+function bandClass(b){ return b ? 'p-' + b : 'p-na'; }
+function bandColor(b){
+  return b === 'strong' ? 'var(--good)' : b === 'practise' ? 'var(--low)'
+       : b === 'steady' ? 'var(--ok)' : '#c9c5de';
+}
+
+/* ── data ─────────────────────────────────────────────────── */
+async function loadChildren(){
+  var data = await IG.apiFetch('/children');
+  state.children = data.children || [];
+  var sel = $('childSel');
+  if (!state.children.length) {
+    sel.innerHTML = '<option>No children yet</option>';
+    sel.disabled = true;
+    return false;
+  }
+  sel.innerHTML = state.children.map(function(c){
+    return '<option value="' + esc(c.id) + '">' + esc(c.name) + '</option>';
+  }).join('');
+  // Keep whichever child the rest of the site has active.
+  var active = null;
+  try { active = JSON.parse(localStorage.getItem('ig_active_child') || 'null'); } catch(e){}
+  state.childId = (active && state.children.some(function(c){return c.id===active.id;}))
+    ? active.id : state.children[0].id;
+  sel.value = state.childId;
+  return true;
+}
+
+function query(){
+  var r = $('rangeSel').value;
+  return 'range=' + encodeURIComponent(r) + '&lang=' + encodeURIComponent($('langSel').value);
+}
+
+async function loadReport(){
+  if (!state.childId) return;
+  $('body').innerHTML = '<div class="card"><p class="hint">Loading…</p></div>';
+  try {
+    var data = await IG.apiFetch('/children/' + state.childId + '/analytics?' + query());
+    state.report = data.report;
+    state.lastSentTo = data.lastSentTo || null;
+    render();
+  } catch (e) {
+    $('body').innerHTML = '<div class="card"><p class="hint">Could not load this report: ' + esc(e.message) + '</p></div>';
+  }
+  refreshDownloadLink();
+}
+
+function refreshDownloadLink(){
+  // The PDF route needs the bearer token, which a plain link cannot send, so
+  // the link is wired up in JS below and this just tracks enabled state.
+  $('dlBtn').classList.toggle('disabled', !state.childId);
+}
+
+/* ── rendering ────────────────────────────────────────────── */
+function render(){
+  var r = state.report;
+  var o = r.overview;
+
+  if (!o.sessions) {
+    $('body').innerHTML =
+      '<div class="card"><div class="empty"><span class="big">🌱</span>' +
+      '<b>Nothing recorded in this period yet.</b>' +
+      '<p style="margin-top:8px">Once ' + esc(r.child.name) + ' plays a game, every session shows up here — ' +
+      'scores, time spent and which skills are coming along.</p>' +
+      '<p style="margin-top:14px"><a class="btn" href="dashboard.html">Open the games</a></p>' +
+      '</div></div>';
+    return;
+  }
+
+  var html = '';
+
+  if (!r.hasEnoughData) {
+    html += '<div class="note">📊 Only ' + o.questionsAnswered + ' questions answered so far. ' +
+      'Percentages move around a lot at this stage — they settle after about ' +
+      r.minAnswersForVerdict + ', so treat the skill verdicts below as early hints.</div>';
+  }
+
+  /* overview */
+  html += '<div class="card"><h2>At a glance</h2>' +
+    '<p class="hint">' + esc(r.child.name) + ' · ' + fmtDate(o.firstPlayedAt) + ' – ' + fmtDate(o.lastPlayedAt) + '</p>' +
+    '<div class="stats">' +
+      stat(o.sessions, 'Sessions') +
+      stat(pctText(o.accuracy), 'Accuracy') +
+      stat(o.questionsAnswered, 'Questions') +
+      stat(fmtTime(o.timeMs), 'Play time') +
+      stat(o.activeDays, 'Days played') +
+      stat(o.currentStreakDays, 'Day streak') +
+      stat(o.gamesPlayed + ' / ' + o.gamesAvailable, 'Games tried') +
+      stat(o.perfectRounds, 'Perfect rounds') +
+    '</div></div>';
+
+  /* skills */
+  html += '<div class="card"><h2>Skill areas</h2>' +
+    '<p class="hint">Accuracy across the games in each area. Grey means not enough answers to judge yet.</p>';
+  r.bySkill.forEach(function(s){
+    html += '<div class="skill">' +
+      '<span class="nm">' + s.icon + ' ' + esc(s.label) + '</span>' +
+      '<span class="mid"><span class="track"><span class="fill" style="width:' + (s.accuracy||0) + '%;background:' + bandColor(s.band) + '"></span></span>' +
+        '<span class="meta">' + s.sessions + ' sessions · ' +
+        s.gamesTried + '/' + s.gamesAvailable + ' games · ' + (s.sessions ? TREND_LABEL[s.trend] : 'not played') + '</span></span>' +
+      '<span class="rt">' + pctText(s.accuracy) +
+        '<small><span class="pill ' + bandClass(s.band) + '">' + (s.band ? BAND_LABEL[s.band] : 'no data') + '</span></small></span>' +
+    '</div>';
+  });
+  html += '</div>';
+
+  /* strengths + focus */
+  html += '<div class="two">';
+  html += '<div class="card"><h2>Going well</h2><p class="hint">Strongest areas so far.</p>' +
+    (r.strengths.length
+      ? '<ul class="list">' + r.strengths.map(function(s){
+          return '<li>' + s.icon + ' <b>' + esc(s.label) + '</b> — ' + s.accuracy + '% over ' + s.questionsAnswered + ' questions</li>';
+        }).join('') + '</ul>'
+      : '<p class="hint">Nothing has enough answers behind it yet to call a strength.</p>') +
+    '</div>';
+  html += '<div class="card"><h2>Worth practising</h2><p class="hint">Where a bit more time would help.</p>' +
+    (r.focus.length
+      ? '<ul class="list">' + r.focus.map(function(s){
+          return '<li>' + s.icon + ' <b>' + esc(s.label) + '</b> — ' + s.accuracy + '% over ' + s.questionsAnswered + ' questions</li>';
+        }).join('') + '</ul>'
+      : '<p class="hint">Nothing is falling behind. 🎉</p>') +
+    (r.untouched.length
+      ? '<p class="hint" style="margin-top:12px"><b>Not tried yet:</b> ' +
+        r.untouched.map(function(s){ return esc(s.label); }).join(', ') + '</p>'
+      : '') +
+    '</div>';
+  html += '</div>';
+
+  /* activity */
+  var maxDay = Math.max.apply(null, r.timeline.map(function(d){ return d.sessions; }).concat([1]));
+  html += '<div class="card"><h2>Activity</h2><p class="hint">Sessions per day over the selected period.</p>' +
+    '<div class="spark">' + r.timeline.map(function(d){
+      var h = Math.round((d.sessions / maxDay) * 100);
+      return '<i class="' + (d.sessions ? 'has' : '') + '" style="height:' + Math.max(h,2) + '%" title="' +
+        d.day + ': ' + d.sessions + ' session(s)"></i>';
+    }).join('') + '</div>' +
+    '<div class="axis"><span>' + (r.timeline[0]||{}).day + '</span><span>' +
+      (r.timeline[r.timeline.length-1]||{}).day + '</span></div></div>';
+
+  /* per game */
+  html += '<div class="card"><h2>Game by game</h2><p class="hint">Every game played in this period.</p><div class="tw"><table>' +
+    '<thead><tr><th>Game</th><th>Area</th><th>Sessions</th><th>Accuracy</th><th>Best</th><th>Latest</th><th>Trend</th><th>Last played</th></tr></thead><tbody>';
+  r.byGame.forEach(function(g){
+    var catLabel = g.cat && IG_CATALOGUE.cats[g.cat] ? IG_CATALOGUE.cats[g.cat].label : '—';
+    html += '<tr>' +
+      '<td>' + g.icon + ' ' + esc(g.title) + '</td>' +
+      '<td>' + esc(catLabel) + '</td>' +
+      '<td>' + g.sessions + '</td>' +
+      '<td><span class="pill ' + bandClass(g.band) + '">' + pctText(g.accuracy) + '</span></td>' +
+      '<td>' + pctText(g.bestAccuracy) + '</td>' +
+      '<td>' + pctText(g.latestAccuracy) + '</td>' +
+      '<td>' + TREND_LABEL[g.trend] + '</td>' +
+      '<td>' + fmtDate(g.lastPlayedAt) + '</td>' +
+    '</tr>';
+  });
+  html += '</tbody></table></div></div>';
+
+  /* recent sessions */
+  html += '<div class="card"><h2>Recent sessions</h2><p class="hint">The last 20 times ' + esc(r.child.name) + ' played.</p><div class="tw"><table>' +
+    '<thead><tr><th>When</th><th>Game</th><th>Score</th><th>Accuracy</th><th>Time</th><th>Language</th></tr></thead><tbody>';
+  r.recentSessions.forEach(function(s){
+    var d = new Date(s.at);
+    html += '<tr>' +
+      '<td>' + d.toLocaleDateString() + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + '</td>' +
+      '<td>' + s.icon + ' ' + esc(s.title) + '</td>' +
+      '<td>' + s.score + ' / ' + s.total + '</td>' +
+      '<td>' + pctText(s.accuracy) + '</td>' +
+      '<td>' + Math.round((s.timeMs||0)/1000) + 's</td>' +
+      '<td>' + esc((s.lang||'—').toUpperCase()) + '</td>' +
+    '</tr>';
+  });
+  html += '</tbody></table></div></div>';
+
+  $('body').innerHTML = html;
+}
+
+function stat(n, l){
+  return '<div class="stat"><div class="n">' + esc(n) + '</div><div class="l">' + esc(l) + '</div></div>';
+}
+
+/* ── PDF download ─────────────────────────────────────────── */
+/* The route is behind bearer auth, so fetch it and hand the browser a blob
+   rather than relying on a plain link. */
+$('dlBtn').addEventListener('click', async function(e){
+  e.preventDefault();
+  if (!state.childId) return;
+  var btn = this, label = btn.textContent;
+  btn.textContent = 'Preparing…';
+  try {
+    var res = await fetch('/api/children/' + state.childId + '/report.pdf?' + query() + '&download=1', {
+      headers: { Authorization: 'Bearer ' + IG.token() }
+    });
+    if (!res.ok) throw new Error('Could not generate the report.');
+    var blob = await res.blob();
+    var name = 'progress-report.pdf';
+    var cd = res.headers.get('content-disposition') || '';
+    var m = cd.match(/filename="([^"]+)"/);
+    if (m) name = m[1];
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+  } catch (err) {
+    alert(err.message || 'Could not download the report.');
+  }
+  btn.textContent = label;
+});
+
+/* ── send to a parent ─────────────────────────────────────── */
+$('sendBtn').addEventListener('click', function(){
+  if (!state.childId) return;
+  $('sendMsg').textContent = '';
+  $('sendMsg').className = 'msg';
+  if (state.lastSentTo) $('toEmail').value = state.lastSentTo;
+  $('sendDlg').showModal();
+});
+
+$('sendGo').addEventListener('click', async function(){
+  var to = $('toEmail').value.trim();
+  var msg = $('sendMsg');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    msg.className = 'msg err'; msg.textContent = 'Please enter a valid email address.';
+    return;
+  }
+  var btn = this; btn.disabled = true; var label = btn.textContent; btn.textContent = 'Sending…';
+  try {
+    var out = await IG.apiFetch('/children/' + state.childId + '/report/send?' + query(), {
+      method: 'POST',
+      body: JSON.stringify({ to: to, note: $('sendNote').value, lang: $('langSel').value })
+    });
+    msg.className = 'msg ok'; msg.textContent = out.message || 'Sent.';
+    state.lastSentTo = to;
+    setTimeout(function(){ $('sendDlg').close(); }, 1400);
+  } catch (e) {
+    msg.className = 'msg err'; msg.textContent = e.message || 'Could not send the report.';
+  }
+  btn.disabled = false; btn.textContent = label;
+});
+
+/* ── wiring ───────────────────────────────────────────────── */
+$('childSel').addEventListener('change', function(){
+  state.childId = this.value;
+  var c = state.children.find(function(x){ return x.id === state.childId; });
+  if (c) { try { localStorage.setItem('ig_active_child', JSON.stringify({id:c.id,name:c.name})); } catch(e){} }
+  loadReport();
+});
+$('rangeSel').addEventListener('change', loadReport);
+$('langSel').addEventListener('change', loadReport);
+
+(async function init(){
+  try {
+    var any = await loadChildren();
+    if (!any) {
+      $('body').innerHTML = '<div class="card"><div class="empty"><span class="big">👶</span>' +
+        '<b>No child profiles yet.</b><p style="margin-top:8px">Add a child first — then every game they play is tracked here.</p>' +
+        '<p style="margin-top:14px"><a class="btn" href="teacher.html">Add a child</a></p></div></div>';
+      $('sendBtn').disabled = true;
+      return;
+    }
+    await loadReport();
+  } catch (e) {
+    $('body').innerHTML = '<div class="card"><p class="hint">Could not load: ' + esc(e.message) + '</p></div>';
+  }
+})();
+</script>
+</body>
+</html>

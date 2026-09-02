@@ -853,114 +853,115 @@ children.post('/:id/progress', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
-// --- Förderbericht PDF: a one-page progress report for a child ---
-const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
+// --- Progress reports: on-screen analytics, PDF, and email to a guardian ---
+const analytics = require('./lib/analytics.js');
+const reportPdf = require('./lib/report-pdf.js');
 
-function stripEmoji(s){ return String(s||'').replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{1F1E6}-\u{1F1FF}\u200d]/gu,'').replace(/\s+/g,' ').trim(); }
+const REPORT_RANGES = { 7: 7, 30: 30, 90: 90, 365: 365 };
 
-const GAME_TITLES_FOR_PDF = (function(){
-  const t={};
-  try {
-    const dash = fs.readFileSync(path.join(ROOT, 'dashboard.html'), 'utf8');
-    const re=/\{n:(\d+),icon:'[^']*',title:'([^']*)',[^}]*file:'(game\d+)\.html'\}/g; let m;
-    while((m=re.exec(dash))){ t['game'+String(m[1]).padStart(2,'0')]=m[2]; }
-  } catch(e){}
-  return t;
-})();
+function reportFor(child, query) {
+  const rangeDays = REPORT_RANGES[String(query.range)] || null; // anything else = all time
+  return analytics.buildReport(child, { rangeDays });
+}
+
+function findChild(req) {
+  return ensureChildren(req.user).find((x) => x.id === req.params.id) || null;
+}
+
+function reportLang(req) {
+  const l = String(req.query.lang || (req.body && req.body.lang) || '').toLowerCase();
+  return reportPdf.LANGS.indexOf(l) >= 0 ? l : 'en';
+}
+
+// Everything the Reports page draws, in one call.
+children.get('/:id/analytics', authMiddleware, (req, res) => {
+  const c = findChild(req);
+  if (!c) return res.status(404).json({ error: 'Child not found.' });
+  res.json({ report: reportFor(c, req.query), lastSentTo: c.last_report_sent_to || null });
+});
 
 children.get('/:id/report.pdf', authMiddleware, async (req, res) => {
-  const list = ensureChildren(req.user);
-  const c = list.find(x => x.id === req.params.id);
+  const c = findChild(req);
   if (!c) return res.status(404).json({ error: 'Child not found.' });
-  const prog = (c.progress || []).slice();
   try {
-    const pdf = await PDFDocument.create();
-    let page = pdf.addPage([595.28, 841.89]);
-    const F = await pdf.embedFont(StandardFonts.Helvetica);
-    const FB = await pdf.embedFont(StandardFonts.HelveticaBold);
-    const W = 595.28, M = 50;
-    let y = 800;
-    const purple = rgb(0.486,0.227,0.929), ink = rgb(0.1,0.1,0.18), muted = rgb(0.42,0.42,0.54), line = rgb(0.9,0.89,0.94);
-    const clean=(s)=>{ s=stripEmoji(s); return s; };
-    const txt=(s,x,yy,sz,fnt,col)=>{ try{ page.drawText(clean(s), {x,y:yy,size:sz,font:fnt||F,color:col||ink}); }catch(e){ page.drawText(String(s).replace(/[^\x20-\x7E]/g,''), {x,y:yy,size:sz,font:fnt||F,color:col||ink}); } };
-    const hr=(yy)=>{ page.drawLine({start:{x:M,y:yy},end:{x:W-M,y:yy},thickness:1,color:line}); };
-    const newPageIf=(need)=>{ if(y<need){ page=pdf.addPage([595.28,841.89]); y=800; } };
-
-    txt('InclusionGames', M, y, 20, FB, purple); y-=24;
-    txt('Förderbericht – Lernfortschritt', M, y, 13, FB, ink); y-=16;
-    txt('Erstellt am '+new Date().toLocaleDateString('de-DE'), M, y, 9, F, muted); y-=14;
-    hr(y); y-=22;
-
-    txt('Kind:', M, y, 10, FB, ink); txt(c.name||'', M+70, y, 10, F, ink);
-    txt('Betreuung:', W/2, y, 10, FB, ink); txt((req.user.name||req.user.email||''), W/2+70, y, 10, F, ink); y-=16;
-    if (prog.length){
-      const fa=new Date(prog[0].at), la=new Date(prog[prog.length-1].at);
-      txt('Zeitraum:', M, y, 10, FB, ink);
-      txt(fa.toLocaleDateString('de-DE')+' – '+la.toLocaleDateString('de-DE'), M+70, y, 10, F, ink); y-=16;
-    }
-    y-=8;
-
-    if (!prog.length){
-      txt('Noch keine Spielsitzungen aufgezeichnet.', M, y, 11, F, muted);
-    } else {
-      const games=prog.length;
-      const sScore=prog.reduce((a,p)=>a+(p.score||0),0);
-      const sTotal=prog.reduce((a,p)=>a+(p.total||0),0);
-      const pct=sTotal?Math.round(100*sScore/sTotal):0;
-      const mins=Math.round(prog.reduce((a,p)=>a+(p.timeMs||0),0)/60000);
-      txt('Zusammenfassung', M, y, 12, FB, purple); y-=18;
-      txt('Sitzungen gesamt:', M, y, 10, F, ink); txt(String(games), M+130, y, 10, FB, ink);
-      txt('Gesamtgenauigkeit:', W/2, y, 10, F, ink); txt(pct+'%', W/2+130, y, 10, FB, ink); y-=15;
-      txt('Spielzeit gesamt:', M, y, 10, F, ink); txt(mins+' Min.', M+130, y, 10, FB, ink); y-=22;
-
-      txt('Pro Spiel', M, y, 12, FB, purple); y-=16;
-      txt('Spiel', M, y, 9, FB, muted); txt('Anzahl', M+200, y, 9, FB, muted);
-      txt('Zuletzt', M+260, y, 9, FB, muted); txt('Beste', M+330, y, 9, FB, muted); txt('Trend', M+400, y, 9, FB, muted); y-=4;
-      hr(y); y-=14;
-      const byGame={}; prog.forEach(p=>{(byGame[p.game]=byGame[p.game]||[]).push(p);});
-      Object.keys(byGame).forEach(gid=>{
-        newPageIf(80);
-        const rs=byGame[gid];
-        const last=rs[rs.length-1];
-        let best=rs[0]; rs.forEach(p=>{ if((p.total?p.score/p.total:0)>(best.total?best.score/best.total:0)) best=p; });
-        const first=rs[0];
-        const fr=first.total?first.score/first.total:0, lr=last.total?last.score/last.total:0;
-        const trend= rs.length<2?'gleich':(lr>fr+0.05?'steigend':(lr<fr-0.05?'fallend':'gleich'));
-        txt(GAME_TITLES_FOR_PDF[gid]||gid, M, y, 10, F, ink);
-        txt(String(rs.length), M+200, y, 10, F, ink);
-        txt(last.score+'/'+last.total, M+260, y, 10, F, ink);
-        txt(best.score+'/'+best.total, M+330, y, 10, F, ink);
-        txt(trend, M+400, y, 10, F, trend==='steigend'?rgb(0.06,0.72,0.51):(trend==='fallend'?rgb(0.86,0.15,0.15):muted));
-        y-=15;
-      });
-      y-=10;
-
-      newPageIf(120);
-      txt('Letzte Sitzungen', M, y, 12, FB, purple); y-=16;
-      prog.slice(-15).reverse().forEach(p=>{
-        newPageIf(40);
-        const d=new Date(p.at);
-        txt(d.toLocaleDateString('de-DE')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'), M, y, 9, F, muted);
-        txt((GAME_TITLES_FOR_PDF[p.game]||p.game), M+110, y, 9, F, ink);
-        txt(p.score+'/'+p.total, M+330, y, 9, FB, ink);
-        y-=13;
-      });
-    }
-
-    newPageIf(90);
-    if (y>120) y=120;
-    hr(y); y-=16;
-    txt('Datenschutz: Die Hand-Erkennung läuft ausschließlich lokal im Browser. Es werden keine', M, y, 8, F, muted); y-=11;
-    txt('Video- oder Biometriedaten übertragen oder gespeichert (DSGVO-konform).', M, y, 8, F, muted); y-=24;
-    txt('Datum, Unterschrift (Förderkraft): ___________________________________', M, y, 9, F, ink);
-
-    const bytes = await pdf.save();
+    const report = reportFor(c, req.query);
+    const { bytes, fileName } = await reportPdf.renderReport(report, {
+      lang: reportLang(req),
+      carer: req.user.name || req.user.email || '',
+    });
+    // "download" forces a save dialog; the default opens it in the viewer.
+    const disposition = req.query.download === '1' ? 'attachment' : 'inline';
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'inline; filename="Foerderbericht-'+(c.name||'Kind').replace(/[^a-zA-Z0-9]/g,'_')+'.pdf"');
+    res.setHeader('Content-Disposition', disposition + '; filename="' + fileName + '"');
     res.send(Buffer.from(bytes));
   } catch (e) {
     console.error('report.pdf', e);
-    res.status(500).json({ error: 'Could not generate report: '+e.message });
+    res.status(500).json({ error: 'Could not generate the report.' });
+  }
+});
+
+/* Email the report to a parent or guardian with the PDF attached.
+   Rate-limited: it sends mail to an address supplied in the request. */
+const reportSendLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
+
+children.post('/:id/report/send', authMiddleware, reportSendLimiter, async (req, res) => {
+  const c = findChild(req);
+  if (!c) return res.status(404).json({ error: 'Child not found.' });
+
+  const to = String(req.body.to || '').trim();
+  if (!emailValid(to)) return res.status(400).json({ error: 'Please enter a valid email address.' });
+  if (!transporter) {
+    return res.status(503).json({ error: 'Email is not set up on this server, so the report cannot be sent from here. You can still download the PDF and attach it yourself.' });
+  }
+
+  const lang = reportLang(req);
+  const note = String(req.body.note || '').slice(0, 1000);
+  const senderName = req.user.name || req.user.email || 'InclusionGames';
+  const childName = c.name || 'your child';
+
+  try {
+    const report = reportFor(c, req.query);
+    const { bytes, fileName } = await reportPdf.renderReport(report, { lang, carer: senderName });
+
+    const subjects = {
+      en: 'Progress report for ' + childName,
+      de: 'Foerderbericht fuer ' + childName,
+      pl: 'Raport postepow: ' + childName,
+      es: 'Informe de progreso de ' + childName,
+    };
+    const intros = {
+      en: '<p>Hello,</p><p>Here is the latest InclusionGames progress report for <b>' + esc(childName) + '</b>, sent by ' + esc(senderName) + '.</p>',
+      de: '<p>Hallo,</p><p>anbei der aktuelle InclusionGames-Bericht f&uuml;r <b>' + esc(childName) + '</b>, gesendet von ' + esc(senderName) + '.</p>',
+      pl: '<p>Dzie&#324; dobry,</p><p>W za&#322;&#261;czeniu raport post&#281;p&oacute;w InclusionGames dla <b>' + esc(childName) + '</b>, wys&#322;any przez ' + esc(senderName) + '.</p>',
+      es: '<p>Hola:</p><p>Adjunto el informe de progreso de InclusionGames de <b>' + esc(childName) + '</b>, enviado por ' + esc(senderName) + '.</p>',
+    };
+
+    const o = report.overview;
+    const summary = o.sessions
+      ? '<ul><li>Sessions: ' + o.sessions + '</li><li>Accuracy: ' + (o.accuracy == null ? '-' : o.accuracy + '%') + '</li><li>Play time: ' + Math.round((o.timeMs || 0) / 60000) + ' min</li></ul>'
+      : '';
+
+    await transporter.sendMail({
+      from: process.env.MAIL_FROM || 'InclusionGames <info@inclusion-games.com>',
+      to,
+      replyTo: req.user.email,
+      subject: subjects[lang] || subjects.en,
+      html: (intros[lang] || intros.en) + summary
+        + (note ? '<p>' + esc(note).replace(/\n/g, '<br>') + '</p>' : '')
+        + '<p style="color:#888;font-size:12px">Hand tracking runs entirely in the child\'s browser. No video or biometric data is transmitted or stored.</p>',
+      attachments: [{ filename: fileName, content: Buffer.from(bytes), contentType: 'application/pdf' }],
+    });
+
+    // Remember where it went, so the page can offer the same address next time.
+    c.last_report_sent_to = to;
+    c.last_report_sent_at = now();
+    c.updated_at = now();
+    saveNow();
+
+    res.json({ ok: true, message: 'Report sent to ' + to + '.' });
+  } catch (e) {
+    console.error('report/send', e);
+    res.status(500).json({ error: 'Could not send the report. Please try again.' });
   }
 });
 app.use('/api/children', children);
@@ -1310,6 +1311,8 @@ app.use((req, res, next) => {
   // game02.html on a case-insensitive filesystem and must be gated too.
   const page = pageName(p).toLowerCase();
   const gated = page === '/dashboard.html'
+    || page === '/report.html'      // per-child analytics and reports
+    || page === '/teacher.html'     // child profiles and per-game customisation
     || /^\/game[\w-]*\.html$/.test(page)
     || page.startsWith('/games/');
   if (!gated) return next();

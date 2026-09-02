@@ -127,7 +127,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);min-height:10
 <body>
 <div class="topbar"><div class="tb-in">
   <a href="dashboard.html" class="tb-logo" style="text-decoration:none;color:#fff;"><span class="tb-logo-box">🎈</span><span>Inclusion<span class="g">Games</span></span></a>
-  <div class="tb-right"><a href="dashboard.html" class="tb-link">← Dashboard</a><span id="uname"></span></div>
+  <div class="tb-right"><a href="report.html" class="tb-link">📊 Reports</a><a href="dashboard.html" class="tb-link">← Dashboard</a><span id="uname"></span></div>
 </div></div>
 
 <div class="wrap">
@@ -573,7 +573,7 @@ function renderProgress(child, prog){
     h+='<div class="prow"><span>'+esc(gtitle(p.game))+'</span><b>'+p.score+'/'+p.total+'</b><small>'+fmtDate(p.at)+'</small></div>';
   });
   h+='</div>';
-  h+='<div class="modal-foot"><button class="save" id="pdfBtn">📄 Förderbericht (PDF)</button><button class="close" onclick="closeOv()">Schließen</button></div>';
+  h+='<div class="modal-foot"><a class="save" style="text-decoration:none;display:inline-block" href="report.html">📊 Bericht &amp; Statistiken</a><button class="save" id="pdfBtn">📄 Förderbericht (PDF)</button><button class="close" onclick="closeOv()">Schließen</button></div>';
   document.getElementById('modal').innerHTML=h;
   var pb=document.getElementById('pdfBtn'); if(pb) pb.onclick=function(){ downloadReport(child.id, child.name); };
 }

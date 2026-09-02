@@ -39,6 +39,11 @@ whole funnel is testable immediately without charging anything.
 | Auth pages | `login.html`, `signup.html`, `forgot.html`, `reset.html`, `verify.html` |
 | Payment return page | `payment-success.html` |
 | Member dashboard (gated) | `dashboard.html` |
+| Child profiles & per-game customisation (gated) | `teacher.html` |
+| Reports & analytics (gated) | `report.html` |
+| Game catalogue, shared by browser and server | `assets/catalogue.js` |
+| Progress maths (one source for page and PDF) | `lib/analytics.js` |
+| PDF report renderer (EN / DE / PL / ES) | `lib/report-pdf.js` |
 
 Accounts are stored as JSON in `data/users.json`, created on first run. Saves are
 atomic (written to a temp file, then renamed), and the previous run's copy is kept
@@ -104,6 +109,44 @@ a new language block + a `<select>` option to support another language.
 > logic. `game02`–`game42` have been migrated onto the shared engine
 > (`assets/game-engine.js`) and are thin config files. The older pages are handled
 > in the next phase (game-by-game), as discussed.
+
+---
+
+## Reports
+
+`report.html` is the Reports section: pick a child and a period, and it shows what
+they played and how it is going.
+
+* **At a glance** — sessions, accuracy, questions answered, play time, days played,
+  current streak, games tried, perfect rounds.
+* **Skill areas** — accuracy per subject (Language, Math, English, Science, Music,
+  Art, Sport) with a bar, a trend and a verdict.
+* **Going well / worth practising** — the areas a parent should hear about, plus
+  anything never tried.
+* **Activity** — sessions per day across the period.
+* **Game by game** and **recent sessions** — the detail behind the summary.
+
+Two things it deliberately does *not* do:
+
+* It will not call something a strength or a weakness until at least **20 questions**
+  have been answered in that area. Below that it shows the number but withholds the
+  verdict, and says why — a child who got 2 out of 2 is not "100% at Maths".
+* Trends need at least **six sessions**; anything shorter reads as steady rather
+  than inventing a direction from two data points.
+
+The same numbers drive the on-screen view and the PDF, so a parent reading the
+attachment sees exactly what the teacher saw.
+
+**Download** produces a PDF in English, German, Polish or Spanish. **Send to parent**
+emails that PDF to a guardian with an optional message, with replies going to the
+account holder — this needs SMTP configured (see `.env.example`); without it the
+button explains that and points at the download instead.
+
+| Method | Route | Purpose |
+|--------|-------|---------|
+| GET | `/api/children/:id/analytics?range=` | Everything the page draws (`range` = 7, 30, 90, 365, or all) |
+| GET | `/api/children/:id/report.pdf?lang=&range=&download=1` | The report as a PDF |
+| POST | `/api/children/:id/report/send` | Email the PDF to a parent or guardian |
 
 ---
 
