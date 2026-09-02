@@ -40,7 +40,20 @@ whole funnel is testable immediately without charging anything.
 | Payment return page | `payment-success.html` |
 | Member dashboard (gated) | `dashboard.html` |
 
-Data is stored in a local SQLite file at `data/inclusion.db` (created on first run).
+Accounts are stored as JSON in `data/users.json`, created on first run. Saves are
+atomic (written to a temp file, then renamed), and the previous run's copy is kept
+alongside it as `users.backup.json`.
+
+> The server **refuses to start** if `users.json` exists but cannot be parsed, rather
+> than starting empty and overwriting it on the next save. If you see that message,
+> restore `users.backup.json` — do not delete the damaged file.
+
+Set `DATA_DIR` to keep the database outside the web root entirely, which is what you
+want in production:
+>
+> ```
+> DATA_DIR=/var/lib/inclusion
+> ```
 
 ---
 
@@ -86,10 +99,40 @@ UI between **English, German (DE), Polish (PL) and Spanish (ES)**. Translations
 live in `assets/i18n.js` — add a string under a language to translate more, or add
 a new language block + a `<select>` option to support another language.
 
-> Note: the game pages themselves (`game01-*`, `*-pl.html`, `index-pl.html`,
-> `login-pl.html`, `games/`) are from the existing catalogue and still contain
-> German/Polish content and old logic. Those are handled in the next phase
-> (game-by-game), as discussed.
+> Note: `game01.html` and the `*-pl.html` / `index-pl.html` / `login-pl.html` pages
+> are from the existing catalogue and still contain German/Polish content and old
+> logic. `game02`–`game42` have been migrated onto the shared engine
+> (`assets/game-engine.js`) and are thin config files. The older pages are handled
+> in the next phase (game-by-game), as discussed.
+
+---
+
+## Tests
+
+```bash
+npm test
+```
+
+Runs the suite in `test/` on Node's built-in test runner — no extra dependencies.
+Each test boots a real `server.js` against a throwaway data directory, so it never
+touches `data/`. The suite covers sign-up/verification/sign-in, the account
+lockout, entitlement, the subscription gate, the payment routes and the
+refuse-to-start guards. GitHub Actions runs it on every push (`.github/workflows/ci.yml`).
+
+---
+
+## Before going live
+
+Three settings are enforced rather than suggested, because getting them wrong is
+not visible from the outside:
+
+| Setting | Why |
+|---------|-----|
+| `JWT_SECRET` | Must be a long random value. The server **refuses to start** in production with the sample value or anything under 32 characters — a guessable key lets anyone forge a session for any account. Generate one with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. |
+| Payment keys | With no Stripe/PayPal keys, checkout runs in demo mode and activates plans without charging. That is refused in production, so set real keys before launch or checkout returns an error. |
+| `COPECART_WEBHOOK_SECRET` | The CopeCart webhook grants paid access. Without the secret set, the endpoint refuses every request rather than trusting unsigned ones. |
+
+"Production" means `NODE_ENV=production`, or an `APP_URL` that is not localhost.
 
 ---
 

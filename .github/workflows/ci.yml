@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: test (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # package.json declares engines.node >= 18; these are the versions
+        # still receiving updates.
+        node: ['20', '22']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+  guardrails:
+    name: guardrails
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: server.js parses
+        run: node --check server.js
+
+      - name: No secrets or databases committed
+        run: |
+          # data/ holds password hashes and reset tokens; .env holds live keys.
+          # Either one in git is a leak, so fail the build rather than warn.
+          if git ls-files --error-unmatch .env >/dev/null 2>&1; then
+            echo "::error::.env is committed — it must stay untracked"; exit 1
+          fi
+          if git ls-files | grep -E '^data/' ; then
+            echo "::error::files under data/ are committed — that directory holds the user database"; exit 1
+          fi
+          echo "OK: no .env and no data/ in the repository"
+
+      - name: Refuses to boot in production with a placeholder secret
+        run: |
+          # Guards the check that stops the live site running with a signing key
+          # anyone could guess.
+          set +e
+          APP_URL=https://example.com NODE_ENV=production \
+            JWT_SECRET=change-me-to-a-long-random-string \
+            timeout 20 node server.js > boot.log 2>&1
+          code=$?
+          set -e
+          if [ "$code" -ne 1 ]; then
+            echo "::error::expected exit 1, got $code"; cat boot.log; exit 1
+          fi
+          grep -q "JWT_SECRET" boot.log || { echo "::error::no explanation printed"; cat boot.log; exit 1; }
+          echo "OK: refused to start"

@@ -66,6 +66,8 @@ const PLANS = {
   school:   { name: 'School Plan',      monthly: 99.99, annual: 839.88, stripe: process.env.STRIPE_PRICE_SCHOOL },
 };
 const TRIAL_DAYS = 3;
+// How long an email-verification link stays usable.
+const VERIFY_DAYS = 7;
 
 // Shown when the live site has no payment processor configured. Demo checkout
 // activates a plan without charging anything, which is exactly what we want on
@@ -84,26 +86,54 @@ const COPECART_PRODUCTS = {};
 // ── Storage (simple JSON file — no native modules) ──────────
 // For launch/testing this is plenty. To move to Postgres/MySQL
 // later, only the helpers below need to change.
-const DATA_DIR = path.join(ROOT, 'data');
+// Defaults to ./data. Point DATA_DIR somewhere outside the web root in
+// production and the database can't be reached over HTTP at all, whatever the
+// static handler is configured to do.
+const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(ROOT, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 const DB_FILE = path.join(DATA_DIR, 'users.json');
+const DB_BACKUP = path.join(DATA_DIR, 'users.backup.json');
 
-let users = [];
-try { users = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); }
-catch { users = []; }
-
-let _saveTimer = null;
-function saveDB() {
-  // debounce writes a touch so rapid updates don't thrash the disk
-  clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(() => {
-    try { fs.writeFileSync(DB_FILE, JSON.stringify(users, null, 2)); }
-    catch (e) { console.error('saveDB', e); }
-  }, 50);
+// Loading has to tell "there is no file yet" apart from "the file is there but
+// unreadable". Treating both as "start empty" meant a half-written file — a
+// crash mid-save, a full disk — silently became an empty database, and the
+// very next save wrote [] over the real one. Measured: 4 accounts down to 1
+// after a single registration, with no error anywhere.
+let users;
+if (!fs.existsSync(DB_FILE)) {
+  users = [];                                    // genuinely a fresh install
+} else {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+    if (!Array.isArray(parsed)) throw new Error('expected a JSON array');
+    users = parsed;
+  } catch (e) {
+    console.error(`\n❌ ${DB_FILE} exists but could not be read: ${e.message}`);
+    console.error('   Refusing to start, so it is not overwritten with an empty database.');
+    console.error(`   The previous run's copy should be at ${DB_BACKUP}`);
+    process.exit(1);
+  }
 }
+
+// Keep the last known-good database from the previous run, so a bad file always
+// has something to fall back to.
+if (users.length) {
+  try { fs.copyFileSync(DB_FILE, DB_BACKUP); }
+  catch (e) { console.error('db backup failed:', e.message); }
+}
+
 function saveNow() {
-  try { fs.writeFileSync(DB_FILE, JSON.stringify(users, null, 2)); }
-  catch (e) { console.error('saveDB', e); }
+  // Write to a temp file, then rename it over the real one. rename is atomic,
+  // so an interrupted save leaves either the old file or the new one intact —
+  // never half of either.
+  const tmp = `${DB_FILE}.tmp`;
+  try {
+    fs.writeFileSync(tmp, JSON.stringify(users, null, 2));
+    fs.renameSync(tmp, DB_FILE);
+  } catch (e) {
+    console.error('saveDB', e);
+    try { if (fs.existsSync(tmp)) fs.unlinkSync(tmp); } catch { /* nothing else to do */ }
+  }
 }
 
 function getUserByEmail(email) {
@@ -118,6 +148,11 @@ const now = () => Date.now();
 const days = (n) => n * 24 * 60 * 60 * 1000;
 const token = (n = 32) => crypto.randomBytes(n).toString('hex');
 const emailValid = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e || '');
+
+// Escape anything user-supplied before it goes into an HTML email.
+const esc = (s) => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 function publicUser(u) {
   if (!u) return null;
@@ -358,6 +393,7 @@ auth.post('/register', async (req, res) => {
       user.name = name || user.name;
       user.password_hash = hash;
       user.verify_token = token();
+      user.verify_expires = t + days(VERIFY_DAYS);
       user.updated_at = t;
     } else {
       user = {
@@ -366,6 +402,7 @@ auth.post('/register', async (req, res) => {
         password_hash: hash,
         email_verified: 0,
         verify_token: token(),
+        verify_expires: t + days(VERIFY_DAYS),
         reset_token: null, reset_expires: null,
         plan: 'trial', billing: null, status: 'trialing',
         trial_ends: t + days(TRIAL_DAYS),
@@ -398,22 +435,62 @@ auth.get('/verify', (req, res) => {
   if (!t) return res.status(400).json({ ok: false, error: 'Missing token.' });
   const u = getUserByField('verify_token', t);
   if (!u) return res.status(400).json({ ok: false, error: 'Invalid or expired verification link.' });
+  // Links issued before this field existed have no expiry, so they still work.
+  if (u.verify_expires && u.verify_expires < now())
+    return res.status(400).json({ ok: false, error: 'This verification link has expired. Please sign up again to get a new one.' });
   u.email_verified = 1;
   u.verify_token = null;
+  u.verify_expires = null;
   u.updated_at = now();
   saveNow();
   return res.json({ ok: true, message: 'Email verified. You can now sign in.' });
 });
 
+/* Failed-login tracking, per account. The IP rate limiter caps one source, but
+   it does nothing against many sources all guessing at one account, which is
+   what credential stuffing looks like. Counting per email closes that.
+   Unknown emails are counted too, so a locked account can't be told apart from
+   a wrong password and this can't be used to find out who has an account. */
+const loginFails = new Map(); // email -> { count, until }
+const LOGIN_MAX_FAILS = 8;
+const LOGIN_LOCK_MS = 15 * 60 * 1000;
+
+function loginLockedUntil(email) {
+  const rec = loginFails.get(email);
+  if (!rec) return 0;
+  if (!rec.until) return 0;                 // still counting, not locked yet
+  if (rec.until > now()) return rec.until;  // locked
+  loginFails.delete(email);                 // lock has run out, start fresh
+  return 0;
+}
+function noteLoginFail(email) {
+  const rec = loginFails.get(email) || { count: 0, until: 0 };
+  rec.count += 1;
+  if (rec.count >= LOGIN_MAX_FAILS) { rec.until = now() + LOGIN_LOCK_MS; rec.count = 0; }
+  loginFails.set(email, rec);
+  // Keep the map from growing without bound on a long-running process.
+  if (loginFails.size > 5000) {
+    for (const [k, v] of loginFails) { if (!v.until || v.until <= now()) loginFails.delete(k); }
+  }
+}
+
 auth.post('/login', async (req, res) => {
   const email = (req.body.email || '').toLowerCase().trim();
   const password = req.body.password || '';
+
+  const until = loginLockedUntil(email);
+  if (until) {
+    const mins = Math.max(1, Math.ceil((until - now()) / 60000));
+    return res.status(429).json({ error: `Too many failed sign-in attempts. Please try again in ${mins} minute${mins === 1 ? '' : 's'}, or reset your password.` });
+  }
+
   const u = getUserByEmail(email);
-  if (!u) return res.status(401).json({ error: 'Invalid login credentials' });
+  if (!u) { noteLoginFail(email); return res.status(401).json({ error: 'Invalid login credentials' }); }
   const ok = await bcrypt.compare(password, u.password_hash);
-  if (!ok) return res.status(401).json({ error: 'Invalid login credentials' });
+  if (!ok) { noteLoginFail(email); return res.status(401).json({ error: 'Invalid login credentials' }); }
   if (!u.email_verified && !ADMIN_EMAILS.includes(email))
     return res.status(403).json({ error: 'Please verify your email first — check your inbox for the confirmation link.' });
+  loginFails.delete(email);
   setSession(res, u);
   return res.json({ token: signToken(u), user: publicUser(u) });
 });
@@ -1155,12 +1232,16 @@ app.post('/api/reward', rewardLimiter, async (req, res) => {
   const to = process.env.REWARD_TO || process.env.SMTP_USER || 'info@inclusion-games.com';
   const secs = Math.max(0, Math.round((Number(timeMs) || 0) / 1000));
   const tstr = Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0');
+  // This mail goes to the site owner and every field below is attacker-supplied,
+  // so escape before interpolating — otherwise anyone can put markup and links
+  // into a message the owner receives and trusts.
+  const g = esc(String(game || 'a game').slice(0, 60));
   try {
-    await sendMail(to, `🎉 Game result — ${game || 'InclusionGames'}`,
-      `<p>A player completed <b>${game || 'a game'}</b> (${lang || ''}).</p>
+    await sendMail(to, `🎉 Game result — ${String(game || 'InclusionGames').replace(/[\r\n]/g, ' ').slice(0, 60)}`,
+      `<p>A player completed <b>${g}</b> (${esc(String(lang || '').slice(0, 8))}).</p>
        <ul><li>Score: ${Number(score) || 0} / ${Number(total) || 0}</li><li>Time: ${tstr}</li></ul>
-       <p>Reply-to (parent/teacher): ${parentEmail}</p>
-       <p>Message: ${(note || '—').toString().slice(0, 500)}</p>`);
+       <p>Reply-to (parent/teacher): ${esc(parentEmail)}</p>
+       <p>Message: ${esc((note || '—').toString().slice(0, 500))}</p>`);
     return res.json({ ok: true });
   } catch (e) {
     console.error('reward', e);
@@ -1179,7 +1260,9 @@ app.get('/api/health', (req, res) => res.json({ ok: true, time: now() }));
 // folder also holds the database, the .env and the backend source. Everything
 // that is not part of the public site is refused HERE, before express.static
 // ever gets a chance to hand it out.
-const PRIVATE_DIRS = [DATA_DIR, path.join(ROOT, 'node_modules'), path.join(ROOT, '.git')]
+// Both the configured DATA_DIR and the conventional ./data are refused: moving
+// DATA_DIR elsewhere must not quietly un-protect files left behind in ./data.
+const PRIVATE_DIRS = [DATA_DIR, path.join(ROOT, 'data'), path.join(ROOT, 'node_modules'), path.join(ROOT, '.git')]
   .map(d => d.toLowerCase());
 const PRIVATE_FILES = new Set(
   ['server.js', 'package.json', 'package-lock.json', '.env', '.env.example', 'README.md', 'DEPLOY-hetzner.md']
