@@ -1155,9 +1155,13 @@ async function proceedPayment(){
           method:'POST', body:JSON.stringify({orderID:order.id,plan:selectedPlan,billing})
         });
         window.location.href='payment-success.html?method=paypal&plan='+encodeURIComponent(selectedPlan)+'&billing='+billing;
+      } else if(order.approveUrl){
+        // Live PayPal: follow the approval link PayPal returned. Hardcoding
+        // www.paypal.com sends sandbox orders to the live site, where they
+        // do not exist. payment-success.html captures the order on return.
+        window.location.href=order.approveUrl;
       } else {
-        // Live PayPal: hand off to the PayPal-hosted approval flow.
-        window.location.href='https://www.paypal.com/checkoutnow?token='+encodeURIComponent(order.id);
+        throw new Error('PayPal is not available right now. Please pay by card instead.');
       }
     }
   }catch(err){

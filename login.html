@@ -238,8 +238,22 @@ footer a:hover{color:var(--p1);}
 <script src="assets/auth.js"></script>
 <script src="assets/i18n.js"></script>
 <script>
-// Already signed in? Skip straight to the dashboard.
-IG.redirectIfAuthed('dashboard.html');
+/* Where to go after signing in. "?next=" lets a page that needs a session
+   send the user here and get them back afterwards (payment-success.html does
+   this). Only same-site relative paths are accepted, so the parameter can't be
+   used to bounce someone to another domain. */
+function safeNext() {
+  try {
+    var n = new URLSearchParams(location.search).get('next');
+    if (!n) return null;
+    if (/^[a-z][a-z0-9+.-]*:/i.test(n)) return null;  // has a scheme → off-site
+    if (n.charAt(0) === '/' && n.charAt(1) === '/') return null;  // protocol-relative
+    return n.charAt(0) === '/' ? n : '/' + n;
+  } catch (e) { return null; }
+}
+
+// Already signed in? Skip straight on.
+IG.redirectIfAuthed(safeNext() || 'dashboard.html');
 
 // Live email validation
 document.getElementById('email').addEventListener('input', function() {
@@ -298,8 +312,10 @@ async function handleLogin(e) {
       body: JSON.stringify({ email, password })
     });
     IG.setSession(data.token, data.user);
-    let dest = 'dashboard.html';
-    try { const it = JSON.parse(localStorage.getItem('ig_intent') || 'null'); if (it && it.plan) { dest = 'checkout.html?plan=' + encodeURIComponent(it.plan) + '&billing=' + (it.billing || 'monthly'); localStorage.removeItem('ig_intent'); } } catch (e) {}
+    let dest = safeNext() || 'dashboard.html';
+    if (!safeNext()) {
+      try { const it = JSON.parse(localStorage.getItem('ig_intent') || 'null'); if (it && it.plan) { dest = 'checkout.html?plan=' + encodeURIComponent(it.plan) + '&billing=' + (it.billing || 'monthly'); localStorage.removeItem('ig_intent'); } } catch (e) {}
+    }
     showAlert('success', 'Signed in! Redirecting…');
     setTimeout(() => window.location.href = dest, 1200);
   } catch (err) {
