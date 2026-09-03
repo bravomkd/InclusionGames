@@ -1,0 +1,229 @@
+/* ============================================================
+ * InclusionGames — Stroke Rehab engine styling.
+ *
+ * Design constraints this file is answering to:
+ *   - The user may have reduced vision, one-sided inattention and
+ *     slowed processing. So: large type, high contrast, generous
+ *     spacing, no dense clusters, nothing that moves unless it means
+ *     something.
+ *   - Nothing important sits in a corner. Anything the person must
+ *     read is centred or near the centre, because a target on the
+ *     far edge of the neglected side can go unseen.
+ *   - No red/green-only signalling; shape and text carry the meaning
+ *     as well as colour.
+ *   - No timers that punish. Nothing flashes.
+ * ============================================================ */
+
+:root {
+  --rb-bg: #10131c;
+  --rb-panel: rgba(255, 255, 255, .07);
+  --rb-border: rgba(255, 255, 255, .18);
+  --rb-text: #ffffff;
+  --rb-muted: rgba(255, 255, 255, .72);
+  --rb-accent: #7c9cff;
+  --rb-go: #34d399;
+  --rb-hold: #fbbf24;
+  --rb-warn: #fca5a5;
+  --rb-font: 'Fredoka One', 'Nunito', system-ui, sans-serif;
+  --rb-body: 'Nunito', system-ui, -apple-system, Segoe UI, sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--rb-body);
+  background: var(--rb-bg);
+  color: var(--rb-text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+/* The camera feed, mirrored so it behaves like a mirror. Mirror feedback is
+   the point of the facial exercises, and it is also simply less confusing. */
+#rbVideo {
+  position: fixed; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; transform: scaleX(-1);
+  z-index: 0; opacity: 0; transition: opacity .6s;
+}
+#rbVideo.on { opacity: .55; }
+#rbOverlay { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+
+.rb-screen {
+  position: relative; z-index: 3;
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 24px 20px 40px; gap: 18px; text-align: center;
+}
+.rb-screen.hidden, .hidden { display: none !important; }
+
+/* ── top bar ─────────────────────────────────────────────── */
+.rb-top {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 12px 18px;
+  background: linear-gradient(180deg, rgba(8, 10, 18, .92), rgba(8, 10, 18, 0));
+}
+.rb-brand { display: flex; align-items: center; gap: 9px; font-family: var(--rb-font); font-size: 1rem; }
+.rb-brand .box {
+  width: 30px; height: 30px; border-radius: 9px;
+  background: linear-gradient(135deg, #6C63FF, #ff6584);
+  display: grid; place-items: center; font-size: .9rem;
+}
+.rb-back {
+  background: rgba(0, 0, 0, .55); border: 2px solid var(--rb-border); color: #fff;
+  font-family: inherit; font-size: .95rem; font-weight: 800;
+  padding: 10px 20px; border-radius: 100px; text-decoration: none; cursor: pointer;
+  min-height: 44px; display: inline-flex; align-items: center;
+}
+
+/* ── setup ───────────────────────────────────────────────── */
+.rb-title { font-family: var(--rb-font); font-size: clamp(1.9rem, 5vw, 2.8rem); line-height: 1.15; }
+.rb-icon { font-size: 3rem; display: block; }
+.rb-lead { font-size: 1.1rem; color: var(--rb-muted); max-width: 560px; }
+
+.rb-card {
+  background: var(--rb-panel); border: 2px solid var(--rb-border);
+  border-radius: 18px; padding: 18px 20px; max-width: 620px; width: 100%; text-align: left;
+}
+.rb-card h3 { font-size: 1rem; font-family: var(--rb-font); margin-bottom: 8px; }
+.rb-card p { color: var(--rb-muted); font-size: .98rem; }
+
+.rb-safety {
+  border-color: rgba(252, 165, 165, .5); background: rgba(220, 38, 38, .14);
+}
+.rb-safety p { color: #fee2e2; }
+
+.rb-why { font-size: .92rem; color: var(--rb-muted); }
+.rb-why summary { cursor: pointer; font-weight: 800; color: var(--rb-text); font-size: .95rem; padding: 4px 0; }
+
+.rb-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.rb-choice {
+  background: var(--rb-panel); border: 2px solid var(--rb-border); color: var(--rb-text);
+  font-family: inherit; font-weight: 800; font-size: 1rem;
+  padding: 14px 24px; border-radius: 14px; cursor: pointer; min-height: 52px;
+}
+.rb-choice.on { border-color: var(--rb-accent); background: rgba(124, 156, 255, .22); }
+.rb-choice:focus-visible { outline: 3px solid var(--rb-accent); outline-offset: 3px; }
+
+.rb-label { font-size: .82rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--rb-muted); font-weight: 800; }
+
+.rb-go {
+  font-family: var(--rb-font); font-size: 1.35rem; color: #06251a;
+  background: linear-gradient(135deg, #4ade80, #22c55e);
+  border: none; border-radius: 100px; padding: 18px 46px; cursor: pointer;
+  min-height: 64px; min-width: 240px;
+}
+.rb-go:disabled { opacity: .45; cursor: not-allowed; }
+.rb-go:focus-visible { outline: 4px solid #fff; outline-offset: 4px; }
+
+.rb-cam {
+  display: flex; gap: 16px; align-items: center;
+  background: var(--rb-panel); border: 2px solid var(--rb-border);
+  border-radius: 18px; padding: 14px 16px; max-width: 620px; width: 100%;
+}
+.rb-cam-box { width: 148px; flex-shrink: 0; aspect-ratio: 4/3; background: #000; border-radius: 12px; overflow: hidden; border: 2px solid var(--rb-border); }
+#rbPreview { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.rb-cam-info { flex: 1; text-align: left; display: flex; flex-direction: column; gap: 8px; }
+.rb-status { font-size: .95rem; font-weight: 800; display: flex; align-items: center; gap: 9px; color: var(--rb-muted); }
+.rb-status .dot { width: 11px; height: 11px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.rb-status.ok { color: var(--rb-go); }
+.rb-status.warn { color: var(--rb-hold); }
+.rb-status.bad { color: var(--rb-warn); }
+
+/* ── the exercise itself ─────────────────────────────────── */
+/* The cue sits high-centre: big, plain words, one instruction at a time. */
+#rbCue {
+  position: fixed; top: 78px; left: 50%; transform: translateX(-50%);
+  z-index: 12; width: min(760px, 94vw); text-align: center;
+  font-family: var(--rb-font); font-size: clamp(1.5rem, 4.2vw, 2.3rem);
+  text-shadow: 0 3px 18px rgba(0, 0, 0, .95); padding: 0 12px;
+}
+#rbCue.go { color: var(--rb-go); }
+#rbCue.rest { color: var(--rb-accent); }
+#rbCue.hold { color: var(--rb-hold); }
+
+/* The effort meter. Vertical, centred, large — the single thing to watch. */
+#rbMeterWrap {
+  position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  z-index: 11; display: flex; align-items: center; gap: 22px;
+}
+.rb-meter {
+  position: relative; width: 116px; height: min(52vh, 380px);
+  background: rgba(0, 0, 0, .55); border: 3px solid var(--rb-border);
+  border-radius: 60px; overflow: hidden;
+}
+.rb-meter-fill {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 0%;
+  background: linear-gradient(180deg, #7c9cff, #4f7cff);
+  transition: height .08s linear;
+}
+.rb-meter.past .rb-meter-fill { background: linear-gradient(180deg, #6ee7b7, #22c55e); }
+/* The personal target: a solid line the fill has to reach. */
+.rb-target-line { position: absolute; left: -8px; right: -8px; height: 6px; background: var(--rb-hold); border-radius: 4px; }
+.rb-target-flag {
+  position: absolute; right: -104px; transform: translateY(-50%);
+  font-size: .82rem; font-weight: 900; color: #10131c; background: var(--rb-hold);
+  padding: 4px 10px; border-radius: 8px; white-space: nowrap;
+}
+.rb-meter-side { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+
+.rb-count { font-family: var(--rb-font); font-size: clamp(2.6rem, 8vw, 4.4rem); line-height: 1; }
+.rb-count small { display: block; font-family: var(--rb-body); font-size: .95rem; font-weight: 800; color: var(--rb-muted); letter-spacing: 1.5px; text-transform: uppercase; }
+
+/* Repetition pips, so progress is visible without reading a number. */
+.rb-pips { display: flex; gap: 7px; flex-wrap: wrap; max-width: 210px; }
+.rb-pip { width: 17px; height: 17px; border-radius: 50%; border: 2.5px solid var(--rb-border); }
+.rb-pip.done { background: var(--rb-go); border-color: var(--rb-go); }
+
+/* Symmetry read-out for the facial exercises. */
+#rbSym { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 12; width: min(560px, 92vw); }
+.rb-sym-row { display: flex; align-items: center; gap: 12px; background: rgba(0, 0, 0, .6); border: 2px solid var(--rb-border); border-radius: 16px; padding: 12px 16px; }
+.rb-sym-label { font-size: .82rem; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; color: var(--rb-muted); white-space: nowrap; }
+.rb-sym-bar { flex: 1; height: 16px; border-radius: 100px; background: rgba(255, 255, 255, .16); overflow: hidden; }
+.rb-sym-fill { display: block; height: 100%; border-radius: 100px; background: linear-gradient(90deg, #fbbf24, #34d399); transition: width .2s; }
+.rb-sym-val { font-family: var(--rb-font); font-size: 1.15rem; min-width: 58px; text-align: right; }
+
+/* Screen targets (reaching and scanning). Deliberately huge. */
+.rb-target {
+  position: fixed; z-index: 10; display: grid; place-items: center;
+  width: 132px; height: 132px; margin: -66px 0 0 -66px;
+  border-radius: 50%; font-size: 3rem;
+  background: rgba(251, 191, 36, .22); border: 5px solid var(--rb-hold);
+  box-shadow: 0 0 42px rgba(251, 191, 36, .45);
+}
+.rb-target .ring { position: absolute; inset: -5px; border-radius: 50%; border: 5px solid var(--rb-go); clip-path: inset(100% 0 0 0); transition: clip-path .1s linear; }
+.rb-pointer {
+  position: fixed; z-index: 13; width: 40px; height: 40px; margin: -20px 0 0 -20px;
+  border-radius: 50%; border: 4px solid #fff; background: rgba(124, 156, 255, .75);
+  box-shadow: 0 0 22px rgba(255, 255, 255, .65); pointer-events: none;
+}
+
+/* ── rest between sets ───────────────────────────────────── */
+#rbRest { position: fixed; inset: 0; z-index: 30; background: rgba(8, 10, 18, .93); display: grid; place-items: center; text-align: center; padding: 24px; }
+#rbRest .big { font-family: var(--rb-font); font-size: clamp(2rem, 6vw, 3rem); margin-bottom: 10px; }
+#rbRest .sub { font-size: 1.15rem; color: var(--rb-muted); max-width: 460px; }
+#rbRestCount { font-family: var(--rb-font); font-size: 4rem; color: var(--rb-accent); margin: 14px 0; }
+
+/* ── results ─────────────────────────────────────────────── */
+.rb-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; max-width: 640px; width: 100%; }
+.rb-result { background: var(--rb-panel); border: 2px solid var(--rb-border); border-radius: 16px; padding: 16px; text-align: center; }
+.rb-result .n { font-family: var(--rb-font); font-size: 2.1rem; line-height: 1.1; }
+.rb-result .l { font-size: .82rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--rb-muted); margin-top: 5px; }
+
+.rb-saved { font-size: .95rem; color: var(--rb-muted); }
+
+@media (max-width: 720px) {
+  body { font-size: 17px; }
+  #rbMeterWrap { flex-direction: column; gap: 14px; top: 54%; }
+  .rb-meter { width: 92px; height: 34vh; }
+  .rb-target-flag { right: -92px; }
+  .rb-cam { flex-direction: column; align-items: stretch; }
+  .rb-cam-box { width: 100%; }
+}
+
+/* Someone who finds motion uncomfortable, which is common after a stroke. */
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

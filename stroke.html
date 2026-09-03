@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Stroke Rehab — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#f5f6fb; --card:#fff; --ink:#161a2b; --muted:#5d627a; --line:#e4e6f0;
+  --accent:#6C63FF; --accent2:#ff6584; --warn-bg:#fff4f4; --warn-line:#f0c2c2; --warn-ink:#8c2020;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Nunito',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.55;}
+a{color:inherit;}
+
+.topbar{background:#1e1d2e;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.brand{font-family:'Fredoka One',cursive;font-size:1.05rem;display:flex;align-items:center;gap:8px;}
+.brand .dot{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-size:.85rem;}
+.topbar .sp{flex:1;}
+.tb{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);color:#fff;font-weight:800;font-size:.85rem;padding:8px 15px;border-radius:100px;text-decoration:none;min-height:40px;display:inline-flex;align-items:center;}
+.tb.on{background:linear-gradient(135deg,var(--accent),#a855f7);border-color:transparent;}
+
+.wrap{max-width:1060px;margin:0 auto;padding:24px 18px 70px;}
+h1{font-family:'Fredoka One',cursive;font-size:2rem;margin-bottom:6px;}
+.sub{color:var(--muted);font-size:1.02rem;max-width:720px;margin-bottom:20px;}
+
+.notice{background:var(--warn-bg);border:2px solid var(--warn-line);color:var(--warn-ink);border-radius:16px;padding:16px 18px;margin-bottom:22px;}
+/* Direct child only — the paragraphs below use inline <b> for emphasis. */
+.notice > b{display:block;font-family:'Fredoka One',cursive;font-size:1.05rem;margin-bottom:6px;}
+.notice p{font-size:.95rem;}
+.notice p + p{margin-top:8px;}
+
+.langrow{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
+.langbtn{background:#fff;border:2px solid var(--line);color:var(--ink);font-family:inherit;font-weight:800;font-size:.9rem;padding:9px 16px;border-radius:100px;cursor:pointer;min-height:44px;}
+.langbtn.on{border-color:var(--accent);background:rgba(108,99,255,.1);color:var(--accent);}
+.langnote{color:var(--muted);font-size:.85rem;}
+
+.group{margin-bottom:30px;}
+.group-head{display:flex;align-items:center;gap:11px;margin-bottom:4px;}
+.group-head .ic{font-size:1.5rem;}
+.group-head h2{font-family:'Fredoka One',cursive;font-size:1.25rem;}
+.group-blurb{color:var(--muted);font-size:.93rem;margin-bottom:14px;}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:16px;}
+.ex{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:10px;}
+.ex .ic{font-size:2.3rem;line-height:1;}
+.ex h3{font-family:'Fredoka One',cursive;font-size:1.15rem;}
+.ex p{color:var(--muted);font-size:.93rem;flex:1;}
+.ex .meta{display:flex;gap:7px;flex-wrap:wrap;}
+.tag{font-size:.72rem;font-weight:900;letter-spacing:.4px;text-transform:uppercase;padding:4px 10px;border-radius:100px;background:#eef0fa;color:#4a4f6b;}
+.play{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:900;font-size:1rem;padding:13px 20px;border-radius:12px;text-decoration:none;min-height:50px;}
+.why{font-size:.88rem;color:var(--muted);}
+.why summary{cursor:pointer;font-weight:800;color:var(--ink);padding:3px 0;}
+.why p{margin-top:7px;font-size:.88rem;}
+.caution{background:#fff8e6;border:1px solid #f0dfae;color:#7a5b06;border-radius:10px;padding:9px 11px;font-size:.85rem;}
+
+.evidence{background:#fff;border:2px solid var(--line);border-radius:16px;padding:18px;margin-top:10px;}
+.evidence h2{font-family:'Fredoka One',cursive;font-size:1.1rem;margin-bottom:8px;}
+.evidence p{color:var(--muted);font-size:.93rem;}
+.evidence p + p{margin-top:9px;}
+.evidence ul{margin:9px 0 0 20px;color:var(--muted);font-size:.93rem;}
+.evidence li{margin-bottom:5px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand"><span class="dot">🎈</span>InclusionGames</span>
+  <a href="dashboard.html" class="tb">Games</a>
+  <span class="tb on">Stroke Rehab</span>
+  <a href="report.html" class="tb">Reports</a>
+  <a href="teacher.html" class="tb">Profiles</a>
+  <span class="sp"></span>
+  <a href="account.html" class="tb">Account</a>
+</div>
+
+<div class="wrap">
+  <h1 id="hTitle">Stroke Rehab</h1>
+  <p class="sub" id="hSub">Camera-guided movement practice for people recovering from a stroke. No keyboard, no mouse, no controller — the camera watches the movement and the exercise responds to it.</p>
+
+  <div class="notice">
+    <b id="nTitle">Please read first</b>
+    <p id="nBody1">This is practice software to use <b>alongside</b> your rehabilitation, not instead of it. It is <b>not a medical device</b>, it does not diagnose anything, and it cannot tell you whether an exercise is right for you. Ask your physiotherapist, occupational therapist or doctor which of these to do and how often.</p>
+    <p id="nBody2">Sit down and supported before you start. Move slowly, and only as far as is comfortable. Stop straight away if anything hurts, or if you feel dizzy, breathless or unwell.</p>
+    <p id="nBody3"><b>Video never leaves the device.</b> The camera is processed in this browser only. No video and no biometric data is uploaded or stored — only the exercise results, such as how many repetitions were completed.</p>
+  </div>
+
+  <div class="langrow">
+    <button class="langbtn" data-lang="en">🇬🇧 English</button>
+    <button class="langbtn" data-lang="de">🇩🇪 Deutsch</button>
+    <span class="langnote" id="langNote"></span>
+  </div>
+
+  <div id="groups"></div>
+
+  <div class="evidence">
+    <h2 id="eTitle">What these exercises are based on</h2>
+    <p id="eIntro">Each exercise rests on a principle that is well established in stroke rehabilitation rather than on a claim about this particular software. In short:</p>
+    <ul id="eList">
+      <li><b>Repetition matters.</b> Motor recovery is driven by many correct, actively-initiated repetitions of a task. Counting them is most of what these exercises do.</li>
+      <li><b>Difficulty has to match the person.</b> Each exercise measures your own range first, then sets the target as a share of what you actually showed — never against an able-bodied norm.</li>
+      <li><b>Feedback helps learning.</b> Seeing the movement live, and seeing the two sides of the face compared, is the standard rationale for mirror-based facial retraining.</li>
+      <li><b>Scanning practice for one-sided inattention.</b> Targets are placed towards the side that is easy to miss. This reliably improves searching in tasks like this; how far it carries into everyday life is less certain, and is a judgement for your clinician.</li>
+    </ul>
+    <p id="eOutro">Interactive and virtual-reality training of this kind is generally studied as an <b>addition</b> to conventional therapy. The honest summary is that it is a reasonable way to get extra practice between appointments — not a replacement for the appointments.</p>
+  </div>
+</div>
+
+<script src="assets/auth.js"></script>
+<script src="assets/rehab-catalogue.js"></script>
+<script>
+if (!IG.requireAuth('login.html')) { /* redirected */ }
+
+var STR = {
+  en: {
+    title: 'Stroke Rehab',
+    sub: 'Camera-guided movement practice for people recovering from a stroke. No keyboard, no mouse, no controller — the camera watches the movement and the exercise responds to it.',
+    nTitle: 'Please read first',
+    n1: 'This is practice software to use <b>alongside</b> your rehabilitation, not instead of it. It is <b>not a medical device</b>, it does not diagnose anything, and it cannot tell you whether an exercise is right for you. Ask your physiotherapist, occupational therapist or doctor which of these to do and how often.',
+    n2: 'Sit down and supported before you start. Move slowly, and only as far as is comfortable. Stop straight away if anything hurts, or if you feel dizzy, breathless or unwell.',
+    n3: '<b>Video never leaves the device.</b> The camera is processed in this browser only. No video and no biometric data is uploaded or stored — only the exercise results, such as how many repetitions were completed.',
+    play: 'Start exercise', why: 'Why this exercise', reps: 'repetitions', sets: 'sets',
+    langNote: '',
+    eTitle: 'What these exercises are based on',
+  },
+  de: {
+    title: 'Schlaganfall-Training',
+    sub: 'Kamerageführtes Bewegungstraining nach einem Schlaganfall. Ohne Tastatur, ohne Maus, ohne Controller — die Kamera erkennt die Bewegung, und die Übung reagiert darauf.',
+    nTitle: 'Bitte zuerst lesen',
+    n1: 'Dies ist Übungssoftware <b>ergänzend</b> zu Ihrer Rehabilitation, nicht als Ersatz. Es ist <b>kein Medizinprodukt</b>, stellt keine Diagnose und kann nicht beurteilen, ob eine Übung für Sie geeignet ist. Fragen Sie Ihre Physiotherapie, Ergotherapie oder Ärztin/Arzt, welche Übungen wie oft sinnvoll sind.',
+    n2: 'Setzen Sie sich vor dem Start mit Rückenlehne hin. Bewegen Sie sich langsam und nur so weit, wie es angenehm ist. Brechen Sie sofort ab bei Schmerzen, Schwindel, Atemnot oder Unwohlsein.',
+    n3: '<b>Das Video verlässt das Gerät nicht.</b> Die Kamera wird nur in diesem Browser verarbeitet. Es werden keine Video- oder Biometriedaten hochgeladen oder gespeichert — nur die Ergebnisse, etwa die Zahl der Wiederholungen.',
+    play: 'Übung starten', why: 'Warum diese Übung', reps: 'Wiederholungen', sets: 'Sätze',
+    langNote: '',
+    eTitle: 'Worauf diese Übungen beruhen',
+  },
+};
+
+function currentLang() {
+  try {
+    var l = localStorage.getItem('ig_lang');
+    if (IG_REHAB.langs.indexOf(l) >= 0) return l;
+  } catch (e) {}
+  return 'en';
+}
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+function render() {
+  var lang = currentLang();
+  var S = STR[lang] || STR.en;
+  var t = function (o) { return IG_REHAB.t(o, lang); };
+
+  document.documentElement.lang = lang;
+  document.getElementById('hTitle').textContent = S.title;
+  document.getElementById('hSub').textContent = S.sub;
+  document.getElementById('nTitle').textContent = S.nTitle;
+  document.getElementById('nBody1').innerHTML = S.n1;
+  document.getElementById('nBody2').innerHTML = S.n2;
+  document.getElementById('nBody3').innerHTML = S.n3;
+  document.getElementById('eTitle').textContent = S.eTitle;
+
+  document.querySelectorAll('.langbtn').forEach(function (b) {
+    b.classList.toggle('on', b.dataset.lang === lang);
+  });
+
+  var html = '';
+  Object.keys(IG_REHAB.groups).forEach(function (key) {
+    var g = IG_REHAB.groups[key];
+    var list = IG_REHAB.exercises.filter(function (e) { return e.group === key; });
+    if (!list.length) return;
+    html += '<section class="group">' +
+      '<div class="group-head"><span class="ic">' + g.icon + '</span><h2>' + esc(IG_REHAB.groupName(key, lang)) + '</h2></div>' +
+      '<p class="group-blurb">' + esc(t(g.blurb)) + '</p><div class="grid">';
+    list.forEach(function (e) {
+      html += '<article class="ex">' +
+        '<span class="ic">' + e.icon + '</span>' +
+        '<h3>' + esc(t(e.title)) + '</h3>' +
+        '<p>' + esc(t(e.short)) + '</p>' +
+        '<div class="meta">' +
+          '<span class="tag">' + e.defaultReps + ' ' + esc(S.reps) + '</span>' +
+          '<span class="tag">' + (e.sets || 1) + ' ' + esc(S.sets) + '</span>' +
+        '</div>' +
+        (e.caution ? '<div class="caution">⚠️ ' + esc(t(e.caution)) + '</div>' : '') +
+        '<details class="why"><summary>' + esc(S.why) + '</summary><p>' + esc(t(e.rationale)) + '</p></details>' +
+        '<a class="play" href="' + e.id + '.html?lang=' + lang + '">' + esc(S.play) + ' →</a>' +
+        '</article>';
+    });
+    html += '</div></section>';
+  });
+  document.getElementById('groups').innerHTML = html;
+}
+
+document.querySelectorAll('.langbtn').forEach(function (b) {
+  b.addEventListener('click', function () {
+    try { localStorage.setItem('ig_lang', b.dataset.lang); } catch (e) {}
+    render();
+  });
+});
+
+render();
+</script>
+</body>
+</html>

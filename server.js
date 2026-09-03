@@ -853,9 +853,66 @@ children.post('/:id/progress', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
+// --- Stroke rehab sessions -----------------------------------------------
+// Results only. No video and no landmark data ever reaches the server: the
+// camera is processed entirely in the browser, and that promise is made to
+// the user on the page, so the payload below is deliberately just counts.
+const rehabCatalogue = require('./assets/rehab-catalogue.js');
+
+function clampInt(v, lo, hi) {
+  const n = parseInt(v, 10);
+  if (!Number.isFinite(n)) return lo;
+  return Math.max(lo, Math.min(hi, n));
+}
+
+children.post('/:id/rehab-session', authMiddleware, (req, res) => {
+  const c = findChild(req);
+  if (!c) return res.status(404).json({ error: 'Child not found.' });
+
+  const b = req.body || {};
+  if (!rehabCatalogue.byId(String(b.exercise || ''))) {
+    return res.status(400).json({ error: 'Unknown exercise.' });
+  }
+  if (!Array.isArray(c.rehab)) c.rehab = [];
+
+  const rec = {
+    exercise: String(b.exercise),
+    side: ['left', 'right', 'both'].indexOf(b.side) >= 0 ? b.side : 'both',
+    sets: clampInt(b.sets, 0, 20),
+    reps: clampInt(b.reps, 0, 500),
+    targetReps: clampInt(b.targetReps, 0, 500),
+    // Amplitude is a percentage of the person's OWN calibrated range, so it
+    // can legitimately exceed 100 when they beat their calibration.
+    bestAmplitude: clampInt(b.bestAmplitude, 0, 200),
+    avgAmplitude: clampInt(b.avgAmplitude, 0, 200),
+    symmetry: b.symmetry == null ? null : clampInt(b.symmetry, 0, 100),
+    longestHoldMs: clampInt(b.longestHoldMs, 0, 600000),
+    timeMs: clampInt(b.timeMs, 0, 36000000),
+    // Flagged when calibration saw almost no movement — it makes every other
+    // number on that session unreliable, so the report must be able to say so.
+    calibrationWeak: !!b.calibrationWeak,
+    lang: rehabCatalogue.langs.indexOf(b.lang) >= 0 ? b.lang : 'en',
+    at: now(),
+  };
+
+  c.rehab.push(rec);
+  if (c.rehab.length > 1000) c.rehab = c.rehab.slice(-1000);
+  c.updated_at = now();
+  saveNow();
+  res.json({ ok: true });
+});
+
+children.get('/:id/rehab-analytics', authMiddleware, (req, res) => {
+  const c = findChild(req);
+  if (!c) return res.status(404).json({ error: 'Child not found.' });
+  const rangeDays = REPORT_RANGES[String(req.query.range)] || null;
+  res.json({ report: rehabAnalytics.buildRehabReport(c, { rangeDays }) });
+});
+
 // --- Progress reports: on-screen analytics, PDF, and email to a guardian ---
 const analytics = require('./lib/analytics.js');
 const reportPdf = require('./lib/report-pdf.js');
+const rehabAnalytics = require('./lib/rehab-analytics.js');
 
 const REPORT_RANGES = { 7: 7, 30: 30, 90: 90, 365: 365 };
 
@@ -1313,7 +1370,9 @@ app.use((req, res, next) => {
   const gated = page === '/dashboard.html'
     || page === '/report.html'      // per-child analytics and reports
     || page === '/teacher.html'     // child profiles and per-game customisation
+    || page === '/stroke.html'      // stroke rehabilitation section
     || /^\/game[\w-]*\.html$/.test(page)
+    || /^\/rehab[\w-]*\.html$/.test(page)
     || page.startsWith('/games/');
   if (!gated) return next();
   const u = userFromSession(req);

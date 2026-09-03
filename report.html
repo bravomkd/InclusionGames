@@ -96,6 +96,7 @@ textarea.in{min-height:78px;resize:vertical;}
 <div class="topbar">
   <span class="brand"><span class="dot">🎈</span>InclusionGames</span>
   <a href="dashboard.html" class="tb">← Games</a>
+  <a href="stroke.html" class="tb">Stroke Rehab</a>
   <a href="teacher.html" class="tb">Profiles</a>
   <span class="tb on">Reports</span>
   <span class="sp"></span>
@@ -149,7 +150,7 @@ textarea.in{min-height:78px;resize:vertical;}
 if (!IG.requireAuth('login.html')) { /* redirected */ }
 
 var $ = function (id) { return document.getElementById(id); };
-var state = { children: [], childId: null, report: null, lastSentTo: null };
+var state = { children: [], childId: null, report: null, rehab: null, lastSentTo: null };
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -205,6 +206,12 @@ async function loadReport(){
     var data = await IG.apiFetch('/children/' + state.childId + '/analytics?' + query());
     state.report = data.report;
     state.lastSentTo = data.lastSentTo || null;
+    // The stroke-rehab history is a separate record with different units, so
+    // it is fetched separately and simply omitted if this profile has none.
+    try {
+      var rd = await IG.apiFetch('/children/' + state.childId + '/rehab-analytics?' + query());
+      state.rehab = rd.report;
+    } catch (e) { state.rehab = null; }
     render();
   } catch (e) {
     $('body').innerHTML = '<div class="card"><p class="hint">Could not load this report: ' + esc(e.message) + '</p></div>';
@@ -226,11 +233,11 @@ function render(){
   if (!o.sessions) {
     $('body').innerHTML =
       '<div class="card"><div class="empty"><span class="big">🌱</span>' +
-      '<b>Nothing recorded in this period yet.</b>' +
+      '<b>No game sessions in this period yet.</b>' +
       '<p style="margin-top:8px">Once ' + esc(r.child.name) + ' plays a game, every session shows up here — ' +
       'scores, time spent and which skills are coming along.</p>' +
       '<p style="margin-top:14px"><a class="btn" href="dashboard.html">Open the games</a></p>' +
-      '</div></div>';
+      '</div></div>' + rehabHtml();
     return;
   }
 
@@ -338,7 +345,61 @@ function render(){
   });
   html += '</tbody></table></div></div>';
 
+  html += rehabHtml();
+
   $('body').innerHTML = html;
+}
+
+/* Stroke-rehab history. Reported in repetitions completed against
+   repetitions prescribed, NOT in movement size: the exercise recalibrates to
+   the person's range every session, so an amplitude line across sessions
+   would be comparing different yardsticks and would look like progress
+   whether or not any had happened. */
+function rehabHtml(){
+  var rr = state.rehab;
+  if (!rr || !rr.hasSessions) return '';
+  var o = rr.overview;
+  var h = '<div class="card"><h2>🧠 Stroke rehab</h2>' +
+    '<p class="hint">Camera-guided exercise sessions. Percentages below are repetitions completed against repetitions prescribed.</p>';
+
+  if (rr.weakCalibrationCount) {
+    h += '<div class="note" style="margin-bottom:14px">⚠️ ' + rr.weakCalibrationCount +
+      ' session(s) recorded almost no movement during set-up. The numbers from those sessions are unreliable — worth mentioning to the clinician.</div>';
+  }
+
+  h += '<div class="stats">' +
+    stat(o.sessions, 'Sessions') +
+    stat(o.repsCompleted, 'Reps done') +
+    stat(o.completion == null ? '—' : o.completion + '%', 'Of prescribed') +
+    stat(fmtTime(o.timeMs), 'Time') +
+    stat(o.activeDays, 'Days practised') +
+    stat(o.currentStreakDays, 'Day streak') +
+    stat(o.exercisesTried + ' / ' + o.exercisesAvailable, 'Exercises tried') +
+    (o.meanSymmetry == null ? '' : stat(o.meanSymmetry + '%', 'Evenness L/R')) +
+    '</div>';
+
+  if (!rr.hasEnoughForTrend) {
+    h += '<p class="hint" style="margin-top:12px">Fewer than ' + rr.minSessionsForTrend +
+      ' sessions so far, so no direction of travel is shown yet.</p>';
+  }
+  h += '</div>';
+
+  h += '<div class="card"><h2>Rehab exercises</h2><p class="hint">Each exercise practised in this period.</p><div class="tw"><table>' +
+    '<thead><tr><th>Exercise</th><th>Area</th><th>Sessions</th><th>Reps</th><th>Completed</th><th>Evenness</th><th>Trend</th><th>Last</th></tr></thead><tbody>';
+  rr.byExercise.forEach(function(e){
+    h += '<tr>' +
+      '<td>' + e.icon + ' ' + esc(e.title) + '</td>' +
+      '<td>' + esc(e.group || '—') + '</td>' +
+      '<td>' + e.sessions + '</td>' +
+      '<td>' + e.reps + ' / ' + e.prescribed + '</td>' +
+      '<td>' + (e.completion == null ? '—' : e.completion + '%') + '</td>' +
+      '<td>' + (e.meanSymmetry == null ? '—' : e.meanSymmetry + '%') + '</td>' +
+      '<td>' + (TREND_LABEL[e.completionTrend] || '—') + '</td>' +
+      '<td>' + fmtDate(e.lastAt) + '</td>' +
+    '</tr>';
+  });
+  h += '</tbody></table></div></div>';
+  return h;
 }
 
 function stat(n, l){

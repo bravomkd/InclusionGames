@@ -41,6 +41,11 @@ whole funnel is testable immediately without charging anything.
 | Member dashboard (gated) | `dashboard.html` |
 | Child profiles & per-game customisation (gated) | `teacher.html` |
 | Reports & analytics (gated) | `report.html` |
+| Stroke rehab section (gated) | `stroke.html`, `rehab01–09.html` |
+| Rehab exercise definitions + rationale | `assets/rehab-catalogue.js` |
+| Rehab measurement (tested in Node) | `assets/rehab-metrics.js` |
+| Rehab exercise engine | `assets/rehab-engine.js`, `assets/rehab-engine.css` |
+| Rehab progress maths | `lib/rehab-analytics.js` |
 | Game catalogue, shared by browser and server | `assets/catalogue.js` |
 | Progress maths (one source for page and PDF) | `lib/analytics.js` |
 | PDF report renderer (EN / DE / PL / ES) | `lib/report-pdf.js` |
@@ -147,6 +152,53 @@ button explains that and points at the download instead.
 | GET | `/api/children/:id/analytics?range=` | Everything the page draws (`range` = 7, 30, 90, 365, or all) |
 | GET | `/api/children/:id/report.pdf?lang=&range=&download=1` | The report as a PDF |
 | POST | `/api/children/:id/report/send` | Email the PDF to a parent or guardian |
+
+---
+
+## Stroke rehab
+
+A second section, for adults recovering from a stroke, at `stroke.html`. The
+exercises are driven entirely by the camera — no keyboard, mouse or controller —
+because the people they are for often cannot use one. Nine exercises across five
+areas: face and mouth, head and neck, looking and scanning, arm and shoulder,
+hand and fingers.
+
+**Read this before changing anything in here.**
+
+* It is **not a medical device**. It does not diagnose, and it does not decide
+  dosage. Every page says so, and there is a test that fails the build if words
+  like "cure", "heals" or "clinically proven" appear anywhere in the section.
+* **Swallowing exercises are deliberately absent.** Practising swallowing without
+  a clinician present carries a real aspiration risk. A test enforces this too.
+* **Video never leaves the browser.** MediaPipe runs client-side and the server
+  only ever receives counts. A test posts landmark and image fields to the
+  session endpoint and asserts they are not stored.
+
+Every exercise **calibrates to the individual first**: a relaxed baseline, then
+three attempts at their own best effort. The target is a fraction of the range
+they just demonstrated, never an able-bodied norm. Someone with a very small
+range still gets achievable repetitions, and the recorded amplitude means
+"percentage of my own range today".
+
+Because calibration moves with the person, amplitude is deliberately **not**
+trended across sessions in the reports — that would compare different yardsticks
+and show progress whether or not any happened. What is trended is countable:
+repetitions completed against repetitions prescribed, hold durations, and
+left/right evenness.
+
+`assets/rehab-metrics.js` holds the measurement and repetition counting, split
+out so it can be unit-tested in Node against synthetic landmarks. That is where
+the risk is: a hand or lip trembling on the threshold is exactly what weakness
+looks like, and must not be counted as twenty repetitions.
+
+Instructions are written in **English and German**. Polish and Spanish fall back
+to English on purpose — these are clinical instructions and should be translated
+by a native speaker alongside a clinician, not guessed at.
+
+| Method | Route | Purpose |
+|--------|-------|---------|
+| POST | `/api/children/:id/rehab-session` | Record one completed exercise session (counts only) |
+| GET | `/api/children/:id/rehab-analytics?range=` | Rehab progress, shown in the Reports section |
 
 ---
 
