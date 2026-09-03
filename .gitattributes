@@ -1,0 +1,8 @@
+# Production runs on Linux and the deploy is a file copy, so every checkout
+# must keep LF endings. A CRLF checkout uploaded to the server breaks shell
+# scripts and shows up as a whole-file diff on the next sync.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
+*.pptx binary

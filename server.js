@@ -22,24 +22,21 @@ const nodemailer = require('nodemailer');
 // ── Config ──────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 const APP_URL = (process.env.APP_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-insecure-secret-change-me';
 const ROOT = __dirname;
 
-// "Production" = anything not obviously a developer's own machine. Several
-// conveniences below (demo checkout, a default signing key) are safe on a
+// "Production" means anything that is not obviously a developer's own machine.
+// Several conveniences below — demo checkout above all — are harmless on a
 // laptop and dangerous on the public site, so they key off this.
 const IS_PRODUCTION = process.env.NODE_ENV === 'production'
   || !/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])([:/]|$)/i.test(APP_URL);
 
-const DEV_JWT_SECRET = 'dev-insecure-secret-change-me';
-const JWT_SECRET = process.env.JWT_SECRET || DEV_JWT_SECRET;
-// A guessable signing key means anyone can mint a session for any account, so
-// refuse to start rather than run the live site with a placeholder. The
-// /change.?me/ test catches the sample value in .env.example, which is long
-// enough to pass a length check on its own.
-const JWT_SECRET_IS_PLACEHOLDER = JWT_SECRET === DEV_JWT_SECRET
-  || /change[-_ ]?me/i.test(JWT_SECRET)
-  || JWT_SECRET.length < 32;
-if (IS_PRODUCTION && JWT_SECRET_IS_PLACEHOLDER) {
+// A guessable signing key lets anyone mint a session for any account, so refuse
+// to start rather than run the live site with the placeholder. The /change.?me/
+// test catches the sample value in .env.example, which is long enough to pass a
+// length check on its own.
+if (IS_PRODUCTION && (JWT_SECRET === 'dev-insecure-secret-change-me'
+    || /change[-_ ]?me/i.test(JWT_SECRET) || JWT_SECRET.length < 32)) {
   console.error('\n❌ JWT_SECRET is missing, too short, or still the placeholder.');
   console.error('   Sessions signed with it can be forged, so refusing to start.');
   console.error('   Put a long random string in .env, e.g.:');
@@ -47,8 +44,28 @@ if (IS_PRODUCTION && JWT_SECRET_IS_PLACEHOLDER) {
   process.exit(1);
 }
 
+// Shown when a live site has no payment processor configured. Demo checkout
+// activates a plan without charging, which is right on a laptop and must never
+// happen in production.
+const PAYMENTS_UNCONFIGURED = 'Online payment is temporarily unavailable. Please contact info@inclusion-games.com and we will get you set up.';
+
+// One Stripe account (KOKOWorlds) carries several brands — inclusion-games.com,
+// kokoworlds.de, balkansofra.de. Every charge this server creates is stamped with
+// these so the revenue is attributable per project. A sibling deployment just
+// overrides them in its own .env.
+const BRAND_ID = process.env.BRAND_ID || 'inclusion-games';
+const BRAND_NAME = process.env.BRAND_NAME || 'InclusionGames';
+const BRAND_SITE = process.env.BRAND_SITE || 'inclusion-games.com';
+
 const STRIPE_KEY = process.env.STRIPE_SECRET_KEY || '';
-const stripe = STRIPE_KEY ? require('stripe')(STRIPE_KEY) : null;
+// The installed SDK defaults to 2025-02-24.acacia, which predates Managed
+// Payments ("not supported on API version …; set 2025-03-31.basil or greater").
+// Pinned explicitly rather than left to the SDK default so an npm upgrade cannot
+// silently move it. Responses come back in the newer shape — the webhook helpers
+// read both, so that is safe. Override with STRIPE_API_VERSION if ever needed.
+const stripe = STRIPE_KEY
+  ? require('stripe')(STRIPE_KEY, { apiVersion: process.env.STRIPE_API_VERSION || '2025-03-31.basil' })
+  : null;
 
 const PAYPAL_ID = process.env.PAYPAL_CLIENT_ID || '';
 const PAYPAL_SECRET = process.env.PAYPAL_SECRET || '';
@@ -66,13 +83,6 @@ const PLANS = {
   school:   { name: 'School Plan',      monthly: 99.99, annual: 839.88, stripe: process.env.STRIPE_PRICE_SCHOOL },
 };
 const TRIAL_DAYS = 3;
-// How long an email-verification link stays usable.
-const VERIFY_DAYS = 7;
-
-// Shown when the live site has no payment processor configured. Demo checkout
-// activates a plan without charging anything, which is exactly what we want on
-// a laptop and must never happen on the public site.
-const PAYMENTS_UNCONFIGURED = 'Online payment is temporarily unavailable. Please contact support and we will get you set up.';
 const COOKIE_SECURE = APP_URL.startsWith('https');
 
 // Accounts listed here always have full access (e.g. the owner). Comma-separated in .env.
@@ -86,55 +96,82 @@ const COPECART_PRODUCTS = {};
 // ── Storage (simple JSON file — no native modules) ──────────
 // For launch/testing this is plenty. To move to Postgres/MySQL
 // later, only the helpers below need to change.
-// Defaults to ./data. Point DATA_DIR somewhere outside the web root in
-// production and the database can't be reached over HTTP at all, whatever the
-// static handler is configured to do.
-const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(ROOT, 'data');
+const DATA_DIR = path.join(ROOT, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 const DB_FILE = path.join(DATA_DIR, 'users.json');
-const DB_BACKUP = path.join(DATA_DIR, 'users.backup.json');
 
-// Loading has to tell "there is no file yet" apart from "the file is there but
-// unreadable". Treating both as "start empty" meant a half-written file — a
-// crash mid-save, a full disk — silently became an empty database, and the
-// very next save wrote [] over the real one. Measured: 4 accounts down to 1
-// after a single registration, with no error anywhere.
-let users;
-if (!fs.existsSync(DB_FILE)) {
-  users = [];                                    // genuinely a fresh install
-} else {
+let users = [];
+try { users = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); }
+catch { users = []; }
+
+/* ── Durable writes ──────────────────────────────────────────
+   The whole user table is rewritten on every change. A plain writeFileSync
+   truncates the file first, so a crash, a full disk or a power cut in that
+   window leaves a half-written file and every account is gone.
+
+   Instead: write a temp file in the same directory, fsync it, then rename over
+   the target. rename() is atomic on Linux, so a reader — and a crash — sees
+   either the complete old file or the complete new one, never a partial one. */
+function writeJsonAtomic(file, data) {
+  const tmp = `${file}.tmp-${process.pid}`;
+  const json = JSON.stringify(data, null, 2);
+  const fd = fs.openSync(tmp, 'w');
   try {
-    const parsed = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-    if (!Array.isArray(parsed)) throw new Error('expected a JSON array');
-    users = parsed;
+    fs.writeSync(fd, json);
+    fs.fsyncSync(fd);                 // on disk before the swap, not just in cache
+  } finally {
+    fs.closeSync(fd);
+  }
+  fs.renameSync(tmp, file);           // atomic replace
+}
+
+// How many users the last good write held — used to refuse a suspicious wipe.
+let _lastGoodCount = users.length;
+
+function persistUsers() {
+  if (!Array.isArray(users)) {
+    console.error('   [db] users is not an array — refusing to write');
+    return;
+  }
+  // A bug that empties the array in memory would otherwise erase every account.
+  // Deleting the genuine last user is rare enough to be worth the false positive.
+  if (users.length === 0 && _lastGoodCount > 1) {
+    console.error(`   [db] refusing to write 0 users over ${_lastGoodCount} — this looks like a bug`);
+    return;
+  }
+  try {
+    writeJsonAtomic(DB_FILE, users);
+    _lastGoodCount = users.length;
   } catch (e) {
-    console.error(`\n❌ ${DB_FILE} exists but could not be read: ${e.message}`);
-    console.error('   Refusing to start, so it is not overwritten with an empty database.');
-    console.error(`   The previous run's copy should be at ${DB_BACKUP}`);
-    process.exit(1);
+    console.error('   [db] write FAILED:', e.message);
   }
 }
 
-// Keep the last known-good database from the previous run, so a bad file always
-// has something to fall back to.
-if (users.length) {
-  try { fs.copyFileSync(DB_FILE, DB_BACKUP); }
-  catch (e) { console.error('db backup failed:', e.message); }
+let _saveTimer = null;
+function saveDB() {
+  // debounce writes a touch so rapid updates don't thrash the disk
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(persistUsers, 50);
 }
-
 function saveNow() {
-  // Write to a temp file, then rename it over the real one. rename is atomic,
-  // so an interrupted save leaves either the old file or the new one intact —
-  // never half of either.
-  const tmp = `${DB_FILE}.tmp`;
-  try {
-    fs.writeFileSync(tmp, JSON.stringify(users, null, 2));
-    fs.renameSync(tmp, DB_FILE);
-  } catch (e) {
-    console.error('saveDB', e);
-    try { if (fs.existsSync(tmp)) fs.unlinkSync(tmp); } catch { /* nothing else to do */ }
-  }
+  clearTimeout(_saveTimer);           // don't let a queued write land after this one
+  _saveTimer = null;
+  persistUsers();
 }
+
+// Flush anything still debounced when the process is asked to stop, so a
+// deploy or `pm2 restart` can't drop the last 50 ms of changes.
+['SIGINT', 'SIGTERM'].forEach(sig => process.on(sig, () => {
+  if (_saveTimer) { clearTimeout(_saveTimer); persistUsers(); }
+  process.exit(0);
+}));
+
+// One known-good snapshot per boot. If the table is ever damaged, this is a
+// restore point that predates whatever went wrong in this run:
+//   cp data/users.json.lkg data/users.json && pm2 restart inclusion
+try {
+  if (users.length) writeJsonAtomic(`${DB_FILE}.lkg`, users);
+} catch (e) { console.error('   [db] boot snapshot failed:', e.message); }
 
 function getUserByEmail(email) {
   email = (email || '').toLowerCase().trim();
@@ -149,11 +186,6 @@ const days = (n) => n * 24 * 60 * 60 * 1000;
 const token = (n = 32) => crypto.randomBytes(n).toString('hex');
 const emailValid = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e || '');
 
-// Escape anything user-supplied before it goes into an HTML email.
-const esc = (s) => String(s == null ? '' : s)
-  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-
 function publicUser(u) {
   if (!u) return null;
   return {
@@ -165,6 +197,10 @@ function publicUser(u) {
     status: u.status,
     emailVerified: !!u.email_verified,
     trialEnds: u.trial_ends,
+    periodEnd: u.current_period_end || null,
+    // Lets the client route a lapsed trial straight to checkout instead of
+    // bouncing it off the dashboard gate.
+    access: hasAccess(u),
   };
 }
 
@@ -177,11 +213,24 @@ function signToken(u) {
 }
 
 // ── Entitlement: who is allowed to play ─────────────────────
+// Grace window after a failed renewal before access is cut off.
+const DUNNING_DAYS = 3;
+
 function hasAccess(u) {
   if (!u) return false;
   if (ADMIN_EMAILS.includes((u.email || '').toLowerCase())) return true;
   if (!u.email_verified) return false;
-  if (u.status === 'active') return true;
+  if (u.status === 'active') {
+    // A subscription that has run past its paid period no longer grants access.
+    // Accounts with no current_period_end (legacy, CopeCart, manual) are unaffected.
+    if (u.current_period_end && u.current_period_end < now()) return false;
+    return true;
+  }
+  // Cancelled but still inside the period they already paid for.
+  if (u.status === 'canceled' && u.current_period_end && u.current_period_end > now()) return true;
+  // Renewal failed — keep them in for a few days while the provider retries.
+  if (u.status === 'past_due' && u.current_period_end &&
+      u.current_period_end + days(DUNNING_DAYS) > now()) return true;
   if (u.status === 'trialing' && u.trial_ends && u.trial_ends > now()) return true;
   return false;
 }
@@ -211,10 +260,19 @@ if (process.env.SMTP_HOST) {
     auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
   });
 }
-async function sendMail(to, subject, html) {
+async function sendMail(to, subject, html, opts) {
   const from = process.env.MAIL_FROM || 'InclusionGames <info@inclusion-games.com>';
+  const replyTo = opts && opts.replyTo;
   if (transporter) {
-    await transporter.sendMail({ from, to, subject, html });
+    // Never reject. Every caller does a bare `await sendMail(...)` inside a route
+    // handler with no try/catch, and Express 4 does not catch async rejections —
+    // so a bounce (bad domain, full mailbox, greylisting) left the request hanging
+    // until the browser gave up. Log it and let the handler return normally.
+    try {
+      await transporter.sendMail(Object.assign({ from, to, subject, html }, replyTo ? { replyTo } : {}));
+    } catch (e) {
+      console.error('   [mail] send failed to ' + to + ': ' + ((e && e.message) || e));
+    }
   } else {
     console.log('\n📧 [DEV EMAIL — no SMTP configured]');
     console.log('   To:', to);
@@ -242,6 +300,47 @@ function authMiddleware(req, res, next) {
 // ── App ─────────────────────────────────────────────────────
 const app = express();
 app.set('trust proxy', 1);
+
+/* ── Security headers ────────────────────────────────────────
+   Written directly rather than pulling in helmet: it is a handful of headers,
+   and this is a server that handles payments — one less dependency in that
+   path is worth more than the convenience.
+
+   Content-Security-Policy is deliberately REPORT-ONLY. The site has ~453 inline
+   onclick handlers and ~99 inline <script> blocks, so an enforcing policy would
+   need 'unsafe-inline' (which gives up most of the benefit) or a real refactor.
+   Report-Only puts violations in the browser console and changes nothing, so we
+   can see the true shape of a future policy without breaking a live shop. */
+const CSP = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'self'",
+  "img-src 'self' data: blob:",
+  "media-src 'self' data: blob:",
+  "font-src 'self' https://fonts.gstatic.com data:",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  // jsDelivr serves MediaPipe; it also needs wasm and blob workers for hand tracking
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net",
+  "worker-src 'self' blob:",
+  "connect-src 'self' blob: https://cdn.jsdelivr.net https://fonts.gstatic.com",
+  // where checkout is allowed to hand the browser off to
+  "form-action 'self' https://checkout.stripe.com https://www.paypal.com https://www.sandbox.paypal.com",
+].join('; ');
+
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-DNS-Prefetch-Control', 'off');
+  // camera=(self) is load-bearing — every game needs the webcam on this origin.
+  res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(), payment=(self)');
+  if (COOKIE_SECURE) {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  res.setHeader('Content-Security-Policy-Report-Only', CSP);
+  next();
+});
 app.use(cors({
   origin: [
     "https://www.inclusion-games.com",
@@ -270,24 +369,189 @@ app.post('/api/payments/webhook/stripe', express.raw({ type: 'application/json' 
   } catch (err) {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
-  if (event.type === 'checkout.session.completed') {
-    const s = event.data.object;
-    const userId = s.client_reference_id || (s.metadata && s.metadata.userId);
-    const plan = s.metadata && s.metadata.plan;
-    const billing = (s.metadata && s.metadata.billing) || 'monthly';
-    if (userId && plan) activatePlan(userId, plan, billing);
-  }
+  // Acknowledge immediately — Stripe retries on slow responses, and every branch
+  // below is idempotent, so doing the work after the ack is safe.
   res.json({ received: true });
+  handleStripeEvent(event).catch(e => console.error('   [billing] stripe event', event.type, e.message));
 });
+
+const secsToMs = s => (s ? s * 1000 : null);
+
+// Stripe moved these fields between API versions, and the webhook payload arrives
+// in whatever version the endpoint is configured for — which is chosen in the
+// dashboard, not here. Read both shapes so any version works.
+const idOf = v => (v && typeof v === 'object' ? v.id : v) || null;
+
+// invoice.subscription  →  invoice.parent.subscription_details.subscription
+function subIdFromInvoice(inv) {
+  if (!inv) return null;
+  return idOf(inv.subscription) ||
+         idOf(inv.parent && inv.parent.subscription_details &&
+              inv.parent.subscription_details.subscription) ||
+         null;
+}
+
+// subscription.current_period_end  →  subscription.items.data[].current_period_end
+function periodEndOfSub(sub) {
+  if (!sub) return null;
+  if (sub.current_period_end) return secsToMs(sub.current_period_end);
+  const items = sub.items && sub.items.data;
+  if (Array.isArray(items) && items.length) {
+    // Take the furthest-out item so a mixed-interval subscription is not cut short.
+    const ends = items.map(i => i && i.current_period_end).filter(Boolean);
+    if (ends.length) return secsToMs(Math.max.apply(null, ends));
+  }
+  return null;
+}
+
+async function handleStripeEvent(event) {
+  const o = event.data.object;
+
+  switch (event.type) {
+    case 'checkout.session.completed': {
+      const userId = o.client_reference_id || (o.metadata && o.metadata.userId);
+      const plan = o.metadata && o.metadata.plan;
+      const billing = (o.metadata && o.metadata.billing) || 'monthly';
+      if (!userId || !plan) return;
+      const subId = idOf(o.subscription);
+      let periodEnd = null;
+      if (subId) {
+        try {
+          periodEnd = periodEndOfSub(await stripe.subscriptions.retrieve(subId));
+        } catch (e) { console.error('   [billing] retrieve sub', e.message); }
+      }
+      activatePlan(userId, plan, billing, {
+        provider: 'stripe',
+        subscriptionId: subId,
+        customerId: idOf(o.customer),
+        periodEnd,
+      });
+      return;
+    }
+
+    // Renewal succeeded — push the paid-through date forward.
+    case 'invoice.paid':
+    case 'invoice.payment_succeeded': {
+      const subId = subIdFromInvoice(o);
+      const line = o.lines && o.lines.data && o.lines.data[0];
+      const periodEnd = secsToMs(line && line.period && line.period.end);
+      if (subId) updateSubscription(subId, 'active', periodEnd);
+      return;
+    }
+
+    // Card declined on renewal — grace period, then access stops.
+    case 'invoice.payment_failed': {
+      const subId = subIdFromInvoice(o);
+      if (subId) updateSubscription(subId, 'past_due', null);
+      return;
+    }
+
+    // Status changes: pauses, dunning outcomes, plan swaps.
+    case 'customer.subscription.updated': {
+      const map = { active: 'active', trialing: 'active', past_due: 'past_due',
+                    unpaid: 'past_due', canceled: 'canceled', incomplete_expired: 'canceled' };
+      const status = map[o.status];
+      if (status) updateSubscription(o.id, status, periodEndOfSub(o));
+      return;
+    }
+
+    // Ended for good. Access runs to the end of the period already paid for.
+    case 'customer.subscription.deleted':
+      updateSubscription(o.id, 'canceled', periodEndOfSub(o));
+      return;
+
+    default:
+      return;
+  }
+}
+
+// PayPal webhook — RAW body so the signature can be verified. BEFORE json parser.
+// Without PAYPAL_WEBHOOK_ID we cannot verify authenticity, so we acknowledge but
+// deliberately do nothing: acting on unverified events would let anyone grant
+// themselves a paid plan by POSTing here.
+app.post('/api/payments/webhook/paypal', express.raw({ type: '*/*' }), (req, res) => {
+  const webhookId = process.env.PAYPAL_WEBHOOK_ID;
+  if (!paypalEnabled || !webhookId) return res.status(200).send('skipped');
+
+  const raw = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : String(req.body || '');
+  res.status(200).send('ok');   // acknowledge fast; handlers below are idempotent
+
+  verifyPaypalWebhook(req.headers, raw, webhookId)
+    .then(ok => {
+      if (!ok) { console.warn('   [billing] paypal webhook: signature NOT verified — ignored'); return; }
+      let event; try { event = JSON.parse(raw); } catch { return; }
+      return handlePaypalEvent(event);
+    })
+    .catch(e => console.error('   [billing] paypal webhook:', e.message));
+});
+
+async function verifyPaypalWebhook(headers, rawBody, webhookId) {
+  // webhook_event must be byte-identical to what PayPal signed, so the raw text
+  // is spliced in rather than re-serialised from a parsed object.
+  const payload = '{' +
+    '"auth_algo":' + JSON.stringify(headers['paypal-auth-algo'] || '') + ',' +
+    '"cert_url":' + JSON.stringify(headers['paypal-cert-url'] || '') + ',' +
+    '"transmission_id":' + JSON.stringify(headers['paypal-transmission-id'] || '') + ',' +
+    '"transmission_sig":' + JSON.stringify(headers['paypal-transmission-sig'] || '') + ',' +
+    '"transmission_time":' + JSON.stringify(headers['paypal-transmission-time'] || '') + ',' +
+    '"webhook_id":' + JSON.stringify(webhookId) + ',' +
+    '"webhook_event":' + rawBody +
+    '}';
+  const out = await paypalFetch('/v1/notifications/verify-webhook-signature', {
+    method: 'POST', body: payload,
+  });
+  return out && out.verification_status === 'SUCCESS';
+}
+
+async function handlePaypalEvent(event) {
+  const r = event.resource || {};
+  const type = event.event_type;
+
+  // Renewal payment: the subscription id lives on billing_agreement_id.
+  if (type === 'PAYMENT.SALE.COMPLETED') {
+    const subId = r.billing_agreement_id;
+    if (!subId) return;
+    let periodEnd = null;
+    try {
+      const sub = await paypalFetch(`/v1/billing/subscriptions/${encodeURIComponent(subId)}`, { method: 'GET' });
+      periodEnd = sub.billing_info && sub.billing_info.next_billing_time
+        ? Date.parse(sub.billing_info.next_billing_time) : null;
+    } catch (e) { console.error('   [billing] paypal sub lookup:', e.message); }
+    updateSubscription(subId, 'active', periodEnd);
+    return;
+  }
+
+  const subId = r.id;
+  if (!subId) return;
+  const periodEnd = r.billing_info && r.billing_info.next_billing_time
+    ? Date.parse(r.billing_info.next_billing_time) : null;
+
+  switch (type) {
+    case 'BILLING.SUBSCRIPTION.ACTIVATED':
+    case 'BILLING.SUBSCRIPTION.RE-ACTIVATED':
+    case 'BILLING.SUBSCRIPTION.UPDATED':
+      updateSubscription(subId, 'active', periodEnd);
+      return;
+    case 'BILLING.SUBSCRIPTION.SUSPENDED':
+    case 'BILLING.SUBSCRIPTION.PAYMENT.FAILED':
+      updateSubscription(subId, 'past_due', periodEnd);
+      return;
+    case 'BILLING.SUBSCRIPTION.CANCELLED':
+    case 'BILLING.SUBSCRIPTION.EXPIRED':
+      updateSubscription(subId, 'canceled', periodEnd);
+      return;
+    default:
+      return;
+  }
+}
 
 // CopeCart IPN webhook — RAW body for HMAC-SHA256 signature check. BEFORE json parser.
 app.post('/api/webhooks/copecart', express.raw({ type: '*/*' }), (req, res) => {
   const secret = process.env.COPECART_WEBHOOK_SECRET;
   const raw = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body || '');
-
-  // This endpoint grants paid access, so it is only ever accepted with a valid
-  // signature. Skipping the check when no secret is configured meant anyone who
-  // knew the URL could POST an email address and be handed a Family plan.
+  // This endpoint grants paid access. Skipping the check when no secret was
+  // configured meant anyone who knew the URL could POST an email address and be
+  // handed a Family plan. No secret now means no provisioning, full stop.
   if (!secret) {
     console.error('copecart webhook: COPECART_WEBHOOK_SECRET is not set — refusing unverified webhook');
     return res.status(503).send('webhook not configured');
@@ -322,15 +586,49 @@ app.use(express.json());
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 50, standardHeaders: true, legacyHeaders: false });
 
 // ── Plan activation ─────────────────────────────────────────
-function activatePlan(userId, plan, billing) {
+// meta: { provider:'stripe'|'paypal', subscriptionId, customerId, periodEnd }
+// periodEnd is a Unix-ms timestamp; when absent the plan simply never lapses,
+// which keeps pre-existing accounts (and CopeCart buyers) working as before.
+function activatePlan(userId, plan, billing, meta) {
   if (!PLANS[plan]) return;
   const u = getUserById(userId);
   if (!u) return;
+  meta = meta || {};
   u.plan = plan;
   u.billing = billing || 'monthly';
   u.status = 'active';
+  if (meta.provider) u.billing_provider = meta.provider;
+  if (meta.subscriptionId) u.subscription_id = meta.subscriptionId;
+  if (meta.customerId) u.customer_id = meta.customerId;
+  if (meta.periodEnd) u.current_period_end = meta.periodEnd;
   u.updated_at = now();
   saveNow();
+  console.log('   [billing] activated', u.email, '→', plan, billing,
+    meta.provider ? '(' + meta.provider + ')' : '',
+    meta.periodEnd ? 'until ' + new Date(meta.periodEnd).toISOString() : '');
+}
+
+// Find the account behind a provider subscription id.
+function getUserBySubscription(subId) {
+  if (!subId) return null;
+  return users.find(u => u.subscription_id === subId) || null;
+}
+
+// Apply a lifecycle change coming from a provider webhook.
+// status: 'active' | 'past_due' | 'canceled'
+function updateSubscription(subId, status, periodEnd) {
+  const u = getUserBySubscription(subId);
+  if (!u) { console.warn('   [billing] no account for subscription', subId); return; }
+  u.status = status;
+  if (periodEnd) u.current_period_end = periodEnd;
+  if (status === 'canceled') {
+    // Keep the plan name for the record; hasAccess() stops honouring it once
+    // the paid period is over, so a cancellation still runs to term.
+    u.canceled_at = now();
+  }
+  u.updated_at = now();
+  saveNow();
+  console.log('   [billing]', u.email, 'subscription', subId, '→', status);
 }
 
 // Create or upgrade a buyer's account from a CopeCart purchase, then email them
@@ -393,7 +691,6 @@ auth.post('/register', async (req, res) => {
       user.name = name || user.name;
       user.password_hash = hash;
       user.verify_token = token();
-      user.verify_expires = t + days(VERIFY_DAYS);
       user.updated_at = t;
     } else {
       user = {
@@ -402,7 +699,6 @@ auth.post('/register', async (req, res) => {
         password_hash: hash,
         email_verified: 0,
         verify_token: token(),
-        verify_expires: t + days(VERIFY_DAYS),
         reset_token: null, reset_expires: null,
         plan: 'trial', billing: null, status: 'trialing',
         trial_ends: t + days(TRIAL_DAYS),
@@ -435,62 +731,22 @@ auth.get('/verify', (req, res) => {
   if (!t) return res.status(400).json({ ok: false, error: 'Missing token.' });
   const u = getUserByField('verify_token', t);
   if (!u) return res.status(400).json({ ok: false, error: 'Invalid or expired verification link.' });
-  // Links issued before this field existed have no expiry, so they still work.
-  if (u.verify_expires && u.verify_expires < now())
-    return res.status(400).json({ ok: false, error: 'This verification link has expired. Please sign up again to get a new one.' });
   u.email_verified = 1;
   u.verify_token = null;
-  u.verify_expires = null;
   u.updated_at = now();
   saveNow();
   return res.json({ ok: true, message: 'Email verified. You can now sign in.' });
 });
 
-/* Failed-login tracking, per account. The IP rate limiter caps one source, but
-   it does nothing against many sources all guessing at one account, which is
-   what credential stuffing looks like. Counting per email closes that.
-   Unknown emails are counted too, so a locked account can't be told apart from
-   a wrong password and this can't be used to find out who has an account. */
-const loginFails = new Map(); // email -> { count, until }
-const LOGIN_MAX_FAILS = 8;
-const LOGIN_LOCK_MS = 15 * 60 * 1000;
-
-function loginLockedUntil(email) {
-  const rec = loginFails.get(email);
-  if (!rec) return 0;
-  if (!rec.until) return 0;                 // still counting, not locked yet
-  if (rec.until > now()) return rec.until;  // locked
-  loginFails.delete(email);                 // lock has run out, start fresh
-  return 0;
-}
-function noteLoginFail(email) {
-  const rec = loginFails.get(email) || { count: 0, until: 0 };
-  rec.count += 1;
-  if (rec.count >= LOGIN_MAX_FAILS) { rec.until = now() + LOGIN_LOCK_MS; rec.count = 0; }
-  loginFails.set(email, rec);
-  // Keep the map from growing without bound on a long-running process.
-  if (loginFails.size > 5000) {
-    for (const [k, v] of loginFails) { if (!v.until || v.until <= now()) loginFails.delete(k); }
-  }
-}
-
 auth.post('/login', async (req, res) => {
   const email = (req.body.email || '').toLowerCase().trim();
   const password = req.body.password || '';
-
-  const until = loginLockedUntil(email);
-  if (until) {
-    const mins = Math.max(1, Math.ceil((until - now()) / 60000));
-    return res.status(429).json({ error: `Too many failed sign-in attempts. Please try again in ${mins} minute${mins === 1 ? '' : 's'}, or reset your password.` });
-  }
-
   const u = getUserByEmail(email);
-  if (!u) { noteLoginFail(email); return res.status(401).json({ error: 'Invalid login credentials' }); }
+  if (!u) return res.status(401).json({ error: 'Invalid login credentials' });
   const ok = await bcrypt.compare(password, u.password_hash);
-  if (!ok) { noteLoginFail(email); return res.status(401).json({ error: 'Invalid login credentials' }); }
+  if (!ok) return res.status(401).json({ error: 'Invalid login credentials' });
   if (!u.email_verified && !ADMIN_EMAILS.includes(email))
     return res.status(403).json({ error: 'Please verify your email first — check your inbox for the confirmation link.' });
-  loginFails.delete(email);
   setSession(res, u);
   return res.json({ token: signToken(u), user: publicUser(u) });
 });
@@ -505,16 +761,10 @@ auth.post('/forgot', async (req, res) => {
     u.updated_at = now();
     saveNow();
     const link = `${APP_URL}/reset.html?token=${u.reset_token}`;
-    try {
-      await sendMail(email, 'Reset your InclusionGames password',
-        `<p>We received a request to reset your password. This link is valid for 24 hours:</p>
-         <p><a href="${link}">${link}</a></p>
-         <p>If you didn't request this, you can safely ignore this email.</p>`);
-    } catch (e) {
-      // An SMTP failure here used to escape as an unhandled rejection, which
-      // takes the whole process down. Log it and still answer normally.
-      console.error('forgot: reset email failed:', (e && e.response) || e);
-    }
+    await sendMail(email, 'Reset your InclusionGames password',
+      `<p>We received a request to reset your password. This link is valid for 24 hours:</p>
+       <p><a href="${link}">${link}</a></p>
+       <p>If you didn't request this, you can safely ignore this email.</p>`);
   }
   return res.json({ ok: true });
 });
@@ -789,7 +1039,9 @@ app.get('/api/complete-item', authMiddleware, completeLimiter, async (req, res) 
     }
     // cache: index by every language name, persist to disk
     [item.en, item.de, item.pl, item.es].forEach(k => { if (k) ITEM_LIB[k.toLowerCase().trim()] = item; });
-    try { fs.writeFileSync(path.join(DATA_DIR, 'item-library.json'), JSON.stringify(ITEM_LIB)); } catch (e) {}
+    // Same atomic swap — this file self-grows via the AI cache and a torn write
+    // would take the whole library with it.
+    try { writeJsonAtomic(path.join(DATA_DIR, 'item-library.json'), ITEM_LIB); } catch (e) {}
     return res.json({ found: true, source: 'ai', item });
   } catch (e) {
     console.log('complete-item AI error: ' + e.message);
@@ -800,7 +1052,9 @@ app.get('/api/complete-item', authMiddleware, completeLimiter, async (req, res) 
 
 // --- Read-only game content (from the dumped content-index.json) ---
 let CONTENT_INDEX = {};
-try { CONTENT_INDEX = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'content-index.json'), 'utf8')); }
+// Lives in data/ — the old /root/content-index.json primary never existed on this
+// host, so every start was silently falling through to this same file.
+try { CONTENT_INDEX = JSON.parse(fs.readFileSync(path.join(DATA_DIR,'content-index.json'),'utf8')); }
 catch { CONTENT_INDEX = {}; }
 console.log('   Game content index: ' + Object.keys(CONTENT_INDEX).length + ' games.');
 
@@ -808,7 +1062,7 @@ console.log('   Game content index: ' + Object.keys(CONTENT_INDEX).length + ' ga
 const SENTENCE_CONTENT = (function(){
   try {
     const vm = require('vm');
-    const html = fs.readFileSync(path.join(ROOT, 'game05.html'), 'utf8');
+    const html = fs.readFileSync(path.join(ROOT,'game05.html'),'utf8');
     const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join('\n');
     const box = { IG_GAME:function(){}, console:{log(){},warn(){},error(){}}, Math, Date, JSON, setInterval:()=>0, setTimeout:()=>0, clearInterval(){}, requestAnimationFrame:()=>0, navigator:{mediaDevices:{getUserMedia(){return Promise.reject();}}}, localStorage:{getItem:()=>null,setItem(){}} };
     box.window=box; box.document={documentElement:{},body:{},head:{appendChild(){}},createElement(){return {style:{},appendChild(){},play(){},getContext(){return {};}};},getElementById(){return null;},querySelector(){return null;},querySelectorAll(){return [];},addEventListener(){}}; box.addEventListener=function(){};
@@ -853,69 +1107,11 @@ children.post('/:id/progress', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
-// --- Stroke rehab sessions -----------------------------------------------
-// Results only. No video and no landmark data ever reaches the server: the
-// camera is processed entirely in the browser, and that promise is made to
-// the user on the page, so the payload below is deliberately just counts.
-const rehabCatalogue = require('./assets/rehab-catalogue.js');
-
-function clampInt(v, lo, hi) {
-  const n = parseInt(v, 10);
-  if (!Number.isFinite(n)) return lo;
-  return Math.max(lo, Math.min(hi, n));
-}
-
-children.post('/:id/rehab-session', authMiddleware, (req, res) => {
-  const c = findChild(req);
-  if (!c) return res.status(404).json({ error: 'Child not found.' });
-
-  const b = req.body || {};
-  if (!rehabCatalogue.byId(String(b.exercise || ''))) {
-    return res.status(400).json({ error: 'Unknown exercise.' });
-  }
-  if (!Array.isArray(c.rehab)) c.rehab = [];
-
-  const rec = {
-    exercise: String(b.exercise),
-    side: ['left', 'right', 'both'].indexOf(b.side) >= 0 ? b.side : 'both',
-    sets: clampInt(b.sets, 0, 20),
-    reps: clampInt(b.reps, 0, 500),
-    targetReps: clampInt(b.targetReps, 0, 500),
-    // Amplitude is a percentage of the person's OWN calibrated range, so it
-    // can legitimately exceed 100 when they beat their calibration. It is
-    // null for the exercises that measure no range at all — the ones that
-    // only ask whether a target was reached — because storing a 0 or a 100
-    // there would put a number in the record that nothing measured.
-    bestAmplitude: b.bestAmplitude == null ? null : clampInt(b.bestAmplitude, 0, 200),
-    avgAmplitude: b.avgAmplitude == null ? null : clampInt(b.avgAmplitude, 0, 200),
-    symmetry: b.symmetry == null ? null : clampInt(b.symmetry, 0, 100),
-    longestHoldMs: clampInt(b.longestHoldMs, 0, 600000),
-    timeMs: clampInt(b.timeMs, 0, 36000000),
-    // Flagged when calibration saw almost no movement — it makes every other
-    // number on that session unreliable, so the report must be able to say so.
-    calibrationWeak: !!b.calibrationWeak,
-    lang: rehabCatalogue.langs.indexOf(b.lang) >= 0 ? b.lang : 'en',
-    at: now(),
-  };
-
-  c.rehab.push(rec);
-  if (c.rehab.length > 1000) c.rehab = c.rehab.slice(-1000);
-  c.updated_at = now();
-  saveNow();
-  res.json({ ok: true });
-});
-
-children.get('/:id/rehab-analytics', authMiddleware, (req, res) => {
-  const c = findChild(req);
-  if (!c) return res.status(404).json({ error: 'Child not found.' });
-  const rangeDays = REPORT_RANGES[String(req.query.range)] || null;
-  res.json({ report: rehabAnalytics.buildRehabReport(c, { rangeDays }) });
-});
+// --- Förderbericht PDF: a one-page progress report for a child ---
 
 // --- Progress reports: on-screen analytics, PDF, and email to a guardian ---
 const analytics = require('./lib/analytics.js');
 const reportPdf = require('./lib/report-pdf.js');
-const rehabAnalytics = require('./lib/rehab-analytics.js');
 
 const REPORT_RANGES = { 7: 7, 30: 30, 90: 90, 365: 365 };
 
@@ -1024,6 +1220,7 @@ children.post('/:id/report/send', authMiddleware, reportSendLimiter, async (req,
     res.status(500).json({ error: 'Could not send the report. Please try again.' });
   }
 });
+
 app.use('/api/children', children);
 
 
@@ -1033,11 +1230,24 @@ app.use('/api/children', children);
 const pay = express.Router();
 
 app.get('/api/payments/config', (req, res) => {
+  // Public prices only — never echo Stripe Price ids or the PayPal client id.
+  const plans = {};
+  Object.keys(PLANS).forEach(k => {
+    plans[k] = { name: PLANS[k].name, monthly: PLANS[k].monthly, annual: PLANS[k].annual };
+  });
+  // PayPal can only take a given plan if its Billing Plan id is configured.
+  const paypalPlans = {};
+  Object.keys(PLANS).forEach(k => {
+    paypalPlans[k] = {
+      monthly: !!paypalPlanId(k, 'monthly'),
+      annual: !!paypalPlanId(k, 'annual'),
+    };
+  });
   res.json({
     stripe: !!stripe,
     paypal: paypalEnabled,
-    paypalClientId: paypalEnabled ? PAYPAL_ID : null,
-    plans: PLANS,
+    paypalPlans: paypalEnabled ? paypalPlans : null,
+    plans,
     demo: !stripe && !paypalEnabled,
   });
 });
@@ -1058,7 +1268,6 @@ pay.post('/create-checkout-session', authMiddleware, async (req, res) => {
 
   // DEMO MODE: no Stripe key — simulate a successful checkout return.
   if (!stripe) {
-    if (IS_PRODUCTION) return res.status(503).json({ error: PAYMENTS_UNCONFIGURED });
     return res.json({
       url: `${APP_URL}/payment-success.html?demo=1&plan=${plan}&billing=${billing}&session_id=demo_${token(8)}`,
       demo: true,
@@ -1075,21 +1284,48 @@ pay.post('/create-checkout-session', authMiddleware, async (req, res) => {
             currency: 'eur',
             recurring: { interval: billing === 'annual' ? 'year' : 'month' },
             unit_amount: Math.round((billing === 'annual' ? PLANS[plan].annual : PLANS[plan].monthly) * 100),
-            product_data: { name: `InclusionGames — ${PLANS[plan].name}` },
+            product_data: {
+              name: `InclusionGames — ${PLANS[plan].name}`,
+              // Managed Payments refuses a line item with no tax code. Default is
+              // the general "electronically supplied services" code, which fits a
+              // browser-delivered subscription. Confirm with your tax adviser and
+              // override with STRIPE_TAX_CODE if they prefer a different one.
+              // https://docs.stripe.com/tax/tax-codes
+              tax_code: process.env.STRIPE_TAX_CODE || 'txcd_10000000',
+            },
           },
         };
-    const session = await stripe.checkout.sessions.create({
+    // Managed Payments (on by default for new accounts) owns payment methods and
+    // tax. It rejects payment_method_types outright, and requires automatic_tax
+    // to be true or absent — so both are simply left out. Upside: which methods
+    // appear (card, SEPA Lastschrift, …) is now a dashboard setting, and Stripe
+    // calculates EU VAT for us.
+    const params = {
       mode: 'subscription',
-      payment_method_types: ['card'],
       line_items: [lineItem],
       client_reference_id: req.user.id,
       customer_email: req.user.email,
       billing_address_collection: 'required',
-      automatic_tax: { enabled: !!process.env.STRIPE_TAX }, // turn on with STRIPE_TAX=1 once Stripe Tax is configured
-      metadata: { userId: req.user.id, plan, billing, waiver: req.body.waiver ? '1' : '0' },
+      metadata: {
+        brand: BRAND_ID, site: BRAND_SITE,
+        userId: req.user.id, plan, billing, waiver: req.body.waiver ? '1' : '0',
+      },
+      // Every brand on the KOKOWorlds account shares one Stripe balance, so tag
+      // the subscription itself — not just the checkout session. Subscriptions,
+      // their invoices and every renewal then carry the brand, which is what
+      // makes per-project reporting and the accountant's split possible.
+      subscription_data: {
+        description: `${BRAND_NAME} — ${PLANS[plan].name}`,
+        metadata: { brand: BRAND_ID, site: BRAND_SITE, userId: req.user.id, plan, billing },
+      },
       success_url: `${APP_URL}/payment-success.html?method=stripe&plan=${plan}&billing=${billing}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${APP_URL}/index.html#pricing`,
-    });
+    };
+    // Only ever send automatic_tax to turn it ON. Sending {enabled:false} is a
+    // hard error under Managed Payments.
+    if (process.env.STRIPE_TAX) params.automatic_tax = { enabled: true };
+
+    const session = await stripe.checkout.sessions.create(params);
     res.json({ url: session.url });
   } catch (e) {
     console.error('stripe checkout', e);
@@ -1101,47 +1337,70 @@ pay.post('/create-checkout-session', authMiddleware, async (req, res) => {
 pay.get('/verify-session', authMiddleware, async (req, res) => {
   const sessionId = req.query.session_id;
 
-  // DEMO MODE — only when there is genuinely no Stripe key on this server.
-  // A "demo_" session id must NOT be honoured once real keys are configured,
-  // or anyone could hand themselves any plan by inventing a session id.
+  // Demo activation exists for a machine with no Stripe key at all. It used to
+  // also fire for any session_id beginning "demo", and that clause stayed live
+  // once real keys were configured — so a signed-in user could award themselves
+  // the 99.99 School plan with a single GET. It is now unreachable in production.
   if (!stripe) {
     if (IS_PRODUCTION) return res.status(503).json({ ok: false, error: PAYMENTS_UNCONFIGURED });
-    const plan = req.query.plan;
-    const billing = req.query.billing === 'annual' ? 'annual' : 'monthly';
-    if (!PLANS[plan] || plan === 'trial') return res.status(400).json({ ok: false, error: 'Invalid plan.' });
-    activatePlan(req.user.id, plan, billing);
+    const p = PLANS[req.query.plan] && req.query.plan !== 'trial' ? req.query.plan : null;
+    if (!p) return res.status(400).json({ ok: false, error: 'Invalid plan.' });
+    activatePlan(req.user.id, p, req.query.billing === 'annual' ? 'annual' : 'monthly');
     const u = getUserById(req.user.id);
     return res.json({ ok: true, token: signToken(u), user: publicUser(u), demo: true });
   }
-
   if (!sessionId) return res.status(400).json({ ok: false, error: 'Missing session id.' });
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-    // The session has to be one WE started for THIS account. Without this a
-    // customer could replay somebody else's session id.
+    // The session must belong to the caller. session_id travels in the return
+    // URL, so without this check anyone holding any paid session id could
+    // activate their own account from someone else's payment.
     const owner = session.client_reference_id || (session.metadata && session.metadata.userId);
-    if (owner !== req.user.id) {
-      console.warn('verify-session: session', sessionId, 'does not belong to user', req.user.id);
-      return res.status(403).json({ ok: false, error: 'This payment belongs to a different account.' });
+    if (owner && owner !== req.user.id) {
+      console.warn('   [billing] verify-session: session owner mismatch — refused');
+      return res.status(403).json({ ok: false, error: 'This payment belongs to another account.' });
+    }
+    if (!owner) {
+      console.warn('   [billing] verify-session: session has no owner reference — refused');
+      return res.status(403).json({ ok: false, error: 'Could not confirm this payment belongs to you.' });
     }
 
-    if (session.payment_status !== 'paid' && session.status !== 'complete') {
-      return res.status(402).json({ ok: false, error: 'Payment not completed.' });
+    // What was bought is read back from the session Stripe recorded at
+    // creation — never from the return URL. Otherwise a genuine 9.99 Starter
+    // payment could be redeemed as the 99.99 School plan by editing one query
+    // parameter, and the ownership check above would happily allow it because
+    // the session really is the caller's.
+    const md = session.metadata || {};
+    const plan = PLANS[md.plan] && md.plan !== 'trial' ? md.plan : null;
+    const billing = md.billing === 'annual' ? 'annual' : 'monthly';
+    if (!plan) {
+      console.warn('   [billing] verify-session: session carries no usable plan metadata — refused');
+      return res.status(409).json({ ok: false, error: 'Could not determine which plan was purchased. Please contact support.' });
     }
 
-    // Plan and billing come from the session Stripe is holding, never from the
-    // query string — otherwise a Starter payment could be returned as ?plan=school.
-    const plan = session.metadata && session.metadata.plan;
-    const billing = (session.metadata && session.metadata.billing) === 'annual' ? 'annual' : 'monthly';
-    if (!PLANS[plan] || plan === 'trial') {
-      console.error('verify-session: session', sessionId, 'has no usable plan metadata');
-      return res.status(500).json({ ok: false, error: 'Could not read the purchased plan. Please contact support.' });
+    if (session.payment_status === 'paid' || session.status === 'complete') {
+      // Record the same metadata the webhook would. This path usually wins the
+      // race against the webhook, and without the subscription id the account
+      // can never be matched to later renewal or cancellation events — the
+      // subscription would be orphaned and access would never lapse.
+      const subId = idOf(session.subscription);
+      let periodEnd = null;
+      if (subId) {
+        try {
+          periodEnd = periodEndOfSub(await stripe.subscriptions.retrieve(subId));
+        } catch (e) { console.error('   [billing] verify-session retrieve sub:', e.message); }
+      }
+      activatePlan(req.user.id, plan, billing, {
+        provider: 'stripe',
+        subscriptionId: subId,
+        customerId: idOf(session.customer),
+        periodEnd,
+      });
+      const u = getUserById(req.user.id);
+      return res.json({ ok: true, token: signToken(u), user: publicUser(u) });
     }
-
-    activatePlan(req.user.id, plan, billing);
-    const u = getUserById(req.user.id);
-    return res.json({ ok: true, token: signToken(u), user: publicUser(u) });
+    res.status(402).json({ ok: false, error: 'Payment not completed.' });
   } catch (e) {
     console.error('verify-session', e);
     res.status(500).json({ ok: false, error: 'Could not verify payment.' });
@@ -1159,125 +1418,137 @@ async function paypalToken() {
     body: 'grant_type=client_credentials',
   });
   const d = await r.json();
+  if (!d.access_token) throw new Error('PayPal auth failed: ' + JSON.stringify(d).slice(0, 200));
   return d.access_token;
 }
 
-pay.post('/paypal/create-order', authMiddleware, async (req, res) => {
+// Small JSON helper so every PayPal call surfaces API errors instead of
+// silently returning undefined fields.
+async function paypalFetch(pathname, opts) {
+  const at = await paypalToken();
+  const r = await fetch(`${PAYPAL_BASE}${pathname}`, Object.assign({}, opts, {
+    headers: Object.assign({
+      Authorization: `Bearer ${at}`,
+      'Content-Type': 'application/json',
+    }, (opts && opts.headers) || {}),
+  }));
+  const text = await r.text();
+  let body = null;
+  try { body = text ? JSON.parse(text) : null; } catch { body = { raw: text }; }
+  if (!r.ok) {
+    const err = new Error(`PayPal ${r.status} on ${pathname}: ` +
+      JSON.stringify(body && (body.details || body.message || body)).slice(0, 300));
+    err.status = r.status;
+    throw err;
+  }
+  return body;
+}
+
+// Billing Plan ids come from the PayPal dashboard (or scripts/paypal-setup.js).
+// One per plan × billing period, e.g. PAYPAL_PLAN_FAMILY_MONTHLY.
+function paypalPlanId(plan, billing) {
+  return process.env[`PAYPAL_PLAN_${plan.toUpperCase()}_${billing.toUpperCase()}`] || '';
+}
+
+// Start a recurring PayPal subscription. Returns the approval URL the browser
+// must be sent to; PayPal returns the buyer to payment-success.html afterwards.
+pay.post('/paypal/create-subscription', authMiddleware, async (req, res) => {
   const plan = req.body.plan;
   const billing = req.body.billing === 'annual' ? 'annual' : 'monthly';
   if (!PLANS[plan] || plan === 'trial') return res.status(400).json({ error: 'Invalid plan.' });
-  const amount = (billing === 'annual' ? PLANS[plan].annual : PLANS[plan].monthly).toFixed(2);
 
-  // Record the customer's express withdrawal-waiver consent, same as the
-  // Stripe route does (legal proof, § 356(5) BGB).
-  if (req.body.waiver) {
-    req.user.waiver_at = now();
-    req.user.waiver_ip = req.ip;
-    req.user.updated_at = now();
-    saveNow();
-  }
-
+  // DEMO MODE: no PayPal credentials — return straight to the success page.
   if (!paypalEnabled) {
-    if (IS_PRODUCTION) return res.status(503).json({ error: PAYMENTS_UNCONFIGURED });
-    return res.json({ id: `demo_${token(8)}`, demo: true });
+    return res.json({
+      id: `demo_${token(8)}`,
+      demo: true,
+      url: `${APP_URL}/payment-success.html?method=paypal&plan=${plan}&billing=${billing}&subscription_id=demo_${token(8)}`,
+    });
   }
+
+  const planId = paypalPlanId(plan, billing);
+  if (!planId) {
+    console.error(`   [billing] missing PAYPAL_PLAN_${plan.toUpperCase()}_${billing.toUpperCase()}`);
+    return res.status(503).json({ error: 'PayPal is not available for this plan yet.' });
+  }
+
   try {
-    const at = await paypalToken();
-    const r = await fetch(`${PAYPAL_BASE}/v2/checkout/orders`, {
+    const sub = await paypalFetch('/v1/billing/subscriptions', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${at}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        intent: 'CAPTURE',
-        purchase_units: [{
-          amount: { currency_code: 'EUR', value: amount },
-          description: `InclusionGames — ${PLANS[plan].name}`,
-          custom_id: `${req.user.id}|${plan}|${billing}`,
-        }],
-        // Without a return_url PayPal has nowhere to send the buyer after they
-        // approve, so the order is never captured and the plan never activates.
+        plan_id: planId,
+        custom_id: `${req.user.id}|${plan}|${billing}`,
+        subscriber: { email_address: req.user.email },
         application_context: {
           brand_name: 'InclusionGames',
-          user_action: 'PAY_NOW',
-          return_url: `${APP_URL}/payment-success.html?method=paypal`,
-          cancel_url: `${APP_URL}/index.html#pricing`,
+          locale: 'de-DE',
+          user_action: 'SUBSCRIBE_NOW',
+          shipping_preference: 'NO_SHIPPING',
+          payment_method: { payer_selected: 'PAYPAL', payee_preferred: 'IMMEDIATE_PAYMENT_REQUIRED' },
+          return_url: `${APP_URL}/payment-success.html?method=paypal&plan=${plan}&billing=${billing}`,
+          cancel_url: `${APP_URL}/checkout.html?plan=${plan}&billing=${billing}&cancelled=1`,
         },
       }),
     });
-    const order = await r.json();
-    if (!order.id) {
-      console.error('paypal create: no order id', order);
-      return res.status(502).json({ error: 'Could not start PayPal checkout.' });
-    }
-    // Prefer the approval link PayPal hands back over building the URL by hand.
-    const approve = (order.links || []).find(l => l.rel === 'approve');
-    res.json({ id: order.id, approveUrl: approve ? approve.href : null });
+    const approve = (sub.links || []).find(l => l.rel === 'approve');
+    if (!approve) throw new Error('no approve link in PayPal response');
+    res.json({ id: sub.id, url: approve.href });
   } catch (e) {
-    console.error('paypal create', e);
+    console.error('   [billing] paypal create-subscription:', e.message);
     res.status(500).json({ error: 'Could not start PayPal checkout.' });
   }
 });
 
-pay.post('/paypal/capture', authMiddleware, async (req, res) => {
-  const { orderID } = req.body;
+// Called by payment-success.html with the subscription_id PayPal appended to
+// the return URL. Confirms with PayPal directly — never trusts the query string.
+pay.post('/paypal/confirm', authMiddleware, async (req, res) => {
+  const subscriptionId = req.body.subscriptionId || req.body.orderID;
 
-  // DEMO MODE — only with no PayPal credentials on this server, for the same
-  // reason as the Stripe branch above.
+  // Same story as Stripe: the "demo" prefix used to bypass PayPal entirely even
+  // with live credentials in place.
   if (!paypalEnabled) {
     if (IS_PRODUCTION) return res.status(503).json({ ok: false, error: PAYMENTS_UNCONFIGURED });
-    const plan = req.body.plan;
-    const billing = req.body.billing === 'annual' ? 'annual' : 'monthly';
-    if (!PLANS[plan] || plan === 'trial') return res.status(400).json({ ok: false, error: 'Invalid plan.' });
-    activatePlan(req.user.id, plan, billing);
+    const p = PLANS[req.body.plan] && req.body.plan !== 'trial' ? req.body.plan : null;
+    if (!p) return res.status(400).json({ ok: false, error: 'Invalid plan.' });
+    activatePlan(req.user.id, p, req.body.billing === 'annual' ? 'annual' : 'monthly', { provider: 'paypal' });
     const u = getUserById(req.user.id);
     return res.json({ ok: true, token: signToken(u), user: publicUser(u), demo: true });
   }
+  if (!subscriptionId) return res.status(400).json({ ok: false, error: 'Missing subscription id.' });
 
-  if (!orderID) return res.status(400).json({ ok: false, error: 'Missing order id.' });
   try {
-    const at = await paypalToken();
-    const r = await fetch(`${PAYPAL_BASE}/v2/checkout/orders/${encodeURIComponent(orderID)}/capture`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${at}`, 'Content-Type': 'application/json' },
+    const sub = await paypalFetch(`/v1/billing/subscriptions/${encodeURIComponent(subscriptionId)}`, { method: 'GET' });
+
+    // The subscription must belong to the signed-in account.
+    const owner = String(sub.custom_id || '').split('|')[0];
+    if (owner && owner !== req.user.id) {
+      console.warn('   [billing] paypal confirm: subscription owner mismatch');
+      return res.status(403).json({ ok: false, error: 'This subscription belongs to another account.' });
+    }
+    if (sub.status !== 'ACTIVE' && sub.status !== 'APPROVED') {
+      return res.status(402).json({ ok: false, error: 'PayPal subscription is not active yet.' });
+    }
+
+    // custom_id was set to `userId|plan|billing` when the subscription was
+    // created, so PayPal itself tells us what was bought.
+    const parts = String(sub.custom_id || '').split('|');
+    const plan = PLANS[parts[1]] && parts[1] !== 'trial' ? parts[1] : null;
+    const billing = parts[2] === 'annual' ? 'annual' : 'monthly';
+    if (!plan) {
+      console.warn('   [billing] paypal confirm: subscription carries no usable plan — refused');
+      return res.status(409).json({ ok: false, error: 'Could not determine which plan was purchased. Please contact support.' });
+    }
+
+    const periodEnd = sub.billing_info && sub.billing_info.next_billing_time
+      ? Date.parse(sub.billing_info.next_billing_time) : null;
+    activatePlan(req.user.id, plan, billing, {
+      provider: 'paypal', subscriptionId: sub.id, periodEnd,
     });
-    const cap = await r.json();
-    if (cap.status !== 'COMPLETED') {
-      return res.status(402).json({ ok: false, error: 'PayPal payment not completed.' });
-    }
-
-    // What was actually bought is read back off the captured order — we set
-    // custom_id to "userId|plan|billing" when the order was created. Trusting
-    // req.body.plan here would let a 9.99 order be redeemed as any plan.
-    const unit = (cap.purchase_units && cap.purchase_units[0]) || {};
-    const customId = unit.custom_id
-      || (unit.payments && unit.payments.captures && unit.payments.captures[0] && unit.payments.captures[0].custom_id)
-      || '';
-    const [ownerId, paidPlan, paidBilling] = String(customId).split('|');
-
-    if (!ownerId || ownerId !== req.user.id) {
-      console.warn('paypal capture: order', orderID, 'does not belong to user', req.user.id);
-      return res.status(403).json({ ok: false, error: 'This payment belongs to a different account.' });
-    }
-    if (!PLANS[paidPlan] || paidPlan === 'trial') {
-      console.error('paypal capture: order', orderID, 'has no usable plan in custom_id');
-      return res.status(500).json({ ok: false, error: 'Could not read the purchased plan. Please contact support.' });
-    }
-
-    const billing = paidBilling === 'annual' ? 'annual' : 'monthly';
-
-    // The amount PayPal actually captured has to match that plan's price.
-    const captured = unit.payments && unit.payments.captures && unit.payments.captures[0];
-    const expected = (billing === 'annual' ? PLANS[paidPlan].annual : PLANS[paidPlan].monthly).toFixed(2);
-    if (captured && captured.amount && captured.amount.value !== expected) {
-      console.error('paypal capture: order', orderID, 'paid', captured.amount.value, 'but', paidPlan, billing, 'costs', expected);
-      return res.status(402).json({ ok: false, error: 'The amount paid does not match the plan. Please contact support.' });
-    }
-
-    activatePlan(req.user.id, paidPlan, billing);
     const u = getUserById(req.user.id);
     return res.json({ ok: true, token: signToken(u), user: publicUser(u) });
   } catch (e) {
-    console.error('paypal capture', e);
-    res.status(500).json({ ok: false, error: 'Could not capture PayPal payment.' });
+    console.error('   [billing] paypal confirm:', e.message);
+    res.status(500).json({ ok: false, error: 'Could not confirm PayPal subscription.' });
   }
 });
 
@@ -1293,21 +1564,63 @@ app.post('/api/reward', rewardLimiter, async (req, res) => {
   const to = process.env.REWARD_TO || process.env.SMTP_USER || 'info@inclusion-games.com';
   const secs = Math.max(0, Math.round((Number(timeMs) || 0) / 1000));
   const tstr = Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0');
-  // This mail goes to the site owner and every field below is attacker-supplied,
-  // so escape before interpolating — otherwise anyone can put markup and links
-  // into a message the owner receives and trusts.
-  const g = esc(String(game || 'a game').slice(0, 60));
   try {
-    await sendMail(to, `🎉 Game result — ${String(game || 'InclusionGames').replace(/[\r\n]/g, ' ').slice(0, 60)}`,
-      `<p>A player completed <b>${g}</b> (${esc(String(lang || '').slice(0, 8))}).</p>
+    await sendMail(to, `🎉 Game result — ${game || 'InclusionGames'}`,
+      `<p>A player completed <b>${game || 'a game'}</b> (${lang || ''}).</p>
        <ul><li>Score: ${Number(score) || 0} / ${Number(total) || 0}</li><li>Time: ${tstr}</li></ul>
-       <p>Reply-to (parent/teacher): ${esc(parentEmail)}</p>
-       <p>Message: ${esc((note || '—').toString().slice(0, 500))}</p>`);
+       <p>Reply-to (parent/teacher): ${parentEmail}</p>
+       <p>Message: ${(note || '—').toString().slice(0, 500)}</p>`);
     return res.json({ ok: true });
   } catch (e) {
     console.error('reward', e);
     return res.status(500).json({ error: 'Could not send. Please try again.' });
   }
+});
+
+// ── Contact / custom-game requests ──────────────────────────
+// One endpoint behind both the "talk to us" box and the custom-game form.
+// Everything a visitor types is escaped before it goes near the HTML mail —
+// otherwise a message could inject markup into our own inbox.
+const CONTACT_TO = process.env.CONTACT_TO || process.env.REWARD_TO
+  || process.env.SMTP_USER || 'info@inclusion-games.com';
+
+const esc = v => String(v == null ? '' : v)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+const SUBJECTS = {
+  custom:    '🎮 Custom game request',
+  question:  '❓ Question',
+  idea:      '💡 Idea / feedback',
+  extension: '⏱ Trial extension request',
+};
+
+const contactLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 6, standardHeaders: true, legacyHeaders: false });
+app.post('/api/contact', contactLimiter, async (req, res) => {
+  const b = req.body || {};
+  const kind = SUBJECTS[b.kind] ? b.kind : 'question';
+  const email = String(b.email || '').trim();
+  const message = String(b.message || '').trim();
+
+  if (!emailValid(email)) return res.status(400).json({ error: 'Please enter a valid email address.' });
+  if (message.length < 10) return res.status(400).json({ error: 'Please tell us a little more (at least 10 characters).' });
+  if (message.length > 4000) return res.status(400).json({ error: 'That message is too long. Please shorten it.' });
+
+  const rows = [
+    ['Name', b.name], ['Email', email], ['I am a', b.role],
+    ['Child’s age', b.childAge], ['Page', b.page], ['Language', b.lang],
+  ].filter(([, v]) => v).map(([k, v]) => `<tr><td><b>${esc(k)}</b></td><td>${esc(v)}</td></tr>`).join('');
+
+  await sendMail(CONTACT_TO, `${SUBJECTS[kind]} — inclusion-games.com`,
+    `<table cellpadding="4">${rows}</table>
+     <p style="white-space:pre-wrap">${esc(message)}</p>
+     <hr><p style="color:#888;font-size:12px">Reply directly to this mail to answer ${esc(email)}.</p>`,
+    { replyTo: email });
+
+  console.log(`   [contact] ${kind} from ${email}`);
+  // sendMail never throws; a bounce is logged server-side rather than shown to
+  // the visitor, who has done nothing wrong and cannot act on it.
+  res.json({ ok: true });
 });
 
 // ── Health check ────────────────────────────────────────────
@@ -1316,78 +1629,36 @@ app.get('/api/health', (req, res) => res.json({ ok: true, time: now() }));
 // ═══════════════════════════════════════════════════════════
 //  STATIC SITE
 // ═══════════════════════════════════════════════════════════
-// ── What must never leave the server ────────────────────────
-// The public site is served straight out of the project folder, and that same
-// folder also holds the database, the .env and the backend source. Everything
-// that is not part of the public site is refused HERE, before express.static
-// ever gets a chance to hand it out.
-// Both the configured DATA_DIR and the conventional ./data are refused: moving
-// DATA_DIR elsewhere must not quietly un-protect files left behind in ./data.
-// lib/ is backend source and has no business being downloadable, for the same
-// reason server.js is in the list below. test/ holds a harness that stubs the
-// camera and the tracker: useful on a developer's machine, nothing but
-// confusion on the live site, so it is served only off production.
-const PRIVATE_DIRS = [
-  DATA_DIR,
-  path.join(ROOT, 'data'),
-  path.join(ROOT, 'node_modules'),
-  path.join(ROOT, '.git'),
-  path.join(ROOT, '.github'),
-  path.join(ROOT, 'lib'),
-].concat(IS_PRODUCTION ? [path.join(ROOT, 'test')] : [])
-  .map(d => d.toLowerCase());
-const PRIVATE_FILES = new Set(
-  ['server.js', 'package.json', 'package-lock.json', '.env', '.env.example', 'README.md', 'DEPLOY-hetzner.md']
-    .map(f => path.join(ROOT, f).toLowerCase())
-);
-
-// Decode the request path once and normalise the slashes, so the checks below
-// can't be walked around with %2e%2e, backslashes or doubled slashes.
-function normalisePath(urlPath) {
-  let p;
-  try { p = decodeURIComponent(urlPath); } catch { return null; } // malformed → refuse
-  p = p.replace(/\\/g, '/').replace(/\/{2,}/g, '/');
-  return p.startsWith('/') ? p : '/' + p;
-}
-
-// Compared case-insensitively on purpose: on a case-insensitive filesystem
-// (Windows, macOS) "/SERVER.JS" and "/Data/users.json" resolve to the same
-// files, so matching only the exact spelling would leave a way straight past
-// these checks.
-function isPrivatePath(p) {
-  const abs = path.resolve(ROOT, '.' + p);
-  if (abs !== ROOT && !abs.startsWith(ROOT + path.sep)) return true; // escaped the site root
-  const lower = abs.toLowerCase();
-  if (PRIVATE_FILES.has(lower)) return true;
-  return PRIVATE_DIRS.some(d => lower === d || lower.startsWith(d + path.sep));
-}
-
-// express.static runs with extensions:['html'], so "/game02" serves game02.html.
-// The gate has to see the same page name either way, or it only gates one spelling.
-function pageName(p) {
-  const trimmed = p.replace(/\/+$/, '');
-  if (!trimmed) return '/index.html';
-  return /\.[a-z0-9]+$/i.test(trimmed) ? trimmed : trimmed + '.html';
-}
-
 // ── Access gate ─────────────────────────────────────────────
 // Game pages, the games folder and the dashboard require an active
 // trial or subscription. Everything else (landing, auth, legal,
 // sales page, assets) stays public.
-app.use((req, res, next) => {
-  const p = normalisePath(req.path);
-  if (p === null || isPrivatePath(p)) return res.status(404).type('text/plain').send('Not found');
+// express.static runs with extensions:['html'], so "/game02" serves game02.html
+// even though the URL carries no extension. This gate used to test the literal
+// request path, so every one of the 42 games — and the dashboard — was free to
+// any anonymous visitor who simply left ".html" off. Resolve the request to the
+// page that will actually be served before deciding, and compare in lower case,
+// because a case-insensitive filesystem serves /GAME02.html just as happily.
+function gatedPageName(urlPath) {
+  let p;
+  try { p = decodeURIComponent(urlPath); } catch { return null; }  // malformed → refuse
+  p = p.replace(/\\/g, '/').replace(/\/{2,}/g, '/');
+  if (!p.startsWith('/')) p = '/' + p;
+  p = p.toLowerCase();
+  const trimmed = p.replace(/\/+$/, '');
+  if (!trimmed) return { path: '/', page: '/index.html' };
+  return { path: p, page: /\.[a-z0-9]+$/.test(trimmed) ? trimmed : trimmed + '.html' };
+}
 
-  // Lower-cased for the same reason as isPrivatePath: "/GAME02" serves
-  // game02.html on a case-insensitive filesystem and must be gated too.
-  const page = pageName(p).toLowerCase();
+app.use((req, res, next) => {
+  const n = gatedPageName(req.path);
+  if (n === null) return res.status(400).type('text/plain').send('Bad request');
+  const page = n.page;
   const gated = page === '/dashboard.html'
-    || page === '/report.html'      // per-child analytics and reports
     || page === '/teacher.html'     // child profiles and per-game customisation
-    || page === '/stroke.html'      // stroke rehabilitation section
+    || page === '/report.html'      // per-child analytics and reports
     || /^\/game[\w-]*\.html$/.test(page)
-    || /^\/rehab[\w-]*\.html$/.test(page)
-    || page.startsWith('/games/');
+    || n.path === '/games' || n.path.startsWith('/games/');
   if (!gated) return next();
   const u = userFromSession(req);
   if (!u) return res.redirect('/login.html');
@@ -1396,13 +1667,60 @@ app.use((req, res, next) => {
 });
 
 app.get('/', (req, res) => res.sendFile(path.join(ROOT, 'index.html')));
-app.use(express.static(ROOT, { extensions: ['html'], dotfiles: 'ignore', index: false }));
+/* ── Block non-public files ──────────────────────────────────
+   ROOT is both the web root AND the app's working directory, so data/,
+   scripts/, node_modules/ and server.js itself sat beside the public HTML and
+   were downloadable — data/users.json exposed every account, including the
+   bcrypt password hashes. Deny them before express.static ever sees the path.
+   (.env survived only because express.static ignores dotfiles by default;
+   it is denied explicitly here so that is no longer load-bearing.) */
+const BLOCKED = [
+  /^\/data(\/|$)/i,
+  /^\/scripts(\/|$)/i,
+  /^\/lib(\/|$)/i,                        // server-side report + analytics logic
+  /^\/test(\/|$)/i,
+  /^\/node_modules(\/|$)/i,
+  /^\/server\.js$/i,
+  /^\/package(-lock)?\.json$/i,
+  /^\/\./,                                   // any dotfile or dotdir
+  /\.(bak|log|sh|md|sql|zip|tar|gz|env)$/i,
+  /\.bak-[\w.-]*$/i,                         // server.js.bak-1788… and friends
+];
+app.use((req, res, next) => {
+  let p = req.path;
+  try { p = decodeURIComponent(p); } catch { /* keep the raw path */ }
+  if (BLOCKED.some(re => re.test(p))) {
+    console.warn('   [static] blocked ' + p + ' from ' + (req.ip || '?'));
+    return res.status(404).type('txt').send('Not found');
+  }
+  next();
+});
+
+app.use(express.static(ROOT, { extensions: ['html'], dotfiles: 'deny' }));
 
 // 404 fallback for unknown /api routes
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 
 app.listen(PORT, () => {
   console.log(`\n🎈 InclusionGames running at ${APP_URL}`);
-  console.log(`   Stripe: ${stripe ? 'live keys ✅' : 'DEMO (no key)'} · PayPal: ${paypalEnabled ? 'live ✅' : 'DEMO (no key)'} · Email: ${transporter ? 'SMTP ✅' : 'console (dev)'}`);
+  // Say which MODE the key is, not merely that one exists. "live keys ✅" for a
+  // sk_test_ key reads as "you are taking real money" when you are not.
+  const stripeMode = !stripe ? 'DEMO (no key)'
+    : (STRIPE_KEY.startsWith('sk_live_') ? 'LIVE — real charges 💳' : 'TEST key (no real charges)');
+  console.log(`   Stripe: ${stripeMode} · PayPal: ${paypalEnabled ? `${process.env.PAYPAL_ENV === 'live' ? 'LIVE' : 'SANDBOX'} ✅` : 'DEMO (no key)'} · Email: ${transporter ? 'SMTP ✅' : 'console (dev)'}`);
   if (!stripe && !paypalEnabled) console.log('   ⚠️  Payment keys not set — checkout runs in DEMO mode (no real charges).');
+  // Confirm the key's mode against Stripe itself rather than trusting the prefix.
+  if (stripe) {
+    stripe.balance.retrieve()
+      .then(b => console.log(`   Stripe check: ${b.livemode ? 'LIVE MODE confirmed by Stripe ✅' : 'Stripe reports TEST MODE — no real money will move ⚠️'}`))
+      .catch(e => console.log(`   Stripe check: key REJECTED — ${e.type} ${(e.raw && e.raw.message) || ''}`));
+
+    // The tax code decides the VAT rate on every real invoice, and a typo would
+    // apply it silently. Resolve it against Stripe and print what it actually is.
+    const taxCode = process.env.STRIPE_TAX_CODE || 'txcd_10000000';
+    stripe.taxCodes.retrieve(taxCode)
+      .then(t => console.log(`   Tax code:  ${t.id} — ${t.name}${process.env.STRIPE_TAX_CODE ? '' : '  (default, not chosen)'}`))
+      .catch(() => console.log(`   Tax code:  ${taxCode} is NOT a valid Stripe tax code ⚠️  invoices will fail`));
+    console.log(`   Brand:     ${BRAND_NAME} (${BRAND_ID}) · ${BRAND_SITE}`);
+  }
 });

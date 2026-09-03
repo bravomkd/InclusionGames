@@ -281,8 +281,20 @@ footer a:hover{color:var(--p1);}
 <script src="assets/auth.js"></script>
 <script src="assets/i18n.js"></script>
 <script>
-// Already signed in? Skip straight to the dashboard.
-IG.redirectIfAuthed('dashboard.html');
+// Already signed in? Don't drop a plan they already picked — finish that
+// purchase instead of dumping them on the dashboard.
+if (IG.isAuthed()) {
+  let dest = 'dashboard.html';
+  try {
+    const it = JSON.parse(localStorage.getItem('ig_intent') || 'null');
+    if (it && it.plan) {
+      localStorage.removeItem('ig_intent');
+      dest = 'checkout.html?plan=' + encodeURIComponent(it.plan) +
+             '&billing=' + (it.billing === 'annual' ? 'annual' : 'monthly');
+    }
+  } catch (e) { /* ignore unreadable storage */ }
+  window.location.href = dest;
+}
 
 // Email validation
 document.getElementById('email').addEventListener('input', function() {

@@ -238,22 +238,36 @@ footer a:hover{color:var(--p1);}
 <script src="assets/auth.js"></script>
 <script src="assets/i18n.js"></script>
 <script>
-/* Where to go after signing in. "?next=" lets a page that needs a session
-   send the user here and get them back afterwards (payment-success.html does
-   this). Only same-site relative paths are accepted, so the parameter can't be
-   used to bounce someone to another domain. */
-function safeNext() {
+/* Where a signed-in person should land.
+   1. A plan they picked before signing in wins — finish that purchase.
+   2. Otherwise, if their trial or subscription has run out, send them to
+      checkout rather than bouncing them off the dashboard's access gate.
+   3. Otherwise the dashboard. */
+function destinationAfterLogin(user) {
   try {
-    var n = new URLSearchParams(location.search).get('next');
-    if (!n) return null;
-    if (/^[a-z][a-z0-9+.-]*:/i.test(n)) return null;  // has a scheme → off-site
-    if (n.charAt(0) === '/' && n.charAt(1) === '/') return null;  // protocol-relative
-    return n.charAt(0) === '/' ? n : '/' + n;
-  } catch (e) { return null; }
+    const it = JSON.parse(localStorage.getItem('ig_intent') || 'null');
+    if (it && it.plan) {
+      localStorage.removeItem('ig_intent');
+      return 'checkout.html?plan=' + encodeURIComponent(it.plan) +
+             '&billing=' + (it.billing === 'annual' ? 'annual' : 'monthly');
+    }
+  } catch (e) { /* ignore unreadable storage */ }
+
+  // `access` is false once a trial has expired or a subscription has lapsed.
+  // Older servers don't send the field; treat only an explicit false as lapsed.
+  if (user && user.access === false) return 'checkout.html?plan=family&billing=monthly';
+
+  return 'dashboard.html';
 }
 
-// Already signed in? Skip straight on.
-IG.redirectIfAuthed(safeNext() || 'dashboard.html');
+// Already signed in? Send them wherever they actually need to go. The cached
+// user can predate an expiry, so decide on a fresh one; if the token turns out
+// to be dead, refresh() clears it and we simply stay on the sign-in form.
+if (IG.isAuthed()) {
+  IG.refresh().then(function (fresh) {
+    if (fresh) window.location.href = destinationAfterLogin(fresh);
+  });
+}
 
 // Live email validation
 document.getElementById('email').addEventListener('input', function() {
@@ -312,10 +326,7 @@ async function handleLogin(e) {
       body: JSON.stringify({ email, password })
     });
     IG.setSession(data.token, data.user);
-    let dest = safeNext() || 'dashboard.html';
-    if (!safeNext()) {
-      try { const it = JSON.parse(localStorage.getItem('ig_intent') || 'null'); if (it && it.plan) { dest = 'checkout.html?plan=' + encodeURIComponent(it.plan) + '&billing=' + (it.billing || 'monthly'); localStorage.removeItem('ig_intent'); } } catch (e) {}
-    }
+    const dest = destinationAfterLogin(data.user);
     showAlert('success', 'Signed in! Redirecting…');
     setTimeout(() => window.location.href = dest, 1200);
   } catch (err) {

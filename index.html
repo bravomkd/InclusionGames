@@ -119,6 +119,35 @@ nav{position:sticky;top:0;z-index:100;background:rgba(250,250,248,.92);backdrop-
 .trust-logo{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.9rem;font-weight:700;opacity:.6;}
 .trust-logo span{font-size:1.4rem;}
 
+/* ── ACCESSIBILITY BADGE ────────────────────────────────── */
+.ig-badge{
+  display:flex;align-items:center;gap:clamp(14px,2.6vw,26px);
+  width:fit-content;max-width:100%;margin:0 auto 38px;
+  padding:clamp(10px,1.6vw,14px) clamp(18px,2.6vw,26px) clamp(10px,1.6vw,14px) clamp(10px,1.4vw,14px);
+  background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:100px;
+  box-shadow:0 2px 14px rgba(15,23,42,.05);
+}
+.ig-badge-icon{flex:none;width:clamp(52px,8vw,74px);height:clamp(52px,8vw,74px);display:block;}
+.ig-badge-icon svg{width:100%;height:100%;display:block;}
+.ig-badge-text{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.ig-badge-title{
+  font-family:var(--font);font-weight:800;
+  font-size:clamp(.95rem,2.1vw,1.32rem);line-height:1.13;
+  letter-spacing:-.01em;color:#0F172A;text-transform:uppercase;
+  text-wrap:balance;
+}
+.ig-badge-sub{
+  font-family:var(--font);font-weight:600;
+  font-size:clamp(.76rem,1.5vw,.95rem);line-height:1.3;color:#64748B;
+  text-wrap:balance;
+}
+.ig-badge-balloon{flex:none;width:clamp(22px,3.4vw,32px);display:block;margin-left:auto;}
+.ig-badge-balloon svg{width:100%;height:auto;display:block;}
+@media (max-width:560px){
+  .ig-badge{gap:12px;padding:12px 16px 12px 12px;border-radius:26px;}
+  .ig-badge-balloon{display:none;}
+}
+
 /* ── HOW IT WORKS ───────────────────────────────────────── */
 #how{padding:90px 0;}
 .how-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:28px;margin-top:52px;}
@@ -155,6 +184,48 @@ nav{position:sticky;top:0;z-index:100;background:rgba(250,250,248,.92);backdrop-
 .coming-soon-card .cs-icon{font-size:2rem;opacity:.4;}
 .coming-soon-card .cs-text{font-size:.8rem;font-weight:600;}
 .coming-soon-card .cs-sub{font-size:.72rem;}
+
+
+
+/* ── TALK TO US ─────────────────────────────────────────── */
+#contact{padding:90px 0;background:var(--surface2);}
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start;margin-top:52px;}
+.contact-side{display:flex;flex-direction:column;gap:22px;}
+.contact-line{display:flex;gap:14px;align-items:flex-start;font-size:.92rem;color:var(--ink2);line-height:1.6;}
+.contact-line b{color:var(--ink);}
+.contact-line a{color:var(--p1);font-weight:700;}
+.cl-ico{font-size:1.4rem;line-height:1.3;flex-shrink:0;}
+.form-msg{font-size:.86rem;font-weight:700;margin-top:12px;min-height:1.2em;text-align:center;}
+.form-msg.ok{color:var(--g1);}
+.form-msg.err{color:var(--r1);}
+.form-alt{font-size:.82rem;color:var(--muted);text-align:center;margin-top:10px;}
+.form-alt a{color:var(--p1);font-weight:700;}
+@media (max-width:860px){ .contact-grid{grid-template-columns:1fr;gap:32px;} }
+
+/* ── NEW GAMES BAND ─────────────────────────────────────── */
+.newgames-band{
+  margin:56px 0 0;padding:clamp(44px,7vw,72px) 0;
+  background:linear-gradient(135deg,var(--a1),var(--a2));
+  text-align:center;position:relative;overflow:hidden;
+}
+.newgames-band::after{
+  content:'';position:absolute;top:-70px;right:-50px;
+  width:240px;height:240px;border-radius:50%;
+  background:rgba(255,255,255,.13);pointer-events:none;
+}
+.ng-eyebrow{
+  font-size:.78rem;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;
+  color:#7c4a05;margin-bottom:10px;position:relative;z-index:1;
+}
+.ng-title{
+  font-family:var(--display);font-size:clamp(2rem,5.5vw,3.2rem);
+  line-height:1.1;color:#fff;margin-bottom:14px;
+  text-shadow:0 2px 12px rgba(146,64,14,.25);position:relative;z-index:1;
+}
+.ng-sub{
+  font-size:1.02rem;color:#fff;opacity:.95;max-width:540px;margin:0 auto;
+  line-height:1.7;position:relative;z-index:1;
+}
 
 /* ── ACCESSIBILITY ──────────────────────────────────────── */
 #accessibility{padding:90px 0;}
@@ -362,6 +433,7 @@ footer{background:var(--ink);color:#e2e0f0;padding:60px 0 32px;}
         <li><a href="#pricing">Pricing</a></li>
         <li><a href="#mission">Our Mission</a></li>
         <li><a href="#custom">Custom Games</a></li>
+        <li><a href="#contact">Contact</a></li>
       </ul>
       <div class="nav-cta">
         <select class="lang-sel" onchange="setLang(this.value)" id="lang-select">
@@ -384,6 +456,7 @@ footer{background:var(--ink);color:#e2e0f0;padding:60px 0 32px;}
     <a href="#pricing" onclick="toggleMobile()">Pricing</a>
     <a href="#mission" onclick="toggleMobile()">Our Mission</a>
     <a href="#custom" onclick="toggleMobile()">Custom Games</a>
+    <a href="#contact" onclick="toggleMobile()">Contact</a>
     <a href="/login.html" class="btn" style="margin-top:12px;width:100%;text-align:center;">Log in</a>
     <button class="btn btn-primary" style="margin-top:12px;width:100%;" onclick="openPayment('trial')">Start Free Trial</button>
   </div>
@@ -435,7 +508,6 @@ footer{background:var(--ink);color:#e2e0f0;padding:60px 0 32px;}
             <button class="hts-btn" onclick="openPayment('trial')">Start now</button>
           </div>
         </div>
-        <div class="floating-badge fb1">✅ No credit card needed</div>
         <div class="floating-badge fb2">🌍 Works in 4 languages</div>
       </div>
     </div>
@@ -459,6 +531,32 @@ footer{background:var(--ink);color:#e2e0f0;padding:60px 0 32px;}
 ══════════════════════════════════════════════════════ -->
 <section id="trust">
   <div class="container">
+
+    <!-- Accessibility badge. Text is real markup, not baked into the SVG, so the
+         i18n engine translates it and screen readers read it as text. -->
+    <div class="ig-badge">
+      <span class="ig-badge-icon" aria-hidden="true">
+        <svg viewBox="0 0 54 54" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="27" cy="27" r="27" fill="#3B82F6"/>
+          <circle cx="27" cy="18" r="4.5" fill="#FFFFFF"/>
+          <path d="M17 28q10-5 20 0" fill="none" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round"/>
+          <line x1="27" y1="23" x2="27" y2="38" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round"/>
+          <path d="M19 37c0 7 16 7 16 0" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span class="ig-badge-text">
+        <span class="ig-badge-title">100% Accessible &amp; Inclusive Play</span>
+        <span class="ig-badge-sub">Designed for children with special needs &amp; disabilities</span>
+      </span>
+      <span class="ig-badge-balloon" aria-hidden="true">
+        <svg viewBox="0 0 40 62" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 2c11.6 0 18 9.6 18 21.6C38 35.6 27.4 43.4 20.4 46.6h-.8C12.6 43.4 2 35.6 2 23.6 2 11.6 8.4 2 20 2Z" fill="#FF385C"/>
+          <polygon points="17.6,46 22.4,46 24.6,50.5 15.4,50.5" fill="#C7153A"/>
+          <path d="M20 50.5c4 3.4-1 5.6 1.4 9.5" fill="none" stroke="#94A3B8" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </span>
+    </div>
+
     <p class="trust-label">Trusted by parents, teachers & therapists in</p>
     <div class="trust-logos">
       <div class="trust-logo"><span>🇩🇪</span> Germany</div>
@@ -522,7 +620,6 @@ footer{background:var(--ink);color:#e2e0f0;padding:60px 0 32px;}
         <p class="section-tag">All 42 games</p>
         <h2 class="section-title">A game for every child</h2>
       </div>
-      <p style="font-size:.88rem;color:var(--muted);max-width:320px;">New games are added regularly. All subscribers get instant access to new releases.</p>
     </div>
 
     <div class="filter-bar" id="filter-bar">
@@ -537,6 +634,14 @@ footer{background:var(--ink);color:#e2e0f0;padding:60px 0 32px;}
     </div>
 
     <div id="games-container"></div>
+  </div>
+
+  <div class="newgames-band">
+    <div class="container">
+      <p class="ng-eyebrow">Always growing</p>
+      <h3 class="ng-title">New games every month</h3>
+      <p class="ng-sub">Every subscriber gets each new game the day it launches — at no extra cost, on every plan.</p>
+    </div>
   </div>
 </section>
 
@@ -655,7 +760,7 @@ footer{background:var(--ink);color:#e2e0f0;padding:60px 0 32px;}
           <div class="tb-day"><div class="tb-day-n">7</div><div class="tb-day-l">Days total free</div></div>
         </div>
         <button class="btn btn-gold" onclick="openPayment('trial')">Start My Free Trial →</button>
-        <p class="tb-note">No credit card required for the trial. Cancel anytime. Extension granted within 24 hours of your message.</p>
+        <p class="tb-note">Cancel anytime. Write to <a href="mailto:info@inclusion-games.com" style="color:#fff;text-decoration:underline;">info@inclusion-games.com</a> and we extend your trial to 7 days within 24 hours.</p>
       </div>
     </div>
 
@@ -687,7 +792,7 @@ footer{background:var(--ink);color:#e2e0f0;padding:60px 0 32px;}
           <li class="no">Multiple profiles</li>
           <li class="no">Priority support</li>
         </ul>
-        <button class="plan-btn plan-btn-outline" onclick="openPayment('starter')">Start Free Trial</button>
+        <button class="plan-btn plan-btn-outline" onclick="openPayment('starter')">Choose Starter</button>
       </div>
 
       <!-- Family — Popular -->
@@ -710,7 +815,7 @@ footer{background:var(--ink);color:#e2e0f0;padding:60px 0 32px;}
           <li class="no">School dashboard</li>
           <li class="no">Bulk management</li>
         </ul>
-        <button class="plan-btn plan-btn-primary" onclick="openPayment('family')">Start Free Trial</button>
+        <button class="plan-btn plan-btn-primary" onclick="openPayment('family')">Choose Family</button>
       </div>
 
       <!-- Educator -->
@@ -732,7 +837,7 @@ footer{background:var(--ink);color:#e2e0f0;padding:60px 0 32px;}
           <li>Priority email support</li>
           <li class="no">School dashboard</li>
         </ul>
-        <button class="plan-btn plan-btn-outline" onclick="openPayment('educator')">Start Free Trial</button>
+        <button class="plan-btn plan-btn-outline" onclick="openPayment('educator')">Choose Educator</button>
       </div>
 
       <!-- School -->
@@ -808,7 +913,7 @@ footer{background:var(--ink);color:#e2e0f0;padding:60px 0 32px;}
         <h2 class="section-title">A teacher who didn't forget</h2>
         <div class="mission-quote-block">
           <p class="mission-quote">"These children were forgotten by the gaming world — but we didn't forget them. Their laughter is everything."</p>
-          <p class="mission-author">— Founder, InclusionGames · Special Education Teacher</p>
+          <p class="mission-author">— Founder, InclusionGames · Primary School Teacher</p>
         </div>
         <p style="font-size:.95rem;color:var(--muted);margin-top:20px;line-height:1.8;">As a teacher, I saw children with disabilities who had almost nothing designed for them in the world of games and learning. No one was creating for them. No one was thinking about their joy. So I decided to do something about it.</p>
         <div class="mission-values">
@@ -846,18 +951,20 @@ footer{background:var(--ink);color:#e2e0f0;padding:60px 0 32px;}
           <div class="cs-step"><div class="cs-num">4</div><div class="cs-text"><h4>Your child's game, forever</h4><p>It becomes part of your subscription — yours to keep.</p></div></div>
         </div>
       </div>
-      <div class="custom-form">
+      <form class="custom-form" id="customForm" onsubmit="return sendContact(event,'custom','customForm')">
         <div class="cf-title">🎮 Request a custom game</div>
-        <div class="cf-row"><label class="cf-label">Your name</label><input class="cf-input" type="text" placeholder="Name"></div>
-        <div class="cf-row"><label class="cf-label">Email</label><input class="cf-input" type="email" placeholder="email@example.com"></div>
-        <div class="cf-row"><label class="cf-label">I am a…</label>
-          <select class="cf-select"><option>Parent</option><option>Teacher</option><option>Therapist</option><option>Other</option></select></div>
-        <div class="cf-row"><label class="cf-label">Child's age</label>
-          <select class="cf-select"><option>4–5 years</option><option>5–7 years</option><option>7–9 years</option><option>9–10 years</option></select></div>
-        <div class="cf-row"><label class="cf-label">Tell us about your child & idea</label>
-          <textarea class="cf-textarea" placeholder="Disability, interests, what you'd like them to learn..."></textarea></div>
-        <button class="cf-btn">Send my request →</button>
-      </div>
+        <div class="cf-row"><label class="cf-label" for="cfName">Your name</label><input class="cf-input" id="cfName" name="name" type="text" placeholder="Name" autocomplete="name"></div>
+        <div class="cf-row"><label class="cf-label" for="cfEmail">Email</label><input class="cf-input" id="cfEmail" name="email" type="email" placeholder="email@example.com" autocomplete="email" required></div>
+        <div class="cf-row"><label class="cf-label" for="cfRole">I am a…</label>
+          <select class="cf-select" id="cfRole" name="role"><option>Parent</option><option>Teacher</option><option>Therapist</option><option>Other</option></select></div>
+        <div class="cf-row"><label class="cf-label" for="cfAge">Child's age</label>
+          <select class="cf-select" id="cfAge" name="childAge"><option>4–5 years</option><option>5–7 years</option><option>7–9 years</option><option>9–10 years</option></select></div>
+        <div class="cf-row"><label class="cf-label" for="cfMsg">Tell us about your child & idea</label>
+          <textarea class="cf-textarea" id="cfMsg" name="message" placeholder="Disability, interests, what you'd like them to learn..." required></textarea></div>
+        <button class="cf-btn" type="submit">Send my request →</button>
+        <p class="form-msg" id="customFormMsg"></p>
+        <p class="form-alt">Or write to <a href="mailto:info@inclusion-games.com">info@inclusion-games.com</a></p>
+      </form>
     </div>
   </div>
 </section>
@@ -876,13 +983,51 @@ footer{background:var(--ink);color:#e2e0f0;padding:60px 0 32px;}
 </section>
 
 <!-- ══════════════════════════════════════════════════════
+     TALK TO US
+══════════════════════════════════════════════════════ -->
+<section id="contact">
+  <div class="container">
+    <div class="text-center">
+      <p class="section-tag">Talk to us</p>
+      <h2 class="section-title">A question, an idea, or something not working?</h2>
+      <p class="section-sub">We are a small team and we read every message ourselves. Tell us what you need — a game idea, a problem, a question about a plan, or a longer trial.</p>
+    </div>
+
+    <div class="contact-grid">
+      <div class="contact-side">
+        <div class="contact-line"><span class="cl-ico">✉️</span><div><b>Email us directly</b><br><a href="mailto:info@inclusion-games.com">info@inclusion-games.com</a></div></div>
+        <div class="contact-line"><span class="cl-ico">⏱</span><div><b>Longer trial</b><br>Tell us about your child and we extend your trial to 7 days within 24 hours.</div></div>
+        <div class="contact-line"><span class="cl-ico">💡</span><div><b>Your ideas count</b><br>Many of our games started as a message from a parent or a teacher.</div></div>
+        <div class="contact-line"><span class="cl-ico">🎮</span><div><b>Need a game built?</b><br>Use the custom game form above — it reaches the same inbox.</div></div>
+      </div>
+
+      <form class="custom-form" id="talkForm" onsubmit="return sendContact(event,'question','talkForm')">
+        <div class="cf-title">💬 Write to us</div>
+        <div class="cf-row"><label class="cf-label" for="tkName">Your name</label><input class="cf-input" id="tkName" name="name" type="text" placeholder="Name" autocomplete="name"></div>
+        <div class="cf-row"><label class="cf-label" for="tkEmail">Email</label><input class="cf-input" id="tkEmail" name="email" type="email" placeholder="email@example.com" autocomplete="email" required></div>
+        <div class="cf-row"><label class="cf-label" for="tkKind">What is it about?</label>
+          <select class="cf-select" id="tkKind" name="kind">
+            <option value="question">A question</option>
+            <option value="idea">An idea or feedback</option>
+            <option value="extension">Extend my trial to 7 days</option>
+          </select></div>
+        <div class="cf-row"><label class="cf-label" for="tkMsg">Your message</label>
+          <textarea class="cf-textarea" id="tkMsg" name="message" placeholder="Write as much or as little as you like…" required></textarea></div>
+        <button class="cf-btn" type="submit">Send message →</button>
+        <p class="form-msg" id="talkFormMsg"></p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
      CTA FINAL
 ══════════════════════════════════════════════════════ -->
 <section id="cta-final">
   <div class="container">
     <div class="cta-box">
       <h2>Ready to watch your child shine?</h2>
-      <p>Start your free 3-day trial today. No credit card required. All 42 games. 4 languages. Every accessibility mode.</p>
+      <p>Start your free 3-day trial today. All 42 games. 4 languages. Every accessibility mode.</p>
       <div class="cta-btns">
         <button class="btn btn-white" onclick="openPayment('trial')">🎈 Start Free Trial</button>
         <a href="#games" class="btn btn-ghost">Browse all games</a>
@@ -1039,6 +1184,9 @@ function buildGames(){
       grid.appendChild(card);
     });
   });
+  // The cards are rebuilt in English on every filter click, so re-run the
+  // translator. Guarded because the first call happens before i18n.js loads.
+  if(window.I18N) I18N.apply();
 }
 
 function filterGames(btn){
@@ -1106,10 +1254,13 @@ function openPayment(plan){
   const billing = isAnnual ? 'annual' : 'monthly';
   // The free trial needs no payment — send straight to sign-up.
   if(plan==='trial'){ window.location.href='signup.html'; return; }
-  // Must have an account to subscribe — sign up first (we remember the chosen plan).
+  // Must have an account to subscribe. Send them to sign-in, not sign-up: most
+  // people buying a plan already have an account (they just finished a trial),
+  // and login.html is the page that reads ig_intent and forwards to checkout.
+  // New visitors get there via the "Sign up free" link on that page.
   if(!(window.IG && IG.isAuthed())){
     try{ localStorage.setItem('ig_intent', JSON.stringify({plan,billing})); }catch(e){}
-    window.location.href='signup.html?plan='+encodeURIComponent(plan);
+    window.location.href='login.html?plan='+encodeURIComponent(plan);
     return;
   }
   // Logged in → go to our own checkout page (Stripe / PayPal + withdrawal waiver).
@@ -1155,13 +1306,9 @@ async function proceedPayment(){
           method:'POST', body:JSON.stringify({orderID:order.id,plan:selectedPlan,billing})
         });
         window.location.href='payment-success.html?method=paypal&plan='+encodeURIComponent(selectedPlan)+'&billing='+billing;
-      } else if(order.approveUrl){
-        // Live PayPal: follow the approval link PayPal returned. Hardcoding
-        // www.paypal.com sends sandbox orders to the live site, where they
-        // do not exist. payment-success.html captures the order on return.
-        window.location.href=order.approveUrl;
       } else {
-        throw new Error('PayPal is not available right now. Please pay by card instead.');
+        // Live PayPal: hand off to the PayPal-hosted approval flow.
+        window.location.href='https://www.paypal.com/checkoutnow?token='+encodeURIComponent(order.id);
       }
     }
   }catch(err){
@@ -1185,6 +1332,9 @@ function toggleBilling(){
   document.querySelectorAll('.billed-note').forEach(el=>{
     el.textContent=isAnnual?'billed annually':'billed monthly';
   });
+  // Those two strings are written in English here, so re-run the translator or
+  // the German page ends up reading "pro Monat · billed annually".
+  if(window.I18N) I18N.apply();
 }
 
 // ─── ACCESSIBILITY DEMO ───────────────────────────────────────
@@ -1204,12 +1354,11 @@ function toggleMobile(){
 // ─── FAQ ──────────────────────────────────────────────────────
 const FAQS=[
   {q:'Does it work without any special equipment?',a:'Yes! All you need is a PC or laptop with a webcam (built-in is fine) and Chrome or Edge browser. No download, no controller, no special device.'},
-  {q:'Do I need to enter a credit card for the trial?',a:'No credit card is required to start your 3-day free trial. You only enter payment details when you choose to subscribe after the trial.'},
-  {q:'How do I extend my trial to 7 days?',a:'Simply send us a message about your child — their age, disability, and what games you\'d like them to try. We\'ll extend your trial to 7 days within 24 hours, no charge.'},
+    {q:'How do I extend my trial to 7 days?',a:'Write to info@inclusion-games.com and tell us about your child — their age, disability, and what games you would like them to try. We extend your trial to 7 days within 24 hours, free of charge.'},
   {q:'What disabilities is this designed for?',a:'InclusionGames is designed for children with a wide range of needs: autism spectrum, cerebral palsy, dyslexia, dyspraxia, ADHD, Down syndrome, visual impairments, and more. Contact us if unsure.'},
   {q:'Can my child play if they can\'t move their hands easily?',a:'Our hand tracking works with partial hand movements — the child doesn\'t need precise gestures. We also offer extra large targets and slow mode for children with limited motor control.'},
   {q:'How does the language change work?',a:'The language selector changes everything — all voiceovers, text labels, and word content switch instantly. 4 languages are available — English, German, Polish and Spanish — with more coming.'},
-  {q:'What browsers are supported?',a:'Google Chrome and Microsoft Edge are fully supported. Firefox and Safari do not currently support the hand tracking API. Chrome on any OS (Windows/Mac/Linux) works best.'},
+  {q:'What browsers are supported?',a:'We test and support Google Chrome and Microsoft Edge on Windows, macOS and Linux — use one of those for the best experience. Other browsers may work but are not tested yet. If a game will not start, write to info@inclusion-games.com and tell us your browser.'},
   {q:'Can I use this at school or in a therapy setting?',a:'Absolutely. The Educator and School plans are designed for professional use. You get progress tracking, PDF reports, and priority support for classroom and therapy sessions.'},
   {q:'Is my child\'s data safe?',a:'We take privacy very seriously. We are GDPR compliant, COPPA safe, and EU-hosted. We do not collect personal data from children and never share data with third parties.'},
   {q:'What happens when new games are released?',a:'All subscribers get instant access to every new game as it launches — no extra charge, no upgrade required. We\'re always building more.'},
@@ -1227,20 +1376,61 @@ function buildFAQ(){
   });
 }
 
+// ─── CONTACT / CUSTOM-GAME FORMS ──────────────────────────────
+// Both forms POST to the same endpoint. The button was previously wired to
+// nothing at all, so every request a visitor typed was silently discarded.
+async function sendContact(ev, kind, formId){
+  ev.preventDefault();
+  const form = document.getElementById(formId);
+  const msg  = document.getElementById(formId + 'Msg');
+  const btn  = form.querySelector('button[type=submit]');
+  const val  = n => { const el = form.querySelector('[name=' + n + ']'); return el ? el.value.trim() : ''; };
+
+  const email = val('email'), message = val('message');
+  const show = (text, cls) => { msg.textContent = text; msg.className = 'form-msg ' + cls; };
+
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return show('Please enter a valid email address.','err'), false;
+  if(message.length < 10) return show('Please tell us a little more.','err'), false;
+
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Sending…'; show('','');
+  try{
+    const res = await fetch('/api/contact', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        kind: val('kind') || kind,
+        name: val('name'), email: email, role: val('role'),
+        childAge: val('childAge'), message: message,
+        page: location.pathname, lang: (localStorage.getItem('ig_lang')||'en')
+      })
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.error || 'Could not send your message.');
+    form.reset();
+    show('Thank you — your message is on its way. We reply within 24 hours.','ok');
+  }catch(e){
+    show((e.message || 'Could not send your message.') + ' You can also write to info@inclusion-games.com',' err');
+  }finally{
+    btn.disabled = false; btn.textContent = original;
+    if(window.I18N) I18N.apply();
+  }
+  return false;
+}
+
 // ─── INIT ─────────────────────────────────────────────────────
 buildGames();
 buildFAQ();
 
 // If already signed in, turn the primary "Start Free Trial" CTAs into "My Games".
+// Selected by behaviour, not by label: this runs after the translator, so the
+// button may already read "Kostenlos testen" / "Wypróbuj za darmo" / "Anmelden".
 function reflectAuthState(){
   if(!(window.IG && IG.isAuthed())) return;
-  document.querySelectorAll('.btn-primary, .nav-cta .btn-sm').forEach(function(btn){
-    var t=btn.textContent.trim();
-    if(t.includes('Start Free') || t.includes('Log in')){
-      btn.textContent='🎮 My Games';
-      btn.onclick=function(){window.location.href='dashboard.html';};
-      if(btn.tagName==='A') btn.setAttribute('href','dashboard.html');
-    }
+  var sel = 'a[href="/login.html"], a[href="login.html"], [onclick*="openPayment(\'trial\')"]';
+  document.querySelectorAll(sel).forEach(function(btn){
+    btn.textContent='🎮 My Games';
+    btn.onclick=function(){window.location.href='dashboard.html';};
+    if(btn.tagName==='A') btn.setAttribute('href','dashboard.html');
   });
 }
 </script>

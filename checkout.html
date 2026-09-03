@@ -41,6 +41,10 @@ h1{font-family:var(--display);font-size:1.8rem;color:var(--ink);margin-bottom:6p
 .secure .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;}
 .chip{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-size:.76rem;font-weight:700;color:var(--ink2);}
 .msg{font-size:.86rem;font-weight:700;color:var(--r1);min-height:1em;text-align:center;margin-top:8px;}
+.total-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:14px 16px;background:var(--p3);border-radius:12px;margin-bottom:6px;}
+.total-label{font-size:.92rem;font-weight:800;color:var(--ink);}
+.total-val{font-family:var(--display);font-size:1.5rem;color:var(--p1);font-variant-numeric:tabular-nums;}
+.total-note{font-size:.78rem;color:var(--muted);text-align:center;margin-bottom:16px;}
 </style>
 </head>
 <body>
@@ -76,9 +80,18 @@ h1{font-family:var(--display);font-size:1.8rem;color:var(--ink);margin-bottom:6p
     </div>
     <div class="terms-row">By continuing you agree to our <a href="/terms.html" target="_blank">Terms</a> and <a href="/privacy.html" target="_blank">Privacy Policy</a>.</div>
 
-    <button class="pay-btn pay-card" id="btnCard" disabled onclick="payStripe()">💳 Pay with card</button>
+    <!-- § 312j(2) BGB: the total actually charged, immediately before the order
+         button. Showing only a per-month figure for a yearly charge is not the
+         total price. -->
+    <div class="total-row">
+      <span class="total-label">Total charged today</span>
+      <span class="total-val" id="planTotal">€19.99</span>
+    </div>
+    <div class="total-note" id="planRenew">Renews monthly until you cancel.</div>
+
+    <button class="pay-btn pay-card" id="btnCard" disabled onclick="payStripe()">💳 Order with obligation to pay · Card</button>
     <div class="or">— or —</div>
-    <button class="pay-btn pay-pp" id="btnPP" disabled onclick="payPaypal()">Pay with PayPal</button>
+    <button class="pay-btn pay-pp" id="btnPP" disabled onclick="payPaypal()">Order with obligation to pay · PayPal</button>
     <div class="msg" id="msg"></div>
   </div>
 
@@ -108,12 +121,44 @@ document.getElementById('planFor').textContent = P.for;
 document.getElementById('planPrice').textContent = '€' + (billing === 'annual' ? P.annual : P.monthly).toFixed(2);
 document.getElementById('planPer').textContent = (billing === 'annual' ? 'per month, billed yearly' : 'per month') + ' · incl. VAT';
 
+// The sum actually taken from the card today. For an annual plan the headline
+// figure is a per-month equivalent, so the real charge is twelve times that —
+// which matches PLANS[plan].annual in server.js.
+var chargedToday = billing === 'annual' ? P.annual * 12 : P.monthly;
+document.getElementById('planTotal').textContent = '€' + chargedToday.toFixed(2);
+document.getElementById('planRenew').textContent = billing === 'annual'
+  ? 'Renews yearly until you cancel.'
+  : 'Renews monthly until you cancel.';
+
+// Which methods the server can actually take money with right now.
+var AVAIL = { card: true, paypal: true };
+
 function sync(){
   var ok = document.getElementById('waiver').checked;
-  document.getElementById('btnCard').disabled = !ok;
-  document.getElementById('btnPP').disabled = !ok;
+  document.getElementById('btnCard').disabled = !ok || !AVAIL.card;
+  document.getElementById('btnPP').disabled   = !ok || !AVAIL.paypal;
 }
 function showMsg(m){ document.getElementById('msg').textContent = m || ''; }
+
+if (q.get('cancelled')) showMsg('Checkout cancelled — nothing was charged.');
+
+// Hide a method rather than let someone press a button that cannot work.
+(function loadConfig(){
+  fetch('/api/payments/config').then(function(r){ return r.json(); }).then(function(cfg){
+    AVAIL.card = !!cfg.stripe || !!cfg.demo;
+    var pp = cfg.paypalPlans && cfg.paypalPlans[plan];
+    AVAIL.paypal = (!!cfg.paypal && !!(pp && pp[billing])) || !!cfg.demo;
+    if(!AVAIL.card){ document.getElementById('btnCard').style.display='none'; }
+    if(!AVAIL.paypal){ document.getElementById('btnPP').style.display='none'; }
+    if(!AVAIL.card || !AVAIL.paypal){
+      var or_=document.querySelector('.or'); if(or_) or_.style.display='none';
+    }
+    if(!AVAIL.card && !AVAIL.paypal){
+      showMsg('Online payment is being set up. Please contact hello@inclusion-games.com to subscribe.');
+    }
+    sync();
+  }).catch(function(){ /* keep both enabled; the endpoints fail loudly anyway */ });
+})();
 
 async function payStripe(){
   if(!document.getElementById('waiver').checked) return;
@@ -130,22 +175,19 @@ async function payPaypal(){
   if(!document.getElementById('waiver').checked) return;
   var b = document.getElementById('btnPP'); b.disabled = true; showMsg('');
   try{
-    var order = await IG.apiFetch('/payments/paypal/create-order', {
+    var sub = await IG.apiFetch('/payments/paypal/create-subscription', {
       method:'POST', body: JSON.stringify({ plan: plan, billing: billing, waiver: true })
     });
-    if(order.demo){
-      await IG.apiFetch('/payments/paypal/capture', { method:'POST', body: JSON.stringify({ orderID: order.id, plan: plan, billing: billing }) });
-      window.location.href = 'payment-success.html?method=paypal&plan=' + encodeURIComponent(plan) + '&billing=' + billing;
-    } else if(order.approveUrl){
-      // Follow the approval link PayPal returned. Hardcoding www.paypal.com
-      // sends sandbox orders to the live site, where they do not exist.
-      window.location.href = order.approveUrl;
-    } else {
-      showMsg('PayPal is not available right now. Please pay by card instead.');
-      b.disabled = false;
-    }
+    // The server returns where to go — PayPal's approval page, or the success
+    // page in demo mode. Never hardcode the PayPal host: sandbox and live are
+    // different domains, and the old code always sent people to the live one.
+    if(!sub || !sub.url) throw new Error('PayPal did not return an approval link.');
+    window.location.href = sub.url;
   }catch(e){ showMsg(e.message || 'Could not start PayPal.'); b.disabled = false; }
 }
 </script>
+<!-- Loaded last: the plan name, price line and waiver text are written by the
+     script above, so the translator must run after they are in the DOM. -->
+<script src="assets/i18n.js"></script>
 </body>
 </html>
