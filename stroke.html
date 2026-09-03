@@ -121,7 +121,8 @@ var STR = {
     n2: 'Sit down and supported before you start. Move slowly, and only as far as is comfortable. Stop straight away if anything hurts, or if you feel dizzy, breathless or unwell.',
     n3: '<b>Video never leaves the device.</b> The camera is processed in this browser only. No video and no biometric data is uploaded or stored — only the exercise results, such as how many repetitions were completed.',
     play: 'Start exercise', why: 'Why this exercise', reps: 'repetitions', sets: 'sets',
-    langNote: '',
+    langNote: 'Available in English and German.',
+    langFallback: '%L is not available for these exercises yet, so they are shown in English. The wording is clinical, and it should be translated by a native speaker together with a clinician rather than guessed at.',
     eTitle: 'What these exercises are based on',
   },
   de: {
@@ -132,17 +133,25 @@ var STR = {
     n2: 'Setzen Sie sich vor dem Start mit Rückenlehne hin. Bewegen Sie sich langsam und nur so weit, wie es angenehm ist. Brechen Sie sofort ab bei Schmerzen, Schwindel, Atemnot oder Unwohlsein.',
     n3: '<b>Das Video verlässt das Gerät nicht.</b> Die Kamera wird nur in diesem Browser verarbeitet. Es werden keine Video- oder Biometriedaten hochgeladen oder gespeichert — nur die Ergebnisse, etwa die Zahl der Wiederholungen.',
     play: 'Übung starten', why: 'Warum diese Übung', reps: 'Wiederholungen', sets: 'Sätze',
-    langNote: '',
+    langNote: 'Verfügbar auf Englisch und Deutsch.',
+    langFallback: '%L ist für diese Übungen noch nicht verfügbar; sie werden auf Englisch angezeigt. Die Texte sind klinisch und sollten von Muttersprachlern gemeinsam mit Behandelnden übersetzt werden, nicht geraten.',
     eTitle: 'Worauf diese Übungen beruhen',
   },
 };
 
+/* The site-wide language is shared with the children's games, which offer more
+   languages than these exercises do. Somebody arriving here with one of those
+   selected gets English — and is told so, rather than left wondering why this
+   one section changed language on them. */
+var LANG_NAMES = { en: 'English', de: 'Deutsch', pl: 'Polski', es: 'Español' };
+
+function storedLang() {
+  try { return localStorage.getItem('ig_lang') || 'en'; } catch (e) { return 'en'; }
+}
+
 function currentLang() {
-  try {
-    var l = localStorage.getItem('ig_lang');
-    if (IG_REHAB.langs.indexOf(l) >= 0) return l;
-  } catch (e) {}
-  return 'en';
+  var l = storedLang();
+  return IG_REHAB.langs.indexOf(l) >= 0 ? l : 'en';
 }
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
@@ -165,6 +174,12 @@ function render() {
   document.querySelectorAll('.langbtn').forEach(function (b) {
     b.classList.toggle('on', b.dataset.lang === lang);
   });
+
+  var raw = storedLang();
+  var unsupported = IG_REHAB.langs.indexOf(raw) < 0;
+  document.getElementById('langNote').textContent = unsupported
+    ? S.langFallback.replace('%L', LANG_NAMES[raw] || raw)
+    : S.langNote;
 
   var html = '';
   Object.keys(IG_REHAB.groups).forEach(function (key) {

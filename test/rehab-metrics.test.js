@@ -209,6 +209,46 @@ test('a hold has to last the full time', () => {
   assert.ok(c.longestHold >= 3000);
 });
 
+test('resting in position after a hold is not reported as a longer hold', () => {
+  // Somebody who closes their eyes, completes the hold and then simply keeps
+  // them closed has not held for a minute. Reporting that to a clinician
+  // would be a number nothing measured.
+  const c = new M.RepCounter({ target: 0.6, release: 0.25, holdMs: 3000 });
+  c.update(0.8, 0);
+  c.update(0.8, 3100);
+  assert.equal(c.reps, 1);
+  const banked = c.longestHold;
+  for (let t = 4000; t < 60000; t += 500) c.update(0.8, t);
+  assert.equal(c.reps, 1, 'staying up must not count more repetitions');
+  assert.equal(c.longestHold, banked, `longest hold drifted to ${c.longestHold}`);
+});
+
+test('a movement interrupted by lost tracking is not credited to the next one', () => {
+  // The camera loses the person half way through a big effort. That effort
+  // must not be handed to whatever repetition they manage afterwards.
+  const c = new M.RepCounter({ target: 0.6, release: 0.25 });
+  c.update(0.55, 0);
+  assert.equal(c.reps, 0);
+  c.discardPartial();
+  c.update(0.65, 100);
+  assert.equal(c.reps, 1);
+  assert.ok(c.amplitudes[0] < 0.66, `stale peak leaked in: ${c.amplitudes[0]}`);
+
+  // A repetition already counted is left alone.
+  c.discardPartial();
+  assert.equal(c.reps, 1);
+});
+
+test('every exercise asks for a measurement that exists', () => {
+  const catalogue = require('../assets/rehab-catalogue.js');
+  catalogue.exercises.forEach((e) => {
+    assert.ok(M.metricExists(e.tracker, e.metric),
+      `${e.id} asks the ${e.tracker} tracker for "${e.metric}", which it cannot produce`);
+  });
+  assert.equal(M.metricExists('face', 'nonsense'), false);
+  assert.equal(M.metricExists('nosuchtracker', 'mouthOpen'), false);
+});
+
 test('letting go early keeps the partial hold and does not punish', () => {
   const c = new M.RepCounter({ target: 0.6, release: 0.25, holdMs: 3000 });
   c.update(0.8, 0);

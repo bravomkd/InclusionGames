@@ -104,6 +104,22 @@
     },
   };
 
+  /* Which measurement each tracker is able to produce. The face tracker
+     produces the metrics above; the other two produce a single tracked point
+     each, which the engine turns into reach or grip.
+     This is checked at start-up, because a face exercise naming a metric that
+     does not exist used to silently fall back to mouth opening — measuring
+     the wrong movement with nothing appearing to go wrong. */
+  var TRACKER_METRICS = {
+    face: Object.keys(METRICS),
+    pose: ['wristPoint'],
+    hands: ['handOpen'],
+  };
+  function metricExists(tracker, metric) {
+    var allowed = TRACKER_METRICS[tracker];
+    return !!allowed && allowed.indexOf(metric) >= 0;
+  }
+
   var POSE_WRIST = { left: 15, right: 16 };
   var POSE_SHOULDER = { left: 11, right: 12 };
 
@@ -175,11 +191,16 @@
 
     if (this.holdMs > 0) {
       if (n >= this.target) {
+        // Once the repetition is banked, staying up neither counts again nor
+        // keeps inflating the longest hold — the person is simply resting in
+        // position, and reporting that as a 40-second hold to a clinician
+        // would be a fiction.
+        if (this.state !== 'waiting') return out;
         if (this.holdStart === null) this.holdStart = nowMs;
         out.holding = true;
         out.heldMs = nowMs - this.holdStart;
         if (out.heldMs > this.longestHold) this.longestHold = out.heldMs;
-        if (out.heldMs >= this.holdMs && this.state === 'waiting') {
+        if (out.heldMs >= this.holdMs) {
           this.state = 'returning';
           this.reps += 1;
           this.amplitudes.push(this.peak);
@@ -214,12 +235,24 @@
     return out;
   };
 
+  /* Called when tracking was lost part-way through a movement. Anything the
+     person had built up before they went out of shot is thrown away rather
+     than credited to the repetition they do next, but a repetition already
+     counted is left alone. */
+  RepCounter.prototype.discardPartial = function () {
+    if (this.state === 'waiting') {
+      this.peak = 0;
+      this.holdStart = null;
+    }
+  };
+
   return {
     dist: dist, clamp: clamp, median: median,
     FACE_A: FACE_A, FACE_B: FACE_B, NOSE: NOSE, LIP_UP: LIP_UP, LIP_LO: LIP_LO,
     POSE_WRIST: POSE_WRIST, POSE_SHOULDER: POSE_SHOULDER,
     interocular: interocular, resolveSides: resolveSides, eyeAspect: eyeAspect,
-    METRICS: METRICS, poseWrist: poseWrist, handOpenness: handOpenness,
+    METRICS: METRICS, TRACKER_METRICS: TRACKER_METRICS, metricExists: metricExists,
+    poseWrist: poseWrist, handOpenness: handOpenness,
     normalise: normalise, symmetry: symmetry, RepCounter: RepCounter,
   };
 });

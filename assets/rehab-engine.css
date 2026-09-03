@@ -48,7 +48,6 @@ body {
   z-index: 0; opacity: 0; transition: opacity .6s;
 }
 #rbVideo.on { opacity: .55; }
-#rbOverlay { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
 
 .rb-screen {
   position: relative; z-index: 3;
@@ -152,8 +151,12 @@ body {
 .rb-meter {
   position: relative; width: 116px; height: min(52vh, 380px);
   background: rgba(0, 0, 0, .55); border: 3px solid var(--rb-border);
-  border-radius: 60px; overflow: hidden;
+  border-radius: 60px;
 }
+/* The fill is clipped to the pill, but the meter itself is not: the target
+   flag sits outside it and used to be cut off, so the line the person has to
+   reach had no label at all. */
+.rb-meter-clip { position: absolute; inset: 0; border-radius: 60px; overflow: hidden; }
 .rb-meter-fill {
   position: absolute; left: 0; right: 0; bottom: 0; height: 0%;
   background: linear-gradient(180deg, #7c9cff, #4f7cff);
@@ -163,7 +166,9 @@ body {
 /* The personal target: a solid line the fill has to reach. */
 .rb-target-line { position: absolute; left: -8px; right: -8px; height: 6px; background: var(--rb-hold); border-radius: 4px; }
 .rb-target-flag {
-  position: absolute; right: -104px; transform: translateY(-50%);
+  /* To the left of the meter: the repetition count lives on the right and the
+     two used to sit on top of each other. */
+  position: absolute; left: -104px; transform: translateY(-50%);
   font-size: .82rem; font-weight: 900; color: #10131c; background: var(--rb-hold);
   padding: 4px 10px; border-radius: 8px; white-space: nowrap;
 }
@@ -200,6 +205,37 @@ body {
   box-shadow: 0 0 22px rgba(255, 255, 255, .65); pointer-events: none;
 }
 
+/* Dwell activation, shown filling up. A button that does nothing for a second
+   and a half and then fires without warning reads as broken; the bar says the
+   press is under way and roughly how far along it is. Text and a border change
+   carry the same meaning as the colour. */
+.rb-dwell { position: relative; overflow: hidden; }
+.rb-dwell.rb-dwelling { border-color: var(--rb-accent); box-shadow: 0 0 0 3px rgba(124, 156, 255, .45); }
+.rb-dwell.rb-dwelling::after {
+  content: ''; position: absolute; left: 0; bottom: 0; height: 7px;
+  width: calc(var(--dwell, 0) * 100%); background: var(--rb-accent);
+}
+
+/* Tracking has been lost — the person has moved out of shot, or the tab went
+   to the background. Centred and high, because it is the one thing that needs
+   reading, and never in a corner. */
+#rbLost {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 25; width: min(620px, 92vw); text-align: center;
+  font-family: var(--rb-font); font-size: clamp(1.3rem, 3.6vw, 2rem); color: #10131c;
+  background: var(--rb-hold); border-radius: 20px; padding: 20px 24px;
+  box-shadow: 0 14px 50px rgba(0, 0, 0, .55);
+}
+
+/* The way out of a dead end. */
+#rbStuck {
+  position: fixed; inset: 0; z-index: 32; background: rgba(8, 10, 18, .95);
+  display: grid; place-items: center; padding: 24px;
+}
+.rb-stuck-box { max-width: 560px; text-align: center; display: flex; flex-direction: column; gap: 16px; align-items: center; }
+.rb-stuck-box .big { font-family: var(--rb-font); font-size: clamp(1.6rem, 5vw, 2.4rem); }
+.rb-stuck-box p { color: var(--rb-muted); font-size: 1.05rem; }
+
 /* ── rest between sets ───────────────────────────────────── */
 #rbRest { position: fixed; inset: 0; z-index: 30; background: rgba(8, 10, 18, .93); display: grid; place-items: center; text-align: center; padding: 24px; }
 #rbRest .big { font-family: var(--rb-font); font-size: clamp(2rem, 6vw, 3rem); margin-bottom: 10px; }
@@ -218,7 +254,7 @@ body {
   body { font-size: 17px; }
   #rbMeterWrap { flex-direction: column; gap: 14px; top: 54%; }
   .rb-meter { width: 92px; height: 34vh; }
-  .rb-target-flag { right: -92px; }
+  .rb-target-flag { left: -84px; }
   .rb-cam { flex-direction: column; align-items: stretch; }
   .rb-cam-box { width: 100%; }
 }

@@ -47,7 +47,28 @@ test('every exercise has a page that wires it up', () => {
     const html = fs.readFileSync(file, 'utf8');
     assert.match(html, /assets\/rehab-engine\.js/, `${e.id}.html does not load the engine`);
     assert.match(html, /assets\/rehab-catalogue\.js/, `${e.id}.html does not load the catalogue`);
+    assert.match(html, /assets\/rehab-metrics\.js/, `${e.id}.html does not load the measurements`);
     assert.ok(html.includes(`id: '${e.id}'`), `${e.id}.html does not start the right exercise`);
+
+    // Order matters: the engine reads the measurement module as it loads, and
+    // the catalogue before that. Getting it wrong gives a blank page.
+    const srcs = [...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map((m) => m[1]);
+    const at = (name) => srcs.findIndex((s) => s.includes(name));
+    assert.ok(at('rehab-catalogue.js') < at('rehab-metrics.js')
+      && at('rehab-metrics.js') < at('rehab-engine.js'),
+    `${e.id}.html loads its scripts out of order — catalogue, then metrics, then engine: ${srcs}`);
+  });
+});
+
+test('the hub says which languages these exercises exist in', () => {
+  // The catalogue deliberately does not translate clinical wording into
+  // Polish or Spanish. Somebody arriving with one of those selected has to be
+  // told why the page is in English rather than left guessing.
+  const html = fs.readFileSync(path.join(ROOT, 'stroke.html'), 'utf8');
+  assert.match(html, /langFallback/, 'no message for an unsupported language');
+  assert.ok(/English and German/i.test(html), 'the hub should name the languages it has');
+  catalogue.langs.forEach((l) => {
+    assert.ok(html.includes(`data-lang="${l}"`), `no way to choose ${l}`);
   });
 });
 
@@ -180,6 +201,26 @@ test('rehab routes', async (t) => {
     assert.equal(stored.length, 1);
     assert.equal(stored[0].exercise, 'rehab01');
     assert.equal(stored[0].reps, 18);
+  });
+
+  await t.test('an exercise that measures no range stores no range', async () => {
+    // The scanning and reaching exercises only ask whether a target was
+    // reached. Storing a 0 or a 100 for "best range" there would put a
+    // measurement in the record that nothing measured.
+    const res = await srv.postJson(`/api/children/${childId}/rehab-session`, {
+      exercise: 'rehab07', side: 'left', sets: 1, reps: 12, targetReps: 15,
+      bestAmplitude: null, avgAmplitude: null, symmetry: null,
+      longestHoldMs: 0, timeMs: 200000, lang: 'en',
+    }, { headers: authHeader(owner.token) });
+    assert.equal(res.status, 200);
+
+    const rows = srv.readUsers()
+      .find((u) => u.email === 'rehab-owner@example.com')
+      .children.find((c) => c.id === childId).rehab;
+    const rec = rows[rows.length - 1];
+    assert.equal(rec.bestAmplitude, null);
+    assert.equal(rec.avgAmplitude, null);
+    assert.equal(rec.reps, 12, 'the countable part is still recorded');
   });
 
   await t.test('rejects an exercise that does not exist', async () => {

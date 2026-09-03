@@ -214,6 +214,32 @@ touches `data/`. The suite covers sign-up/verification/sign-in, the account
 lockout, entitlement, the subscription gate, the payment routes and the
 refuse-to-start guards. GitHub Actions runs it on every push (`.github/workflows/ci.yml`).
 
+### The stroke-rehab harness
+
+The measurement layer (`assets/rehab-metrics.js`) is unit-tested in Node, but
+the exercises themselves only ever run against a live camera and a MediaPipe
+model, so nothing downstream of "a frame arrived" is reachable from `npm test`.
+`test/harness/` fills that in. It stubs exactly two things — the camera and the
+tracker — leaves every other line of the engine alone, and then plays the part
+of a person following the on-screen instructions: relaxing when told to relax,
+moving when told to move, holding when told to hold, looking at the target when
+there is one. A session that cannot be completed by following the instructions
+fails there.
+
+```bash
+npm start
+# then open, in a browser on the same machine:
+#   http://localhost:3000/test/harness/run-all.html      every exercise + edge cases
+#   http://localhost:3000/test/harness/rehab-harness.html?id=rehab04&reps=3
+```
+
+Sign in first if you want the save path exercised too; otherwise the run ends
+with "no profile is selected", which is also worth seeing.
+
+The harness runs a virtual clock, so a four-minute session takes a few seconds.
+It refuses to run anywhere but localhost, and `test/` is not served in
+production at all.
+
 ---
 
 ## Before going live

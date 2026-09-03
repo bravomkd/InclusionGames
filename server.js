@@ -882,9 +882,12 @@ children.post('/:id/rehab-session', authMiddleware, (req, res) => {
     reps: clampInt(b.reps, 0, 500),
     targetReps: clampInt(b.targetReps, 0, 500),
     // Amplitude is a percentage of the person's OWN calibrated range, so it
-    // can legitimately exceed 100 when they beat their calibration.
-    bestAmplitude: clampInt(b.bestAmplitude, 0, 200),
-    avgAmplitude: clampInt(b.avgAmplitude, 0, 200),
+    // can legitimately exceed 100 when they beat their calibration. It is
+    // null for the exercises that measure no range at all — the ones that
+    // only ask whether a target was reached — because storing a 0 or a 100
+    // there would put a number in the record that nothing measured.
+    bestAmplitude: b.bestAmplitude == null ? null : clampInt(b.bestAmplitude, 0, 200),
+    avgAmplitude: b.avgAmplitude == null ? null : clampInt(b.avgAmplitude, 0, 200),
     symmetry: b.symmetry == null ? null : clampInt(b.symmetry, 0, 100),
     longestHoldMs: clampInt(b.longestHoldMs, 0, 600000),
     timeMs: clampInt(b.timeMs, 0, 36000000),
@@ -1320,7 +1323,18 @@ app.get('/api/health', (req, res) => res.json({ ok: true, time: now() }));
 // ever gets a chance to hand it out.
 // Both the configured DATA_DIR and the conventional ./data are refused: moving
 // DATA_DIR elsewhere must not quietly un-protect files left behind in ./data.
-const PRIVATE_DIRS = [DATA_DIR, path.join(ROOT, 'data'), path.join(ROOT, 'node_modules'), path.join(ROOT, '.git')]
+// lib/ is backend source and has no business being downloadable, for the same
+// reason server.js is in the list below. test/ holds a harness that stubs the
+// camera and the tracker: useful on a developer's machine, nothing but
+// confusion on the live site, so it is served only off production.
+const PRIVATE_DIRS = [
+  DATA_DIR,
+  path.join(ROOT, 'data'),
+  path.join(ROOT, 'node_modules'),
+  path.join(ROOT, '.git'),
+  path.join(ROOT, '.github'),
+  path.join(ROOT, 'lib'),
+].concat(IS_PRODUCTION ? [path.join(ROOT, 'test')] : [])
   .map(d => d.toLowerCase());
 const PRIVATE_FILES = new Set(
   ['server.js', 'package.json', 'package-lock.json', '.env', '.env.example', 'README.md', 'DEPLOY-hetzner.md']

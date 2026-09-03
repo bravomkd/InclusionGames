@@ -38,7 +38,6 @@
       tracking: 'Starting tracking…', trackingReady: 'Tracking ready', trackingNo: 'Tracking unavailable',
       affected: 'Which side is weaker?', left: 'Left', right: 'Right', bothSides: 'Both / not sure',
       whichHand: 'Which hand are you using?',
-      reps: 'Repetitions per set', sets: 'Sets',
       safety: 'Before you start',
       safetyText: 'Sit down, supported, with your back against the chair. Move slowly and only as far as is comfortable. Stop straight away if anything hurts, or if you feel dizzy or unwell. This is practice between therapy sessions — it does not replace your therapist.',
       why: 'Why this exercise',
@@ -46,9 +45,16 @@
       calibrating: 'Setting up for you',
       calRelax: 'Relax completely', calRelaxSub: 'Just rest your face for a moment',
       calRelaxBody: 'Rest — stay still',
-      calMax: 'Now show me your best', calMaxTry: 'Try %N of 3',
+      calMax: 'Now show me your best', calMaxTry: 'Try %N of %M',
       calDone: 'All set — that is your range for today',
       calTooSmall: 'We could not see much movement. You can still practise — the targets will be very gentle. If this keeps happening, mention it to your clinician.',
+      cannotSee: 'The camera could not see you well enough to set up.',
+      stuckTitle: 'Having trouble?',
+      stuckBody: 'The movement is not being picked up. You can set up again, or finish here — everything you have done so far is kept.',
+      setupAgain: 'Set up again',
+      cameraOff: 'Camera switched off.',
+      targetsReached: 'Targets reached',
+      signInToSave: 'Not saved — please sign in again.',
       calMove: 'Move around the area you can reach comfortably',
       getReady: 'Get ready…', go: 'Go!', rest: 'Rest', restSub: 'Take a breather. The next set starts on its own.',
       hold: 'Hold it…', holdMore: 'Keep holding', released: 'And relax',
@@ -74,7 +80,6 @@
       tracking: 'Tracking startet…', trackingReady: 'Tracking bereit', trackingNo: 'Tracking nicht verfügbar',
       affected: 'Welche Seite ist schwächer?', left: 'Links', right: 'Rechts', bothSides: 'Beide / unsicher',
       whichHand: 'Welche Hand benutzen Sie?',
-      reps: 'Wiederholungen pro Satz', sets: 'Sätze',
       safety: 'Vor dem Start',
       safetyText: 'Setzen Sie sich mit dem Rücken an die Lehne. Bewegen Sie sich langsam und nur so weit, wie es angenehm ist. Brechen Sie sofort ab, wenn etwas schmerzt oder Ihnen schwindelig oder unwohl wird. Dies ist Übung zwischen den Therapieterminen — es ersetzt Ihre Therapie nicht.',
       why: 'Warum diese Übung',
@@ -82,9 +87,16 @@
       calibrating: 'Einstellung auf Sie',
       calRelax: 'Ganz entspannen', calRelaxSub: 'Lassen Sie das Gesicht einen Moment ruhen',
       calRelaxBody: 'Ruhen — still halten',
-      calMax: 'Jetzt Ihr Bestes zeigen', calMaxTry: 'Versuch %N von 3',
+      calMax: 'Jetzt Ihr Bestes zeigen', calMaxTry: 'Versuch %N von %M',
       calDone: 'Fertig — das ist Ihr heutiger Bereich',
       calTooSmall: 'Wir konnten kaum Bewegung erkennen. Sie können trotzdem üben — die Ziele werden sehr sanft. Wenn das öfter vorkommt, sprechen Sie Ihre Behandelnden an.',
+      cannotSee: 'Die Kamera konnte Sie für die Einstellung nicht gut genug sehen.',
+      stuckTitle: 'Klappt es nicht?',
+      stuckBody: 'Die Bewegung wird nicht erkannt. Sie können neu einstellen oder hier beenden — das bisher Geschaffte bleibt erhalten.',
+      setupAgain: 'Neu einstellen',
+      cameraOff: 'Kamera ausgeschaltet.',
+      targetsReached: 'Ziele erreicht',
+      signInToSave: 'Nicht gespeichert — bitte erneut anmelden.',
       calMove: 'Bewegen Sie sich im Bereich, den Sie bequem erreichen',
       getReady: 'Bereit machen…', go: 'Los!', rest: 'Pause', restSub: 'Kurz durchatmen. Der nächste Satz startet von selbst.',
       hold: 'Halten…', holdMore: 'Weiter halten', released: 'Und entspannen',
@@ -109,6 +121,9 @@
   /* Measurement lives in assets/rehab-metrics.js so it can be tested in Node
      without a webcam — see test/rehab-metrics.test.js. */
   var M = global.IG_REHAB_METRICS;
+  if (!M || !M.METRICS) {
+    throw new Error('rehab-engine: load assets/rehab-metrics.js before this file');
+  }
   var METRICS = M.METRICS;
   var NOSE = M.NOSE;
   var POSE_SHOULDER = M.POSE_SHOULDER;
@@ -121,6 +136,12 @@
   function IG_REHAB_GAME(opts) {
     var ex = CAT.byId(opts.id);
     if (!ex) throw new Error('Unknown exercise: ' + opts.id);
+    // A wrong metric name used to fall back to mouth opening, quietly
+    // measuring the wrong movement. Refuse it instead.
+    if (!M.metricExists(ex.tracker, ex.metric)) {
+      throw new Error('Exercise ' + ex.id + ' asks for measurement "' + ex.metric
+        + '", which the ' + ex.tracker + ' tracker does not produce');
+    }
 
     var lang = 'en';
     try {
@@ -154,6 +175,8 @@
       lastPoint: null,
       tracked: false,
       calibrationWeak: false,
+      lost: false,             // the camera cannot currently see what it needs
+      lastProgressAt: 0,       // feeds the "are you stuck?" safety net
     };
 
     var el = {};
@@ -163,10 +186,9 @@
     function build() {
       document.body.insertAdjacentHTML('afterbegin', [
         '<video id="rbVideo" autoplay playsinline muted></video>',
-        '<canvas id="rbOverlay"></canvas>',
         '<div class="rb-top">',
         '  <span class="rb-brand"><span class="box">🎈</span>InclusionGames</span>',
-        '  <a href="/stroke.html" class="rb-back" id="rbBack"></a>',
+        '  <a href="/stroke.html" class="rb-back rb-dwell" id="rbBack"></a>',
         '</div>',
 
         '<section id="rbSetup" class="rb-screen">',
@@ -191,10 +213,11 @@
         '  <p class="rb-saved" id="rbNotMedical"></p>',
         '</section>',
 
-        '<div id="rbCue" class="hidden"></div>',
+        '<div id="rbCue" class="hidden" role="status" aria-live="polite"></div>',
+        '<div id="rbLost" class="hidden" role="status" aria-live="assertive"></div>',
         '<div id="rbMeterWrap" class="hidden">',
         '  <div class="rb-meter" id="rbMeter">',
-        '    <div class="rb-meter-fill" id="rbFill"></div>',
+        '    <div class="rb-meter-clip"><div class="rb-meter-fill" id="rbFill"></div></div>',
         '    <div class="rb-target-line" id="rbTargetLine"><span class="rb-target-flag" id="rbTargetFlag"></span></div>',
         '  </div>',
         '  <div class="rb-meter-side">',
@@ -214,6 +237,22 @@
         '  <div><div class="big" id="rbRestH"></div><div id="rbRestCount">10</div><div class="sub" id="rbRestSub"></div></div>',
         '</div>',
 
+        /* The way out of a dead end. If the movement is not being picked up —
+           a camera that cannot see the person, a calibration that measured
+           nothing, a bad day — the exercise must never sit there asking for
+           something that cannot happen. Both buttons are dwell-activated, so
+           somebody with no usable hands can still leave. */
+        '<div id="rbStuck" class="hidden">',
+        '  <div class="rb-stuck-box">',
+        '    <div class="big" id="rbStuckH"></div>',
+        '    <p id="rbStuckP"></p>',
+        '    <div class="rb-row">',
+        '      <button class="rb-choice rb-dwell" id="rbStuckRetry"></button>',
+        '      <button class="rb-go rb-dwell" id="rbStuckEnd"></button>',
+        '    </div>',
+        '  </div>',
+        '</div>',
+
         '<section id="rbResults" class="rb-screen hidden">',
         '  <div><span class="rb-icon">🌟</span><h1 class="rb-title" id="rbDoneH"></h1><p class="rb-lead" id="rbDoneSub"></p></div>',
         '  <div class="rb-results" id="rbResultGrid"></div>',
@@ -225,13 +264,14 @@
         '</section>',
       ].join(''));
 
-      ['rbVideo', 'rbOverlay', 'rbBack', 'rbSetup', 'rbTitle', 'rbShort', 'rbSafetyH', 'rbSafetyP',
+      ['rbVideo', 'rbBack', 'rbSetup', 'rbTitle', 'rbShort', 'rbSafetyH', 'rbSafetyP',
         'rbCautionCard', 'rbCautionP', 'rbWhyH', 'rbWhyP', 'rbSideWrap', 'rbSideH', 'rbSideRow',
         'rbPreview', 'rbCamStatus', 'rbTrackStatus', 'rbStart', 'rbDwellHint', 'rbNotMedical',
-        'rbCue', 'rbMeterWrap', 'rbMeter', 'rbFill', 'rbTargetLine', 'rbTargetFlag', 'rbCount',
+        'rbCue', 'rbLost', 'rbMeterWrap', 'rbMeter', 'rbFill', 'rbTargetLine', 'rbTargetFlag', 'rbCount',
         'rbCountLbl', 'rbPips', 'rbSetLbl', 'rbSym', 'rbSymLbl', 'rbSymFill', 'rbSymVal',
         'rbRest', 'rbRestH', 'rbRestCount', 'rbRestSub', 'rbResults', 'rbDoneH', 'rbDoneSub',
-        'rbResultGrid', 'rbSaveMsg', 'rbAgain', 'rbFinish'].forEach(function (id) {
+        'rbResultGrid', 'rbSaveMsg', 'rbAgain', 'rbFinish',
+        'rbStuck', 'rbStuckH', 'rbStuckP', 'rbStuckRetry', 'rbStuckEnd'].forEach(function (id) {
         el[id] = document.getElementById(id);
       });
 
@@ -256,6 +296,10 @@
       el.rbFinish.textContent = T.finish;
       el.rbRestH.textContent = T.rest;
       el.rbRestSub.textContent = T.restSub;
+      el.rbStuckH.textContent = T.stuckTitle;
+      el.rbStuckP.textContent = T.stuckBody;
+      el.rbStuckRetry.textContent = T.setupAgain;
+      el.rbStuckEnd.textContent = T.finish;
 
       if (ex.caution) {
         el.rbCautionCard.hidden = false;
@@ -266,8 +310,11 @@
       el.rbSideH.textContent = ex.usesAffectedArm ? T.whichHand : T.affected;
       var sides = [['left', T.left], ['right', T.right]];
       if (!ex.usesAffectedArm && !ex.biasToAffected) sides.push(['both', T.bothSides]);
+      // rb-dwell as well as clickable: choosing the weaker side is the first
+      // thing the exercise asks for, and it has to be answerable by someone
+      // who cannot use a mouse either.
       el.rbSideRow.innerHTML = sides.map(function (s) {
-        return '<button class="rb-choice" data-side="' + s[0] + '">' + s[1] + '</button>';
+        return '<button class="rb-choice rb-dwell" data-side="' + s[0] + '">' + s[1] + '</button>';
       }).join('');
       el.rbSideRow.querySelectorAll('[data-side]').forEach(function (b) {
         b.addEventListener('click', function () {
@@ -283,17 +330,18 @@
         el.rbResults.classList.add('hidden');
         beginSession();
       });
+      el.rbStuckRetry.addEventListener('click', function () {
+        hideStuck();
+        el.rbMeterWrap.classList.add('hidden');
+        clearTargets();
+        calibrate();
+      });
+      el.rbStuckEnd.addEventListener('click', function () {
+        hideStuck();
+        finish();
+      });
 
-      resizeCanvas();
-      window.addEventListener('resize', resizeCanvas);
-    }
-
-    var ctx = null;
-    function resizeCanvas() {
-      if (!el.rbOverlay) return;
-      el.rbOverlay.width = window.innerWidth;
-      el.rbOverlay.height = window.innerHeight;
-      ctx = el.rbOverlay.getContext('2d');
+      window.addEventListener('resize', placeTarget);
     }
 
     function setStatus(node, cls, text) {
@@ -302,11 +350,19 @@
     }
 
     // ── camera + tracker ───────────────────────────────────
-    function startCamera() {
+    /* onReady fires once frames can flow. It matters because the camera is
+       released when a session ends, so starting a second session has to bring
+       the camera and the tracker back up before calibration can measure
+       anything — otherwise the exercise waits for readings that will never
+       arrive. */
+    var readyCb = null;
+
+    function startCamera(onReady) {
+      readyCb = onReady || null;
       setStatus(el.rbCamStatus, '', T.camera);
       setStatus(el.rbTrackStatus, '', T.tracking);
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setStatus(el.rbCamStatus, 'bad', T.cameraNo);
+        cameraFailed();
         return;
       }
       navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' }, audio: false })
@@ -314,16 +370,34 @@
           stream = s;
           el.rbPreview.srcObject = s;
           el.rbVideo.srcObject = s;
+          // Both of them: the hidden full-screen video is the one frames are
+          // read from, and relying on the autoplay attribute alone leaves it
+          // paused in some browsers, which stalls the whole exercise.
           el.rbPreview.play().catch(function () {});
+          el.rbVideo.play().catch(function () {});
           setStatus(el.rbCamStatus, 'ok', T.cameraReady);
           loadTracker();
         })
         .catch(function () {
           // Without a camera there is nothing to measure, so this exercise
           // genuinely cannot run — say so plainly rather than half-starting.
-          setStatus(el.rbCamStatus, 'bad', T.cameraNo);
-          setStatus(el.rbTrackStatus, 'bad', T.trackingNo);
+          cameraFailed();
         });
+    }
+
+    function cameraFailed() {
+      setStatus(el.rbCamStatus, 'bad', T.cameraNo);
+      setStatus(el.rbTrackStatus, 'bad', T.trackingNo);
+      readyCb = null;
+      // If this happened on the way into a session, go back to the setup
+      // screen rather than leaving a blank exercise running.
+      if (st.phase !== 'setup') {
+        st.phase = 'setup';
+        st.running = false;
+        el.rbCue.classList.add('hidden');
+        el.rbSetup.classList.remove('hidden');
+        el.rbVideo.classList.remove('on');
+      }
     }
 
     var TRACKER_SRC = {
@@ -334,17 +408,24 @@
 
     function loadTracker() {
       var spec = TRACKER_SRC[ex.tracker];
+      if (global[spec.global]) { initTracker(spec); return; }   // already loaded
       var s = document.createElement('script');
       s.src = spec.url;
       s.crossOrigin = 'anonymous';
       s.onload = function () { initTracker(spec); };
-      s.onerror = function () { setStatus(el.rbTrackStatus, 'bad', T.trackingNo); };
+      s.onerror = function () { trackerFailed(); };
       document.head.appendChild(s);
+    }
+
+    function trackerFailed() {
+      setStatus(el.rbTrackStatus, 'bad', T.trackingNo);
+      readyCb = null;
+      if (st.phase !== 'setup') cameraFailed();
     }
 
     function initTracker(spec) {
       var Ctor = global[spec.global];
-      if (!Ctor) { setStatus(el.rbTrackStatus, 'bad', T.trackingNo); return; }
+      if (!Ctor) { trackerFailed(); return; }
       try {
         tracker = new Ctor({ locateFile: function (f) { return spec.base + f; } });
         if (ex.tracker === 'face') {
@@ -358,16 +439,20 @@
         tracker.initialize().then(function () {
           setStatus(el.rbTrackStatus, 'ok', T.trackingReady);
           el.rbStart.disabled = false;
+          latest.at = Date.now();      // don't report "out of view" before the first frame
           pump();
-        }).catch(function () { setStatus(el.rbTrackStatus, 'bad', T.trackingNo); });
+          var cb = readyCb; readyCb = null;
+          if (cb) cb();
+        }).catch(function () { trackerFailed(); });
       } catch (e) {
-        setStatus(el.rbTrackStatus, 'bad', T.trackingNo);
+        trackerFailed();
       }
     }
 
     /* Feed frames continuously — the pointer has to work on the setup screen
        too, so that someone with no usable hands can press Begin. */
     function pump() {
+      if (rafId) cancelAnimationFrame(rafId);   // never leave two loops running
       var v = el.rbVideo;
       function step() {
         rafId = requestAnimationFrame(step);
@@ -379,7 +464,78 @@
     }
 
     // ── measurement from a frame ───────────────────────────
-    var latest = { v: 0, l: null, r: null, point: null, ok: false };
+    // `seq` counts frames the tracker actually found something in, and `at` is
+    // when that last happened. Calibration samples per new frame rather than
+    // on a timer, so a slow device does not weight the median differently
+    // from a fast one, and "did we see enough to set up?" becomes answerable.
+    var latest = { v: 0, l: null, r: null, point: null, ok: false, seq: 0, at: 0 };
+
+    /* With both hands in shot the tracker returns them in no particular
+       order, so taking the first one can silently measure the arm the
+       exercise is not for — and if that is the good arm, the session gets
+       recorded against the affected one. */
+    function palmX(h) { return h && h[9] ? h[9].x : 0.5; }
+
+    /* MediaPipe labels handedness as though the image were mirrored, the way
+       a selfie camera usually shows it. The frames sent here are the raw,
+       unmirrored ones, so its "Left" is the person's right hand. */
+    function labelledSide(res, i) {
+      var h = res.multiHandedness && res.multiHandedness[i];
+      if (!h || !h.label) return null;
+      return String(h.label).toLowerCase() === 'left' ? 'right' : 'left';
+    }
+
+    /* Before the person has said which side they are using, the pointer has to
+       follow whichever limb they are actually moving. Following the default
+       side instead leaves somebody whose only usable hand is the other one
+       unable to move the pointer at all — and therefore unable to press the
+       button that would have told us. */
+    var motion = {}, motionPrev = {};
+    function noteMotion(key, p) {
+      var prev = motionPrev[key];
+      var d = prev ? Math.abs(p.x - prev.x) + Math.abs(p.y - prev.y) : 0;
+      motionPrev[key] = p;
+      motion[key] = (motion[key] || 0) * 0.88 + d;
+      return motion[key];
+    }
+
+    function mostActiveHand(res, hands) {
+      var best = hands[0], bestScore = -1;
+      for (var i = 0; i < hands.length; i += 1) {
+        var key = 'h:' + (labelledSide(res, i) || i);
+        var score = noteMotion(key, { x: palmX(hands[i]), y: hands[i][9] ? hands[i][9].y : 0.5 });
+        if (score > bestScore) { bestScore = score; best = hands[i]; }
+      }
+      return best;
+    }
+
+    function mostActiveWrist(pl) {
+      var best = null, bestScore = -1;
+      ['left', 'right'].forEach(function (side) {
+        var p = poseWrist(pl, side);
+        if (!p) return;
+        var score = noteMotion('w:' + side, p);
+        if (score > bestScore) { bestScore = score; best = side; }
+      });
+      return best;
+    }
+
+    function pickHand(res, hands) {
+      if (hands.length === 1) return hands[0];
+      if (st.phase === 'setup') return mostActiveHand(res, hands);
+      var want = st.side === 'right' ? 'right' : 'left';
+      for (var i = 0; i < hands.length; i += 1) {
+        if (labelledSide(res, i) === want) return hands[i];
+      }
+      // No handedness from the tracker: fall back to geometry. In an
+      // unmirrored image the person's left hand is the one further right,
+      // which holds unless they have crossed their arms over.
+      var best = hands[0];
+      for (var j = 1; j < hands.length; j += 1) {
+        if (want === 'left' ? palmX(hands[j]) > palmX(best) : palmX(hands[j]) < palmX(best)) best = hands[j];
+      }
+      return best;
+    }
 
     function onResults(res) {
       var reading = null;
@@ -394,23 +550,26 @@
       } else if (ex.tracker === 'pose') {
         var pl = res.poseLandmarks;
         if (pl && pl.length) {
-          var p = poseWrist(pl, st.side === 'right' ? 'right' : 'left');
+          var armSide = st.phase === 'setup'
+            ? (mostActiveWrist(pl) || (st.side === 'right' ? 'right' : 'left'))
+            : (st.side === 'right' ? 'right' : 'left');
+          var p = poseWrist(pl, armSide);
           if (p) {
-            var sh = pl[POSE_SHOULDER[st.side === 'right' ? 'right' : 'left']];
+            var sh = pl[POSE_SHOULDER[armSide]];
             reading = { v: sh ? (sh.y - p.y) : 0, l: null, r: null, point: p };
           }
         }
       } else {
         var hands = res.multiHandLandmarks;
         if (hands && hands.length) {
-          var hl = hands[0];
+          var hl = pickHand(res, hands);
           reading = { v: handOpenness(hl), l: null, r: null, point: { x: hl[9].x, y: hl[9].y } };
         }
       }
 
       if (!reading) {
         latest.ok = false;
-        return;
+        return;                       // liveness() notices and says something
       }
       latest.v = reading.v;
       latest.l = reading.l;
@@ -419,9 +578,64 @@
       // person's actual movement rather than opposite to it.
       latest.point = reading.point ? { x: 1 - reading.point.x, y: reading.point.y } : null;
       latest.ok = true;
+      latest.seq += 1;
+      latest.at = Date.now();
       st.tracked = true;
+      if (st.lost) recovered();
       tick();
     }
+
+    /* ── is the camera still seeing the person? ──────────────
+     *
+     * Two things stop readings arriving: the person moves out of shot, and
+     * the browser stops sending frames because the tab went to the
+     * background. Both used to leave the exercise frozen mid-set with no
+     * explanation and no way forward, so both are handled here, from a timer
+     * rather than from the frame callback — a callback that has stopped
+     * firing cannot notice that it has stopped firing. */
+    var LOST_MS = 900;
+    var STALL_MS = 45000;      // no repetition for this long = offer a way out
+
+    function lostMessage() {
+      if (ex.tracker === 'hands') return T.needHand;
+      if (ex.tracker === 'pose') return T.needBody;
+      return T.needFace;
+    }
+
+    function liveness() {
+      if (st.phase !== 'exercise' && st.phase !== 'calibrate') return;
+      var quiet = Date.now() - latest.at;
+      if (quiet > LOST_MS && !st.lost) {
+        st.lost = true;
+        el.rbLost.textContent = lostMessage();
+        el.rbLost.classList.remove('hidden');
+        if (counter) counter.discardPartial();
+      }
+      if (st.phase === 'exercise' && !el.rbStuck.classList.contains('hidden')) return;
+      if (st.phase === 'exercise' && st.lastProgressAt && Date.now() - st.lastProgressAt > STALL_MS) {
+        showStuck();
+      }
+    }
+
+    function recovered() {
+      st.lost = false;
+      el.rbLost.classList.add('hidden');
+      // Whatever was half-done before they disappeared is not credited to the
+      // next repetition.
+      if (counter) counter.discardPartial();
+    }
+
+    function showStuck() {
+      st.running = false;
+      el.rbLost.classList.add('hidden');
+      el.rbStuck.classList.remove('hidden');
+    }
+    function hideStuck() {
+      el.rbStuck.classList.add('hidden');
+      st.lastProgressAt = Date.now();
+    }
+
+    setInterval(liveness, 250);
 
     // ── normalisation ──────────────────────────────────────
     function normalised(raw) {
@@ -439,14 +653,30 @@
     var RELEASE_FRACTION = 0.25;    // must drop back below this before the next rep
 
     function beginSession() {
+      if (idleRelease) { clearTimeout(idleRelease); idleRelease = 0; }
       el.rbSetup.classList.add('hidden');
+      el.rbResults.classList.add('hidden');
+      el.rbSaveMsg.textContent = '';
       el.rbVideo.classList.add('on');
       st.setIndex = 0;
       st.amplitudes = [];
       st.symmetries = [];
       st.holds = [];
       st.longestHold = 0;
+      st.lost = false;
       st.startedAt = Date.now();
+      hideStuck();
+      st.lastProgressAt = 0;
+
+      // A second session starts from the results screen, by which point the
+      // camera may already have been released. Bring it back before asking
+      // the person to move.
+      if (!stream || !tracker) {
+        st.phase = 'calibrate';
+        showCue(T.camera, 'rest');
+        startCamera(calibrate);
+        return;
+      }
       calibrate();
     }
 
@@ -458,26 +688,46 @@
 
     var calSamples = [], calSamplesL = [], calSamplesR = [];
 
+    /* Fewer distinct frames than this in a calibration step and there is not
+       enough of a look at the person to build a target from. */
+    var MIN_CAL_FRAMES = 6;
+
+    /* Samples once per tracked frame rather than on a timer. Two reasons: the
+       same frame counted forty times skews the median towards whatever the
+       frame rate happened to be, and counting frames is the only way to tell
+       "they held still" apart from "the camera never saw them". */
     function collect(ms, done) {
       calSamples = []; calSamplesL = []; calSamplesR = [];
+      var lastSeq = -1;
       var end = Date.now() + ms;
+      var hardEnd = Date.now() + ms * 3;
       (function loop() {
-        if (Date.now() >= end) { done(); return; }
-        if (latest.ok) {
+        var t = Date.now();
+        if (latest.ok && latest.seq !== lastSeq) {
+          lastSeq = latest.seq;
           calSamples.push(latest.v);
           if (latest.l != null) calSamplesL.push(latest.l);
           if (latest.r != null) calSamplesR.push(latest.r);
+        } else if (st.lost) {
+          // The window is for measuring the person, so don't spend it while
+          // they are out of shot — but don't wait for ever either.
+          end = Math.min(hardEnd, t + ms);
         }
-        setTimeout(loop, 40);
+        if (t >= end || t >= hardEnd) { done(calSamples.length); return; }
+        setTimeout(loop, 30);
       })();
     }
 
     function calibrate() {
       st.phase = 'calibrate';
+      st.lastProgressAt = 0;
+      el.rbMeterWrap.classList.add('hidden');
+      el.rbSym.classList.add('hidden');
       if (ex.type === 'targets') { calibrateArea(); return; }
 
-      showCue(T.calRelax, 'rest');
-      collect(2600, function () {
+      showCue(ex.tracker === 'face' ? T.calRelax : T.calRelaxBody, 'rest');
+      collect(2600, function (n) {
+        if (n < MIN_CAL_FRAMES) { calibrationFailed(); return; }
         st.base = median(calSamples);
         st.baseL = calSamplesL.length ? median(calSamplesL) : 0;
         st.baseR = calSamplesR.length ? median(calSamplesR) : 0;
@@ -485,35 +735,74 @@
       });
     }
 
+    /* Nothing usable was measured, which means the exercise cannot set a
+       target. Say so and offer the way out rather than starting a session
+       that can never complete a repetition. */
+    function calibrationFailed() {
+      showCue(T.cannotSee, 'rest');
+      setTimeout(showStuck, 1800);
+    }
+
     /* Three goes at the movement; the best is taken as the person's range for
-       today. Three because a single attempt is often a false start. */
+       today. Three because a single attempt is often a false start.
+       A movement with two directions gets two goes each, prompted with the
+       same arrow the exercise itself uses — otherwise nothing ever asks for
+       the second direction, and the set then waits for a movement the person
+       was never measured doing. */
     function maxAttempts(i, peaks, negPeaks) {
-      if (i >= 3) {
-        st.peak = peaks.length ? Math.max.apply(null, peaks) : st.base;
-        st.peakNeg = negPeaks.length ? Math.min.apply(null, negPeaks) : st.base;
-        var span = Math.abs(st.peak - st.base);
-        st.calibrationWeak = span < 0.012;
-        showCue(st.calibrationWeak ? T.calTooSmall : T.calDone, 'go');
-        setTimeout(startSet, st.calibrationWeak ? 4200 : 1500);
-        return;
-      }
-      showCue(T.calMax + ' — ' + T.calMaxTry.replace('%N', String(i + 1)), 'go');
-      collect(2600, function () {
-        if (calSamples.length) {
-          peaks.push(Math.max.apply(null, calSamples));
-          negPeaks.push(Math.min.apply(null, calSamples));
+      var total = ex.bidirectional ? 4 : 3;
+      if (i >= total) { calibrationDone(peaks, negPeaks); return; }
+
+      var dir = ex.bidirectional ? (i % 2 === 0 ? 1 : -1) : 1;
+      st.dir = dir;
+      var arrow = ex.bidirectional ? (dir > 0 ? ' ⟶' : ' ⟵') : '';
+      showCue(T.calMax + arrow + ' — '
+        + T.calMaxTry.replace('%N', String(i + 1)).replace('%M', String(total)), 'go');
+
+      collect(2600, function (n) {
+        if (n) {
+          if (dir > 0) peaks.push(Math.max.apply(null, calSamples));
+          else negPeaks.push(Math.min.apply(null, calSamples));
         }
         showCue(tx(ex.relaxCue) || T.calRelax, 'rest');
         setTimeout(function () { maxAttempts(i + 1, peaks, negPeaks); }, 1400);
       });
     }
 
+    function calibrationDone(peaks, negPeaks) {
+      st.peak = peaks.length ? Math.max.apply(null, peaks) : st.base;
+      st.peakNeg = negPeaks.length ? Math.min.apply(null, negPeaks) : st.base;
+
+      var spanPos = Math.abs(st.peak - st.base);
+      var spanNeg = Math.abs(st.base - st.peakNeg);
+
+      if (ex.bidirectional) {
+        /* One direction is usually harder than the other after a stroke. A
+           direction that was barely demonstrated leaves a target that either
+           cannot be reached at all, or that ordinary wobble crosses on its
+           own and counts repetitions nobody performed. Where the two
+           measurements are that far apart, ask the harder direction for a
+           share of the range the person actually showed. */
+        if (spanNeg < spanPos * 0.4) { spanNeg = spanPos * 0.6; st.peakNeg = st.base - spanNeg; }
+        else if (spanPos < spanNeg * 0.4) { spanPos = spanNeg * 0.6; st.peak = st.base + spanPos; }
+      }
+
+      var span = ex.bidirectional ? Math.min(spanPos, spanNeg) : spanPos;
+      st.calibrationWeak = span < 0.012;
+      showCue(st.calibrationWeak ? T.calTooSmall : T.calDone, 'go');
+      setTimeout(startSet, st.calibrationWeak ? 4200 : 1500);
+    }
+
     function calibrateArea() {
       showCue(T.calMove, 'go');
       var box = { minX: 1, maxX: 0, minY: 1, maxY: 0, n: 0 };
+      var lastSeq = -1;
       var end = Date.now() + 6000;
+      var hardEnd = Date.now() + 18000;
       (function loop() {
-        if (Date.now() >= end) {
+        var t = Date.now();
+        if (t >= end || t >= hardEnd) {
+          if (!box.n) { calibrationFailed(); return; }   // never saw them at all
           // Fall back to a modest central area if too little was seen.
           if (box.n < 10 || box.maxX - box.minX < 0.12) {
             box = { minX: 0.28, maxX: 0.72, minY: 0.28, maxY: 0.72 };
@@ -523,12 +812,15 @@
           setTimeout(startSet, 1200);
           return;
         }
-        if (latest.ok && latest.point) {
+        if (latest.ok && latest.point && latest.seq !== lastSeq) {
+          lastSeq = latest.seq;
           box.minX = Math.min(box.minX, latest.point.x);
           box.maxX = Math.max(box.maxX, latest.point.x);
           box.minY = Math.min(box.minY, latest.point.y);
           box.maxY = Math.max(box.maxY, latest.point.y);
           box.n += 1;
+        } else if (st.lost) {
+          end = Math.min(hardEnd, t + 6000);
         }
         setTimeout(loop, 50);
       })();
@@ -539,12 +831,16 @@
       newCounter();
       st.phase = 'exercise';
       st.running = true;
+      st.lastProgressAt = Date.now();
       el.rbSetLbl.textContent = T.set + ' ' + (st.setIndex + 1) + ' ' + T.of + ' ' + st.sets;
       buildPips();
       if (ex.type === 'targets') {
         el.rbMeterWrap.classList.add('hidden');
         spawnTarget();
       } else {
+        // No pointer during a meter exercise: it has nothing to do there, and
+        // left on screen it just sits frozen on top of the repetition count.
+        hidePointer();
         el.rbMeterWrap.classList.remove('hidden');
         var pos = (TARGET_FRACTION * 100);
         el.rbTargetLine.style.bottom = pos + '%';
@@ -627,6 +923,7 @@
 
     function completeRep(sym, peak) {
       st.repCount += 1;
+      st.lastProgressAt = Date.now();
       st.amplitudes.push(Math.round(clamp(peak, 0, 1.4) * 100));
       if (sym != null) st.symmetries.push(Math.round(sym * 100));
       markPip(st.repCount);
@@ -646,6 +943,7 @@
       st.running = false;
       st.setIndex += 1;
       el.rbCue.classList.add('hidden');
+      el.rbLost.classList.add('hidden');
       el.rbMeterWrap.classList.add('hidden');
       clearTargets();
       if (st.setIndex >= st.sets) { finish(); return; }
@@ -697,12 +995,33 @@
       var node = document.createElement('div');
       node.className = 'rb-target';
       node.innerHTML = '<span>⭐</span><span class="ring"></span>';
-      node.style.left = (x * window.innerWidth) + 'px';
-      node.style.top = (y * window.innerHeight) + 'px';
       document.body.appendChild(node);
-      currentTarget = { x: x, y: y, node: node, ring: node.querySelector('.ring') };
+      currentTarget = { x: x, y: y, sx: x, sy: y, node: node, ring: node.querySelector('.ring') };
+      placeTarget();
       dwellStart = 0;
       nextPrompt();
+    }
+
+    /* Puts the star where it can actually be reached: fully on screen, and
+       clear of the instruction at the top. A target half off the edge is one
+       the person can never dwell on, and on the neglected side they would not
+       even see that it was cut off. Re-runs on resize and rotation, since the
+       star is positioned in pixels. */
+    function placeTarget() {
+      if (!currentTarget || !currentTarget.node) return;
+      var w = Math.max(1, window.innerWidth), h = Math.max(1, window.innerHeight);
+      var mx = Math.min(0.45, 84 / w);
+      var top = Math.min(0.45, 175 / h);
+      var bot = Math.min(0.45, 96 / h);
+      currentTarget.sx = clamp(currentTarget.x, mx, 1 - mx);
+      currentTarget.sy = clamp(currentTarget.y, top, 1 - bot);
+      currentTarget.node.style.left = (currentTarget.sx * w) + 'px';
+      currentTarget.node.style.top = (currentTarget.sy * h) + 'px';
+    }
+
+    function hidePointer() {
+      var p = document.getElementById('rbPointer');
+      if (p) p.remove();
     }
 
     function pointerNode() {
@@ -727,8 +1046,10 @@
     function tickTargets() {
       drawPointer();
       if (!currentTarget || !latest.ok || !latest.point) return;
-      var dx = (latest.point.x - currentTarget.x) * window.innerWidth;
-      var dy = (latest.point.y - currentTarget.y) * window.innerHeight;
+      // Against where the star was actually drawn, not where it was picked —
+      // clamping can move it, and the reachable zone has to follow.
+      var dx = (latest.point.x - currentTarget.sx) * window.innerWidth;
+      var dy = (latest.point.y - currentTarget.sy) * window.innerHeight;
       var on = Math.sqrt(dx * dx + dy * dy) < 82;
       if (on) {
         if (!dwellStart) dwellStart = Date.now();
@@ -737,6 +1058,7 @@
         if (frac >= 1) {
           st.repCount += 1;
           st.amplitudes.push(100);
+          st.lastProgressAt = Date.now();
           markPip(st.repCount);
           if (st.repCount >= st.reps) { endSet(); return; }
           spawnTarget();
@@ -751,22 +1073,46 @@
        with no hands at all. Mouse and keyboard still work for anyone who has
        partial use of a hand — this is in addition, not instead. */
     var dwellBtn = null, dwellBtnStart = 0;
+    var BTN_DWELL_MS = 1600;
+
+    function clearDwell(b) {
+      b.classList.remove('rb-dwelling');
+      b.style.removeProperty('--dwell');
+    }
+
     function checkDwellButtons() {
       if (!latest.point) return;
       var px = latest.point.x * window.innerWidth;
       var py = latest.point.y * window.innerHeight;
+      var buttons = document.querySelectorAll('.rb-dwell');
       var over = null;
-      document.querySelectorAll('.rb-dwell').forEach(function (b) {
+      [].forEach.call(buttons, function (b) {
         if (b.disabled || b.offsetParent === null) return;
+        // Leaving the page is not something to do by accident mid-set, and on
+        // the target exercises the pointer roams the whole screen. The way out
+        // during a set is the panel that appears when nothing is working.
+        if (b === el.rbBack && st.phase === 'exercise') return;
         var r = b.getBoundingClientRect();
+        if (!r.width || !r.height) return;
         if (px >= r.left && px <= r.right && py >= r.top && py <= r.bottom) over = b;
       });
-      if (over !== dwellBtn) { dwellBtn = over; dwellBtnStart = Date.now(); if (over) over.style.outline = '4px solid #7c9cff'; }
-      document.querySelectorAll('.rb-dwell').forEach(function (b) { if (b !== dwellBtn) b.style.outline = ''; });
-      if (dwellBtn && Date.now() - dwellBtnStart > 1600) {
+      if (over !== dwellBtn) {
+        if (dwellBtn) clearDwell(dwellBtn);
+        dwellBtn = over;
+        dwellBtnStart = Date.now();
+      }
+      [].forEach.call(buttons, function (b) { if (b !== dwellBtn) clearDwell(b); });
+      if (!dwellBtn) return;
+
+      // Show the dwell filling up. Without it the button simply does nothing
+      // for a second and a half, which reads as broken.
+      var frac = clamp((Date.now() - dwellBtnStart) / BTN_DWELL_MS, 0, 1);
+      dwellBtn.classList.add('rb-dwelling');
+      dwellBtn.style.setProperty('--dwell', frac);
+      if (frac >= 1) {
         var b = dwellBtn;
         dwellBtn = null;
-        b.style.outline = '';
+        clearDwell(b);
         b.click();
       }
     }
@@ -777,23 +1123,30 @@
     function finish() {
       st.phase = 'done';
       st.running = false;
+      st.lost = false;
       el.rbSym.classList.add('hidden');
       el.rbCue.classList.add('hidden');
+      el.rbLost.classList.add('hidden');
+      el.rbMeterWrap.classList.add('hidden');
       el.rbVideo.classList.remove('on');
       clearTargets();
-      stopCamera();
+      hideStuck();
 
       var timeMs = Date.now() - st.startedAt;
-      var best = st.amplitudes.length ? Math.max.apply(null, st.amplitudes) : 0;
-      var avg = mean(st.amplitudes);
+      // A target exercise never measures how far anybody moved — it only asks
+      // whether the star was reached. Reporting "best range 100%" for it would
+      // put a number in front of a clinician that nothing actually measured.
+      var measured = ex.type !== 'targets';
+      var best = measured && st.amplitudes.length ? Math.max.apply(null, st.amplitudes) : null;
+      var avg = measured && st.amplitudes.length ? mean(st.amplitudes) : null;
       var sym = st.symmetries.length ? mean(st.symmetries) : null;
 
       var cards = [
-        ['🔁', st.amplitudes.length + ' / ' + (st.reps * st.sets), T.repsDone],
-        ['📈', best + '%', T.bestRange],
-        ['📊', avg + '%', T.avgRange],
-        ['⏱️', Math.max(1, Math.round(timeMs / 60000)) + ' min', T.timeSpent],
+        ['🔁', st.amplitudes.length + ' / ' + (st.reps * st.sets), measured ? T.repsDone : T.targetsReached],
       ];
+      if (best != null) cards.push(['📈', best + '%', T.bestRange]);
+      if (avg != null) cards.push(['📊', avg + '%', T.avgRange]);
+      cards.push(['⏱️', Math.max(1, Math.round(timeMs / 60000)) + ' min', T.timeSpent]);
       if (sym != null) cards.push(['⚖️', sym + '%', T.symmetry]);
       if (st.longestHold) cards.push(['🤝', (st.longestHold / 1000).toFixed(1) + 's', T.holdTime]);
 
@@ -802,6 +1155,11 @@
       }).join('');
 
       el.rbResults.classList.remove('hidden');
+      // The camera stays on for now: every button on this screen is
+      // dwell-activated, and somebody with no usable hands cannot press
+      // "Do it again" or "Finish" once the pointer has stopped moving.
+      scheduleIdleRelease();
+
       saveSession({
         exercise: ex.id,
         side: st.side,
@@ -818,6 +1176,23 @@
       });
     }
 
+    /* Leaving the camera light on indefinitely in someone's home is not
+       acceptable either, so it is released once the results screen has been
+       sitting there unused — with the reason shown, because a pointer that
+       silently stops responding is worse than one that says why. */
+    var idleRelease = 0;
+    var IDLE_RELEASE_MS = 120000;
+
+    function scheduleIdleRelease() {
+      if (idleRelease) clearTimeout(idleRelease);
+      idleRelease = setTimeout(function () {
+        idleRelease = 0;
+        if (st.phase !== 'done') return;
+        stopCamera();
+        el.rbSaveMsg.textContent = (el.rbSaveMsg.textContent + ' ' + T.cameraOff).trim();
+      }, IDLE_RELEASE_MS);
+    }
+
     function stopCamera() {
       if (rafId) cancelAnimationFrame(rafId);
       rafId = 0;
@@ -829,6 +1204,7 @@
       }
       if (tracker && tracker.close) { try { tracker.close(); } catch (e) {} }
       tracker = null;
+      latest.ok = false;
     }
 
     function saveSession(payload) {
@@ -843,6 +1219,9 @@
         headers: { 'Content-Type': 'application/json', Authorization: token ? ('Bearer ' + token) : '' },
         body: JSON.stringify(payload),
       }).then(function (r) {
+        // A session lost because the login quietly expired is worth saying
+        // plainly — "could not save" gives the person nothing to act on.
+        if (r.status === 401 || r.status === 403) { el.rbSaveMsg.textContent = T.signInToSave; return; }
         el.rbSaveMsg.textContent = r.ok ? T.saved : T.saveFail;
       }).catch(function () { el.rbSaveMsg.textContent = T.saveFail; });
     }

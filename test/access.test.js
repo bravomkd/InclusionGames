@@ -25,6 +25,12 @@ test('static exposure and the paywall gate', async (t) => {
       '/.env',
       '/node_modules/express/package.json',
       '/%2e%2e/%2e%2e/etc/passwd',
+      // Backend source, for the same reason as server.js: it is not part of
+      // the public site and there is no reason to hand it out.
+      '/lib/analytics.js',
+      '/lib/report-pdf.js',
+      '/LIB/rehab-analytics.js',
+      '/.github/workflows/ci.yml',
     ];
     for (const p of mustBe404) {
       const res = await srv.get(p);

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Rehab harness — full sweep</title>
+<style>
+  body{font-family:ui-monospace,Menlo,Consolas,monospace;background:#0b0e16;color:#dbe2ff;margin:0;padding:14px;font-size:12px;}
+  #frame{width:1280px;height:800px;border:1px solid #2b3350;position:fixed;right:-1400px;top:0;}
+  table{border-collapse:collapse;width:100%;margin-top:10px;}
+  td,th{border-bottom:1px solid #232a44;padding:5px 8px;text-align:left;vertical-align:top;}
+  .ok{color:#6ee7b7;} .bad{color:#fca5a5;} .dim{color:#8892b8;}
+</style>
+</head>
+<body>
+<!-- Runs the single-exercise harness once per scenario in an iframe and
+     collects the results. The iframe is parked off-screen but given a real
+     size, because the engine positions targets and dwell buttons in pixels
+     and a zero-sized viewport would make all of that meaningless.
+
+     Open /test/harness/run-all.html on the dev server. Progress and the
+     final table are on the page; window.SWEEP holds the same data. -->
+<h2 style="font-weight:700">Stroke rehab — engine sweep</h2>
+<div id="status" class="dim">starting…</div>
+<div id="table"></div>
+<iframe id="frame"></iframe>
+
+<script>
+(function () {
+  'use strict';
+  var EX = ['rehab01', 'rehab02', 'rehab03', 'rehab04', 'rehab05', 'rehab06', 'rehab07', 'rehab08', 'rehab09'];
+
+  // Each exercise on its own, then the awkward cases: a second session from
+  // the results screen, someone leaving the frame, someone with almost no
+  // movement, a markedly weaker side, and both hands in shot.
+  var SCENARIOS = EX.map(function (id) { return { name: id, q: { id: id, reps: 3, sets: 1 } }; }).concat([
+    { name: 'two sets + rest', q: { id: 'rehab01', reps: 2, sets: 2 } },
+    { name: 'do it again', q: { id: 'rehab01', reps: 2, sets: 1, again: 1 } },
+    { name: 'leaves the frame and returns', q: { id: 'rehab01', reps: 3, sets: 1, absent: 9000, absentFor: 8000 } },
+    { name: 'almost no movement', q: { id: 'rehab01', reps: 2, sets: 1, range: 0.04 } },
+    { name: 'no movement at all', q: { id: 'rehab01', reps: 2, sets: 1, range: 0 } },
+    { name: 'weaker left side', q: { id: 'rehab02', reps: 3, sets: 1, weak: 0.35 } },
+    { name: 'hold, weaker side', q: { id: 'rehab04', reps: 2, sets: 1, weak: 0.4 } },
+    { name: 'right hand, both in shot', q: { id: 'rehab09', reps: 3, sets: 1, side: 'right' } },
+    { name: 'left hand, no handedness', q: { id: 'rehab09', reps: 3, sets: 1, side: 'left', nohandedness: 1 } },
+    { name: 'scanning, weak left', q: { id: 'rehab07', reps: 4, sets: 1, side: 'left' } },
+    { name: 'reaching, right arm', q: { id: 'rehab08', reps: 3, sets: 1, side: 'right' } },
+  ]);
+
+  var frame = document.getElementById('frame');
+  var statusEl = document.getElementById('status');
+  var results = [];
+  window.SWEEP = { done: false, results: results };
+
+  function qs(o) {
+    return Object.keys(o).map(function (k) { return k + '=' + encodeURIComponent(o[k]); }).join('&');
+  }
+
+  function runOne(sc) {
+    return new Promise(function (resolve) {
+      var settled = false;
+      var giveUp = setTimeout(function () { finish({ ok: false, errors: ['harness never reported'], id: sc.q.id }); }, 120000);
+      function finish(r) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(giveUp);
+        clearInterval(poll);
+        resolve(r);
+      }
+      var poll = setInterval(function () {
+        var w;
+        try { w = frame.contentWindow; } catch (e) { return; }
+        if (w && w.HARNESS_RESULT) finish(w.HARNESS_RESULT);
+      }, 250);
+      frame.src = '/test/harness/rehab-harness.html?' + qs(sc.q);
+    });
+  }
+
+  function render() {
+    var rows = results.map(function (r) {
+      var cls = r.ok ? 'ok' : 'bad';
+      return '<tr><td>' + r.name + '</td><td class="' + cls + '">' + (r.ok ? 'pass' : 'FAIL') + '</td>'
+        + '<td>' + (r.counted == null ? '—' : r.counted) + '</td>'
+        + '<td class="dim">' + (r.cards || []).join(' · ') + '</td>'
+        + '<td class="bad">' + (r.errors || []).join('<br>') + '</td></tr>';
+    }).join('');
+    document.getElementById('table').innerHTML =
+      '<table><tr><th>scenario</th><th></th><th>reps</th><th>result cards</th><th>problems</th></tr>' + rows + '</table>';
+  }
+
+  (async function () {
+    for (var i = 0; i < SCENARIOS.length; i += 1) {
+      var sc = SCENARIOS[i];
+      statusEl.textContent = 'running ' + (i + 1) + '/' + SCENARIOS.length + ': ' + sc.name;
+      var r = await runOne(sc);
+      results.push({
+        name: sc.name, ok: !!r.ok, counted: r.counted, cards: r.cards,
+        saved: r.saved, second: r.second, errors: r.errors || [], note: r.note,
+        frames: r.frames, camStops: r.camStops, sawLost: r.sawLost, sawStuck: r.sawStuck,
+      });
+      render();
+    }
+    window.SWEEP.done = true;
+    var bad = results.filter(function (r) { return !r.ok; }).length;
+    statusEl.innerHTML = bad
+      ? '<span class="bad">' + bad + ' of ' + results.length + ' scenarios failed</span>'
+      : '<span class="ok">all ' + results.length + ' scenarios passed</span>';
+  })();
+})();
+</script>
+</body>
+</html>

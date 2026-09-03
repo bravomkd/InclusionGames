@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Rehab engine harness</title>
+<!-- The real stylesheet, because the engine relies on it for more than looks:
+     `.hidden { display: none }` is what makes a screen actually go away, and
+     the dwell test asks whether a button is still on screen. -->
+<link rel="stylesheet" href="/assets/rehab-engine.css"/>
+<style>
+  #out{position:fixed;right:0;top:0;bottom:0;width:340px;z-index:9999;overflow:auto;
+       background:rgba(0,0,0,.88);border-left:2px solid #2b3350;padding:12px;
+       font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#dbe2ff;
+       white-space:pre-wrap;line-height:1.4;}
+  #out .ok{color:#6ee7b7;} #out .bad{color:#fca5a5;}
+</style>
+</head>
+<body>
+<pre id="out">harness idle</pre>
+
+<!-- ============================================================
+     Drives the real stroke-rehab engine with a simulated patient.
+
+     Why this exists: the engine only ever runs against a live camera
+     and a MediaPipe model, so nothing downstream of "a frame arrived"
+     was ever executed by a test. This page stubs exactly two things —
+     the camera and the tracker — and leaves every other line of the
+     engine untouched, then plays the part of a person following the
+     on-screen instructions.
+
+     The simulated patient reads the cue the engine is showing and
+     responds to it (relax when told to relax, move when told to move,
+     hold when told to hold, look at the target when there is one), so
+     a session that cannot be completed by following the instructions
+     fails here.
+
+     Run it from the dev server:
+       node server.js
+       /test/harness/rehab-harness.html?id=rehab01&reps=3&sets=1&speed=8
+
+     Query options:
+       id      exercise id (default rehab01)
+       reps    repetitions per set          sets  number of sets
+       speed   virtual-clock multiplier     weak  weaker-side factor, 0..1
+       range   size of the movement, 0..1 (0.05 simulates almost no range)
+       absent  virtual ms into the session at which to vanish from frame
+       absentFor  how long to stay out of shot (default 7000)
+       nohandedness  1 = tracker reports no handedness, forcing the
+               geometric fallback when both hands are in shot
+       again   1 = press "Do it again" on the results screen and run a
+               second session, which is the path a released camera breaks
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  var isLocal = /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(location.hostname);
+  if (!isLocal) {
+    document.getElementById('out').textContent = 'Harness refuses to run off localhost.';
+    window.HARNESS_RESULT = { error: 'not localhost' };
+    throw new Error('harness: localhost only');
+  }
+})();
+</script>
+
+<script src="/assets/rehab-catalogue.js"></script>
+<script src="/assets/rehab-metrics.js"></script>
+<script src="/test/harness/synthetic.js"></script>
+
+<script>
+(function () {
+  'use strict';
+
+  var Q = new URLSearchParams(location.search);
+  var CFG = {
+    id: Q.get('id') || 'rehab01',
+    reps: Number(Q.get('reps') || 3),
+    sets: Number(Q.get('sets') || 1),
+    speed: Number(Q.get('speed') || 8),
+    weak: Q.get('weak') == null ? 1 : Number(Q.get('weak')),
+    range: Q.get('range') == null ? 1 : Number(Q.get('range')),
+    absent: Q.get('absent') == null ? null : Number(Q.get('absent')),
+    absentFor: Q.get('absentFor') == null ? 7000 : Number(Q.get('absentFor')),
+    again: Q.get('again') === '1',
+    side: Q.get('side') || 'left',
+    nohandedness: Q.get('nohandedness') === '1',
+  };
+
+  var log = [];
+  var errors = [];
+  var out = document.getElementById('out');
+  function say(msg, cls) {
+    log.push(msg);
+    out.innerHTML += '\n' + (cls ? '<span class="' + cls + '">' + msg + '</span>' : msg);
+    out.scrollTop = out.scrollHeight;
+  }
+  window.addEventListener('error', function (e) { errors.push('error: ' + e.message); });
+  window.addEventListener('unhandledrejection', function (e) {
+    errors.push('unhandled rejection: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+  });
+
+  // ── virtual clock ───────────────────────────────────────────
+  // Everything in the engine goes through Date.now()/setTimeout, so speeding
+  // both up by the same factor keeps all its timing relationships intact and
+  // turns a four-minute session into a few seconds.
+  var SPEED = Math.max(1, CFG.speed);
+  var realT0 = Date.now();
+  var realNow = Date.now.bind(Date);
+  function vnow() { return realT0 + (realNow() - realT0) * SPEED; }
+  Date.now = vnow;
+  var origTimeout = window.setTimeout.bind(window);
+  var origInterval = window.setInterval.bind(window);
+
+  /* Every timer on the page — the engine's setTimeout/setInterval and the
+     requestAnimationFrame it pumps camera frames on — is re-based onto a
+     single queue driven from a Worker.
+     Two reasons. The queue lets the whole session run at SPEED× real time
+     without changing a line of the engine, since it already does all its
+     timing through these APIs. And a browser throttles timers and stops
+     animation frames altogether in a background tab, which is correct
+     behaviour in the product but would starve an automated run; a Worker's
+     interval keeps ticking regardless. */
+  var tasks = new Map(), taskSeq = 1;
+  function schedule(fn, delay, repeat) {
+    var id = taskSeq += 1;
+    tasks.set(id, { due: realNow() + delay, fn: fn, repeat: repeat });
+    return id;
+  }
+  function unschedule(id) { tasks.delete(id); }
+  function drain() {
+    var t = realNow();
+    // Snapshot first: a task may add or cancel tasks while it runs.
+    [].concat(Array.from(tasks.entries())).forEach(function (pair) {
+      var id = pair[0], task = pair[1];
+      if (!tasks.has(id) || task.due > t) return;
+      if (task.repeat) task.due = t + task.repeat; else tasks.delete(id);
+      try { task.fn(t); } catch (e) { errors.push('timer threw: ' + e.message); }
+    });
+  }
+  window.setTimeout = function (fn, ms) { return schedule(fn, Math.max(0, (ms || 0) / SPEED), null); };
+  window.setInterval = function (fn, ms) { return schedule(fn, Math.max(1, (ms || 0) / SPEED), Math.max(1, (ms || 0) / SPEED)); };
+  window.clearTimeout = unschedule;
+  window.clearInterval = unschedule;
+  window.requestAnimationFrame = function (fn) { return schedule(fn, 16, null); };
+  window.cancelAnimationFrame = unschedule;
+
+  try {
+    var blob = new Blob(['setInterval(function(){postMessage(0);},6);'], { type: 'application/javascript' });
+    var ticker = new Worker(URL.createObjectURL(blob));
+    ticker.onmessage = drain;
+  } catch (e) {
+    errors.push('worker ticker unavailable, falling back to a throttled timer');
+  }
+  origInterval(drain, 25);   // belt and braces if the worker never starts
+
+  // ── fake camera ─────────────────────────────────────────────
+  // A canvas stream is a real MediaStream with real tracks, so the engine's
+  // readyState check and its track.stop() cleanup both behave normally.
+  var canvas = document.createElement('canvas');
+  canvas.width = 640; canvas.height = 480;
+  var cctx = canvas.getContext('2d');
+  var camStream = null, camStops = 0;
+  function paint() {
+    cctx.fillStyle = '#123'; cctx.fillRect(0, 0, 640, 480);
+    cctx.fillStyle = '#fff'; cctx.fillRect((realNow() / 20) % 600, 20, 24, 24);
+  }
+  origInterval(paint, 33);
+  paint();
+
+  if (!navigator.mediaDevices) {
+    Object.defineProperty(navigator, 'mediaDevices', { value: {}, configurable: true });
+  }
+  navigator.mediaDevices.getUserMedia = function () {
+    camStream = canvas.captureStream(30);
+    camStream.getTracks().forEach(function (t) {
+      var stop = t.stop.bind(t);
+      t.stop = function () { camStops += 1; say('camera track stopped'); stop(); };
+    });
+    return Promise.resolve(camStream);
+  };
+
+  // ── fake tracker ────────────────────────────────────────────
+  // The engine injects the MediaPipe script from a CDN; short-circuit that and
+  // hand it a constructor that emits synthetic landmarks instead.
+  var origAppend = document.head.appendChild.bind(document.head);
+  document.head.appendChild = function (node) {
+    if (node && node.tagName === 'SCRIPT' && /mediapipe/i.test(node.src || '')) {
+      say('intercepted tracker script: ' + node.src.replace(/^https:\/\/[^/]+/, ''));
+      origTimeout(function () { if (node.onload) node.onload(); }, 0);
+      return node;
+    }
+    return origAppend(node);
+  };
+
+  var onResults = null, frames = 0, closed = 0;
+  function Tracker() {}
+  Tracker.prototype.setOptions = function (o) { this.opts = o; };
+  Tracker.prototype.onResults = function (cb) { onResults = cb; };
+  Tracker.prototype.initialize = function () { return Promise.resolve(); };
+  Tracker.prototype.close = function () { closed += 1; onResults = null; };
+  Tracker.prototype.send = function () {
+    frames += 1;
+    if (onResults) { try { onResults(nextFrame()); } catch (e) { errors.push('onResults threw: ' + e.message); } }
+    return Promise.resolve();
+  };
+  window.FaceMesh = Tracker; window.Pose = Tracker; window.Hands = Tracker;
+
+  // ── the simulated patient ───────────────────────────────────
+  var EX = IG_REHAB.byId(CFG.id);
+  if (!EX) { out.textContent = 'unknown exercise ' + CFG.id; window.HARNESS_RESULT = { error: 'unknown exercise' }; return; }
+
+  var S = {
+    aim: null, stuckAim: null, absentFrom: null, absentUntil: null,
+    effortPhase: 0, lastEffort: 0, sawLost: false, sawStuck: false,
+  };
+
+  function cue() {
+    var n = document.getElementById('rbCue');
+    if (!n || n.classList.contains('hidden')) return { cls: '', text: '' };
+    return { cls: n.className || '', text: n.textContent || '' };
+  }
+
+  /* Effort follows the instruction on screen: rest when told to rest, hold
+     when told to hold, and otherwise swing smoothly out and back the way a
+     real repetition does. Nothing here reads the engine's internals. */
+  function effortNow() {
+    var c = cue();
+    if (c.cls.indexOf('hold') >= 0) return 1;
+    if (c.cls.indexOf('rest') >= 0) return 0;
+    if (!c.cls) return 0;
+    // Triangle wave: ~2.4 virtual seconds out and back, like a slow rep.
+    var t = (vnow() % 2400) / 2400;
+    return (t < 0.5 ? t * 2 : (1 - t) * 2);
+  }
+
+  function direction() {
+    return cue().text.indexOf('⟵') >= 0 ? -1 : 1;   // ⟵ means the other way
+  }
+
+  function targetOnScreen() {
+    var n = document.querySelector('.rb-target');
+    if (!n) return null;
+    return { x: parseFloat(n.style.left) / window.innerWidth, y: parseFloat(n.style.top) / window.innerHeight };
+  }
+
+  // A slow sweep, used while the engine is measuring how far the person can
+  // comfortably reach.
+  function sweep() {
+    var a = (vnow() % 4000) / 4000 * Math.PI * 2;
+    return { x: 0.5 + Math.cos(a) * 0.24, y: 0.5 + Math.sin(a) * 0.20 };
+  }
+
+  var point = { x: 0.5, y: 0.5 };
+  function moveToward(t) {
+    point.x += (t.x - point.x) * 0.30;
+    point.y += (t.y - point.y) * 0.30;
+    return point;
+  }
+
+  function observe() {
+    var lost = document.getElementById('rbLost');
+    if (lost && !lost.classList.contains('hidden')) S.sawLost = true;
+    var stuck = document.getElementById('rbStuck');
+    if (stuck && !stuck.classList.contains('hidden')) {
+      // The exercise has offered a way out of a dead end. Take it the way
+      // somebody with no usable hands would have to.
+      if (!S.sawStuck) { S.sawStuck = true; say('offered a way out of a dead end', 'ok'); }
+      S.stuckAim = centreOf(document.getElementById('rbStuckEnd'));
+    } else {
+      S.stuckAim = null;
+    }
+  }
+
+  function nextFrame() {
+    observe();
+    var t = vnow();
+    if (S.absentFrom != null && t >= S.absentFrom && (S.absentUntil == null || t < S.absentUntil)) {
+      // Nothing detected — exactly what the tracker sends when the person
+      // moves out of shot.
+      return EX.tracker === 'face' ? { multiFaceLandmarks: [] }
+        : EX.tracker === 'pose' ? {} : { multiHandLandmarks: [] };
+    }
+
+    var e = effortNow() * CFG.range;
+    S.lastEffort = e;
+    var aim = S.stuckAim || S.aim || (EX.type === 'targets' ? (targetOnScreen() || sweep()) : null);
+    var p = aim ? moveToward(aim) : null;
+
+    if (EX.tracker === 'face') {
+      var o = { weak: CFG.weak };
+      if (EX.metric === 'mouthOpen') o.mouthOpen = e;
+      else if (EX.metric === 'smile') o.smile = e;
+      else if (EX.metric === 'browRaise') o.brow = e;
+      else if (EX.metric === 'eyeClose') o.eyeClose = e;
+      else if (EX.metric === 'pucker') o.pucker = e;
+      else if (EX.metric === 'headYaw') o.yaw = e * direction();
+      var lm = p ? IG_SYNTH.faceLookingAt(p.x, p.y, o) : IG_SYNTH.face(o);
+      return { multiFaceLandmarks: [lm] };
+    }
+    if (EX.tracker === 'pose') {
+      return { poseLandmarks: IG_SYNTH.pose({ side: CFG.side, at: p || { x: 0.5, y: 0.75 } }) };
+    }
+    /* Both hands in shot: the realistic case, and the one where measuring the
+       wrong arm would go unnoticed. The still hand is deliberately listed
+       first, so anything that just takes hands[0] measures nothing.
+       MediaPipe reports handedness as though the image were mirrored, so the
+       label here is the opposite of whose hand it really is. */
+    var mine = CFG.side === 'right' ? 'right' : 'left';
+    var theirs = mine === 'left' ? 'right' : 'left';
+    var chosen = IG_SYNTH.hand({ open: e, side: mine });
+    var other = IG_SYNTH.hand({ open: 0.9, side: theirs });
+    if (p) { chosen[9] = { x: 1 - p.x, y: p.y }; }
+    var out = { multiHandLandmarks: [other, chosen] };
+    if (!CFG.nohandedness) {
+      out.multiHandedness = [theirs, mine].map(function (s) {
+        return { label: s === 'left' ? 'Right' : 'Left', score: 0.95 };
+      });
+    }
+    return out;
+  }
+
+  // ── driving the page ────────────────────────────────────────
+  function centreOf(node) {
+    var r = node.getBoundingClientRect();
+    return { x: (r.left + r.width / 2) / window.innerWidth, y: (r.top + r.height / 2) / window.innerHeight };
+  }
+
+  function waitFor(what, test, timeoutVirtualMs) {
+    return new Promise(function (resolve, reject) {
+      var deadline = vnow() + (timeoutVirtualMs || 40000);
+      (function poll() {
+        var v;
+        try { v = test(); } catch (e) { reject(new Error(what + ': ' + e.message)); return; }
+        if (v) { resolve(v); return; }
+        if (vnow() > deadline) {
+          reject(new Error('timed out waiting for ' + what
+            + ' | cue="' + cue().text + '" cls="' + cue().cls + '"'
+            + ' | fill=' + (document.getElementById('rbFill') || {}).style?.height
+            + ' | count=' + ((document.getElementById('rbCount') || {}).textContent)
+            + ' | frames=' + frames));
+          return;
+        }
+        schedule(poll, 12);
+      })();
+    });
+  }
+
+  var result = {
+    id: CFG.id, cfg: CFG, ok: false, steps: [], errors: errors,
+    frames: 0, camStops: 0, saved: null, counted: null, second: null,
+  };
+
+  // The virtual clock speeds up setTimeout for everyone on the page, including
+  // whoever is driving the harness, so hand out a real-time sleep and a live
+  // view of what the run is doing.
+  window.HARNESS_SLEEP = function (ms) { return new Promise(function (r) { origTimeout(r, ms); }); };
+  window.HARNESS_STATE = function () {
+    return {
+      frames: frames, camStops: camStops, closed: closed, errors: errors.slice(),
+      steps: result.steps.slice(), log: log.slice(-6),
+      cue: cue(), aim: S.aim, effort: S.lastEffort,
+      count: (document.getElementById('rbCount') || {}).textContent,
+      fill: (document.getElementById('rbFill') || { style: {} }).style.height,
+      done: !!window.HARNESS_RESULT,
+    };
+  };
+
+  function finishUp(ok, note) {
+    result.ok = ok;
+    result.frames = frames;
+    result.camStops = camStops;
+    result.sawLost = S.sawLost;
+    result.sawStuck = S.sawStuck;
+    result.trackerClosed = closed;
+    if (note) result.note = note;
+    result.log = log;
+    window.HARNESS_RESULT = result;
+    out.innerHTML += '\n\n<span class="' + (ok ? 'ok' : 'bad') + '">RESULT ' + JSON.stringify(result, null, 1) + '</span>';
+  }
+
+  /* Presses a button the way someone with no usable hands has to: by resting
+     the tracked point on it until it activates. If this does not work the
+     exercise is unusable by the people it is for. */
+  function dwellOn(node, what) {
+    S.aim = centreOf(node);
+    return waitFor('dwell to activate ' + what, function () { return node.offsetParent === null || node.dataset.hFired; }, 20000)
+      .then(function () { S.aim = null; say('dwell activated ' + what, 'ok'); });
+  }
+
+  function run() {
+    say('exercise ' + CFG.id + ' (' + EX.tracker + '/' + EX.type + ') speed x' + SPEED);
+
+    // Dose is normally a clinician's decision; shorten it so a run is quick.
+    EX.defaultReps = CFG.reps;
+    EX.sets = CFG.sets;
+
+    IG_REHAB_GAME({ id: CFG.id });
+
+    var start = document.getElementById('rbStart');
+    var setup = document.getElementById('rbSetup');
+
+    return waitFor('tracking ready', function () { return !start.disabled; }, 20000)
+      .then(function () {
+        result.steps.push('tracking-ready');
+        say('tracking ready after ' + frames + ' frames', 'ok');
+        // Choose the weaker side hands-free too, if the exercise asks.
+        var sideBtn = document.querySelector('[data-side="' + CFG.side + '"]');
+        if (sideBtn && !sideBtn.classList.contains('on')) {
+          sideBtn.addEventListener('click', function () { sideBtn.dataset.hFired = '1'; });
+          return dwellOn(sideBtn, 'side ' + CFG.side).catch(function (e) {
+            errors.push('side button not reachable hands-free: ' + e.message);
+            sideBtn.click();
+          });
+        }
+      })
+      .then(function () {
+        start.addEventListener('click', function () { start.dataset.hFired = '1'; });
+        return dwellOn(start, 'Begin').catch(function (e) {
+          errors.push('Begin not reachable hands-free: ' + e.message);
+          start.click();
+        });
+      })
+      .then(function () { return waitFor('setup to close', function () { return setup.classList.contains('hidden'); }, 20000); })
+      .then(function () {
+        result.steps.push('calibration-started');
+        if (CFG.absent != null) {
+          S.absentFrom = vnow() + CFG.absent;
+          S.absentUntil = S.absentFrom + CFG.absentFor;
+        }
+        return waitFor('results screen', function () {
+          return !document.getElementById('rbResults').classList.contains('hidden');
+        }, 260000);
+      })
+      .then(function () {
+        result.steps.push('results');
+        result.counted = document.getElementById('rbCount').textContent;
+        result.cards = [].map.call(document.querySelectorAll('.rb-result'), function (n) {
+          return n.textContent.replace(/\s+/g, ' ').trim();
+        });
+        return waitFor('save outcome', function () {
+          var m = document.getElementById('rbSaveMsg').textContent;
+          return m ? m : false;
+        }, 20000).catch(function () { return '(none)'; });
+      })
+      .then(function (msg) {
+        result.saved = msg;
+        say('save: ' + msg);
+        if (!CFG.again) return null;
+
+        // The results screen has to stay operable hands-free, and a second
+        // session has to actually run — the camera is released at the end of
+        // the first one.
+        var again = document.getElementById('rbAgain');
+        again.addEventListener('click', function () { again.dataset.hFired = '1'; });
+        return dwellOn(again, 'Do it again')
+          .then(function () {
+            return waitFor('second session results', function () {
+              return document.getElementById('rbCount').textContent !== '0'
+                && !document.getElementById('rbResults').classList.contains('hidden');
+            }, 260000);
+          })
+          .then(function () { result.second = { counted: document.getElementById('rbCount').textContent }; });
+      })
+      .then(function () { finishUp(errors.length === 0, null); })
+      .catch(function (e) { errors.push(e.message); finishUp(false, e.message); });
+  }
+
+  // The engine must already be loaded; load it last so the stubs are in place.
+  var s = document.createElement('script');
+  s.src = '/assets/rehab-engine.js';
+  s.onload = function () {
+    // A throw out of IG_REHAB_GAME would otherwise leave the run hanging with
+    // nothing to report, and a sweep waiting on it for ever.
+    try { run(); } catch (e) {
+      errors.push('engine threw on start: ' + e.message);
+      finishUp(false, e.message);
+    }
+  };
+  s.onerror = function () { finishUp(false, 'engine failed to load'); };
+  origAppend(s);
+})();
+</script>
+</body>
+</html>
