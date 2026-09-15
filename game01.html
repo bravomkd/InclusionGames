@@ -9,6 +9,8 @@ body{font-family:var(--body);background:var(--bg);overflow:hidden;height:100vh;w
 .screen{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:safe center;padding:20px;overflow-y:auto;gap:12px;}
 .screen.hidden{display:none!important;}
 .topnav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;}
+.topnav{pointer-events:none;}.topnav a,.topnav button{pointer-events:auto;}
+#setupscreen{padding-top:64px;}
 .brand{display:flex;align-items:center;gap:8px;font-family:var(--font);font-size:1rem;}
 .brand-box{width:30px;height:30px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:8px;display:flex;align-items:center;justify-content:center;}
 .back{background:rgba(0,0,0,.5);border:1.5px solid var(--border);color:#fff;font-size:.8rem;font-weight:700;padding:6px 13px;border-radius:100px;text-decoration:none;}
