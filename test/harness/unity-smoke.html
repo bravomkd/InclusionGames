@@ -108,12 +108,14 @@
   function press() {
     var c = document.getElementById('unity-canvas');
     var opts = { key: ' ', code: 'Space', keyCode: 32, which: 32, bubbles: true, cancelable: true };
+    /* ONE event, like the real bridge. Dispatching on the canvas and
+       on the document both delivered it to the document (the canvas
+       event bubbles), so Unity counted every press twice and jumped
+       twice as high from a switch as from its own button. */
     c.focus();
     c.dispatchEvent(new KeyboardEvent('keydown', opts));
-    document.dispatchEvent(new KeyboardEvent('keydown', opts));
     setTimeout(function () {
       c.dispatchEvent(new KeyboardEvent('keyup', opts));
-      document.dispatchEvent(new KeyboardEvent('keyup', opts));
     }, 90);
     window.SMOKE.presses += 1;
     log('press #' + window.SMOKE.presses);

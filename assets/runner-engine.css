@@ -181,7 +181,20 @@
      45px box that is usually empty is a whole option somewhere else. */
   #setupscreen > .camrow  { grid-area: cam; }
   #setupscreen > .camrow .cambox { padding: 3px 7px; border-radius: 8px; gap: 1px; }
-  #setupscreen > .gobtn   { grid-area: play; align-self: start; margin-top: 2px; }
+  /* The band, not the button: "Play" is wrapped in .gobar now, so the
+     direct child this grid places is the band. Placing .gobtn here
+     instead would match nothing and drop the button out of the layout
+     — which is how it ended up off the bottom of a landscape phone in
+     the first place. In this grid it has a cell of its own, so it
+     drops the sticky treatment it needs in the portrait column. */
+  /* `.screen` is on the selector only to outrank the portrait rule
+     for this band, which is written later in the file at the same
+     specificity and would otherwise win here and keep it sticky. */
+  #setupscreen.screen > .gobar {
+    grid-area: play; align-self: start; margin-top: 2px;
+    position: static; padding: 0; margin-bottom: 0;
+    background: none; box-shadow: none;
+  }
 
   .langbtn { font-size: .68rem; padding: 4px 9px; gap: 4px; }
   .game-icon { font-size: 1.6rem; margin-bottom: 2px; }
@@ -242,13 +255,119 @@
   .rbtns .btn { padding: 8px 14px; font-size: .8rem; }
 }
 
+/* ── The setup screen on a phone ────────────────────────────
+   Two faults, both only visible on a real device.
+
+   The screen opened 92px down, with the language buttons and the
+   title above the top edge. Nothing scrolls it: Chrome's scroll
+   anchoring moves a scrolling box when content above the viewport
+   changes height, and the web font and the emoji in the pick buttons
+   are still settling when it decides. `overflow-anchor: none` opts
+   this box out; the script also puts it back to the top once the
+   fonts have loaded, because anchoring is not the only thing that can
+   do this.
+
+   And "Play!" sat at y=836 in a 663px viewport — below the fold, with
+   nothing to say it was there. Sticking it to the bottom means the
+   one button that starts the game is on the screen whatever the
+   phone, the language or the length of the list above it.
+
+   Only games 43-46 load this file; the other 42 are untouched. */
+#setupscreen { overflow-anchor: none; }
+
+/* The top bar is transparent and fixed, so a setup screen long enough
+   to scroll runs its text straight under the wordmark and the back
+   link. A band under it, on this page only: games 43-45 share this
+   file but keep their bar over their own canvas while playing, and a
+   band there would be a dark stripe across the game. */
+body.ig-unity .topnav {
+  background: linear-gradient(180deg, var(--bg) 62%, rgba(0,0,0,0));
+  padding-bottom: 16px;
+}
+/* The button rides in a band of its own. It needs to be a wrapper
+   rather than a shadow or a pseudo-element on the button: the button
+   is a rounded pill, so the cards scroll past in the corners around
+   it, and a negative-z pseudo-element paints above its own parent's
+   background — which hid the green and left the word "Play!" floating
+   on nothing. */
+#setupscreen > .gobar {
+  position: sticky; bottom: -20px; z-index: 2; margin-top: auto;
+  flex: 0 0 auto; align-self: stretch;
+  padding: 14px 0 20px; margin-bottom: -20px;
+  background: var(--bg);
+  box-shadow: 0 -16px 18px -6px var(--bg);
+}
+#setupscreen > .gobar > .gobtn { width: 100%; }
+
 /* ── The client's Unity build, embedded ─────────────────────
-   His game fills the screen; the only things drawn over it are the
-   two that tell a player the switch is alive — their own picture and
-   the movement meter — plus a way out. */
-#ustage { position: fixed; inset: 0; z-index: 1; background: #000; }
+   Two rows: a strip of ours, then his game. Nothing of ours is drawn
+   over his picture.
+
+   This was an overlay, like games 43-45, and on a 360x663 phone it put
+   our back link across his "choose this next" panel, our quit button
+   across his AR button, our cue across his home button and our meter
+   across his A-M column. Those games draw their own canvas, so an
+   overlay there costs nothing. This one is his, and every corner of it
+   is already spoken for — so the strip takes its own height off the
+   top and he keeps every pixel below it. */
+#ustage {
+  position: fixed; inset: 0; z-index: 1; background: #000;
+  display: flex; flex-direction: column;
+}
 #ustage.hidden { display: none; }
+
+#uchrome {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 10px;
+  padding: 6px 10px; background: #0b1324;
+  border-bottom: 1px solid var(--border);
+}
+#uview { flex: 1 1 auto; position: relative; min-height: 0; }
 #unity-canvas { width: 100%; height: 100%; display: block; background: #000; outline: none; }
+
+/* The site's top bar belongs to the site, not to his game, and the
+   strip already carries a way out. */
+body.uplaying .topnav { display: none; }
+
+/* In the strip these stop being floating overlays and become a row.
+   Scoped to #uchrome, so the runner games keep theirs unchanged. */
+#uchrome #uquit { position: static; flex: 0 0 auto; }
+#uchrome .rcue {
+  position: static; flex: 1 1 auto; text-align: left; font-size: .95rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* `relative`, never `static`. The fill and the mark inside are
+   absolutely positioned, so the meter has to stay a containing block
+   for them. As `static` it stopped being one, the fill resolved
+   against #ustage instead, and at full movement a 14x42 bar became a
+   360x663 sheet of colour over the whole game — which is what a
+   raised hand looked like.
+
+   `top` and `left` have to be cleared with it. The base rule floats
+   the meter at left:16px/top:50% down the side of the screen; those
+   offsets are inert while it is static, and the moment it became
+   relative they shifted it 27px down — out of the strip, into his
+   game and across the camera preview. */
+#uchrome .rmeter {
+  position: relative; transform: none; flex: 0 0 auto;
+  top: auto; left: auto;
+  width: 14px; height: 42px; border-radius: 7px;
+}
+#uchrome #rvid {
+  position: static; flex: 0 0 auto; width: 60px; height: 44px;
+  border-radius: 8px; box-shadow: none; opacity: 1;
+}
+
+/* On a phone the strip cannot hold both a worded way out and the cue,
+   and of the two it is the cue the child needs — it is the only thing
+   telling them which movement jumps. The button keeps its wording for
+   screen readers (font-size:0 hides the glyphs, not the name) and an
+   adult still has it in full on a tablet. */
+@media (max-width: 460px) {
+  #uchrome #uquit { font-size: 0; padding: 8px 11px; }
+  #uchrome #uquit::before { content: '✕'; font-size: .95rem; line-height: 1; }
+  #uchrome { gap: 8px; padding: 6px 8px; }
+  #uchrome #rvid { width: 52px; height: 40px; }
+}
 
 #uload {
   position: absolute; inset: 0; display: flex; flex-direction: column;
@@ -256,6 +375,23 @@
   background: var(--bg); color: var(--text); font-family: var(--font);
 }
 #uload.hidden { display: none; }
+
+/* What Unity would have said in a native alert(). Covers his picture
+   only — never the strip above it — so the way out of the game stays
+   reachable behind it. */
+#uerr {
+  position: absolute; inset: 0; z-index: 5; display: flex;
+  align-items: center; justify-content: center; padding: 20px;
+  background: rgba(8,14,30,.94); color: var(--text); font-family: var(--font);
+}
+#uerr.hidden { display: none; }
+.uerrbox { text-align: center; max-width: 320px; }
+.uerri { font-size: 2.6rem; margin-bottom: 10px; }
+.uerrbox h2 { font-size: 1.35rem; margin-bottom: 8px; }
+.uerrbox p {
+  color: var(--muted); font-family: var(--font-body, inherit);
+  line-height: 1.5; font-size: .92rem; margin-bottom: 16px;
+}
 #uload .ubar { width: min(320px, 70vw); height: 12px; border-radius: 8px;
   background: rgba(255,255,255,.12); overflow: hidden; }
 #uload .ubar > i { display: block; height: 100%; width: 0%;

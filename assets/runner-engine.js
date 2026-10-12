@@ -202,7 +202,11 @@
     +   '</div>'
     +   '<div class="camrow"><div class="cambox"><div class="sline" id="scam"><span class="sdot"></span></div>'
     +     '<div class="sline" id="smp"><span class="sdot"></span></div></div></div>'
-    +   '<button class="gobtn" id="gobtn"></button>'
+    /* In a band of its own, stuck to the bottom. Measured on a
+       360x663 phone, this button sat at y=1192 — far below the fold,
+       with nothing on screen to say the game could be started at all.
+       Same fault, same fix, as game46. */
+    +   '<div class="gobar"><button class="gobtn" id="gobtn"></button></div>'
     + '</div>'
 
     + '<div class="calwrap hidden" id="calwrap"><div class="calbox">'

@@ -47,6 +47,7 @@
       loading: 'Loading the game…', lost: '👀 I cannot see you — move back into the picture',
       setup: 'A grown-up: choose the animal and the mode, then press Start in the game.',
       quit: '← Leave the game',
+      errT: 'The game stopped', errP: 'Something went wrong inside the game. Starting it again usually fixes it.', errRetry: '↻ Start it again',
     },
     de: { voice: 'de-DE',
       srcLbl: '🙂 Wie springst du?', accessLbl: 'Barrierefreiheit', voiceLbl: 'Sprachausgabe',
@@ -62,6 +63,7 @@
       loading: 'Spiel wird geladen…', lost: '👀 Ich sehe dich nicht — komm zurück ins Bild',
       setup: 'Für Erwachsene: Tier und Spielmodus wählen, dann im Spiel auf Start drücken.',
       quit: '← Spiel verlassen',
+      errT: 'Das Spiel hat angehalten', errP: 'Im Spiel ist etwas schiefgegangen. Ein Neustart hilft meistens.', errRetry: '↻ Neu starten',
     },
     pl: { voice: 'pl-PL',
       srcLbl: '🙂 Jak będziesz skakać?', accessLbl: 'Dostępność', voiceLbl: 'Głos',
@@ -77,6 +79,7 @@
       loading: 'Ładowanie gry…', lost: '👀 Nie widzę cię — wróć do kadru',
       setup: 'Dla dorosłych: wybierz zwierzę i tryb, potem naciśnij Start w grze.',
       quit: '← Wyjdź z gry',
+      errT: 'Gra się zatrzymała', errP: 'Coś poszło nie tak w grze. Ponowne uruchomienie zwykle pomaga.', errRetry: '↻ Uruchom ponownie',
     },
     es: { voice: 'es-ES',
       srcLbl: '🙂 ¿Cómo vas a saltar?', accessLbl: 'Accesibilidad', voiceLbl: 'Voz',
@@ -92,6 +95,7 @@
       loading: 'Cargando el juego…', lost: '👀 No te veo — vuelve a la imagen',
       setup: 'Para adultos: elige el animal y el modo, y pulsa Start en el juego.',
       quit: '← Salir del juego',
+      errT: 'El juego se ha detenido', errP: 'Algo ha fallado dentro del juego. Volver a empezar suele arreglarlo.', errRetry: '↻ Empezar de nuevo',
     },
   };
 
@@ -138,7 +142,7 @@
     +   '</div>'
     +   '<div class="camrow"><div class="cambox"><div class="sline" id="scam"><span class="sdot"></span></div>'
     +     '<div class="sline" id="smp"><span class="sdot"></span></div></div></div>'
-    +   '<button class="gobtn" id="gobtn"></button>'
+    +   '<div class="gobar"><button class="gobtn" id="gobtn"></button></div>'
     + '</div>'
 
     + '<div class="calwrap hidden" id="calwrap"><div class="calbox">'
@@ -152,17 +156,40 @@
     +   '</div>'
     + '</div></div>'
 
-    /* His game, and nothing of mine drawn on top of it. The only
-       additions are the things that tell a player the switch is alive:
-       their own picture, and a meter showing what the camera makes of
-       them. */
+    /* His game, and nothing of mine drawn on top of it.
+       A strip, and then his picture below it — not a HUD floating over
+       it. It was a HUD, and on a phone it covered his "choose this
+       next" panel, his AR button and his home button: his UI uses all
+       four corners and both side columns, and mine used three of them.
+       In games 43-45 the canvas is ours and an overlay is free. Here
+       it costs him the one panel the letter mode is about, so the
+       strip takes its own height off the top and his game keeps every
+       pixel below it.
+
+       What goes in the strip is only what tells a player the switch is
+       alive: their own picture, and a meter showing what the camera
+       makes of them. */
     + '<div id="ustage" class="hidden">'
-    +   '<canvas id="unity-canvas" tabindex="-1"></canvas>'
-    +   '<div id="uload"><div class="ubar"><i id="ubarfill"></i></div><div id="uloadtxt"></div></div>'
-    +   '<div class="rmeter hidden" id="rmeter"><i class="fill" id="rmfill"></i><span class="mark" id="rmmark"></span></div>'
-    +   '<video id="rvid" class="hidden" playsinline muted></video>'
-    +   '<div class="rcue hidden" id="rcue"></div>'
-    +   '<button class="btn btns" id="uquit"></button>'
+    +   '<div id="uchrome">'
+    +     '<button class="btn btns" id="uquit"></button>'
+    +     '<div class="rcue hidden" id="rcue"></div>'
+    +     '<div class="rmeter hidden" id="rmeter"><i class="fill" id="rmfill"></i><span class="mark" id="rmmark"></span></div>'
+    +     '<video id="rvid" class="hidden" playsinline muted></video>'
+    +   '</div>'
+    +   '<div id="uview">'
+    +     '<canvas id="unity-canvas" tabindex="-1"></canvas>'
+    +     '<div id="uload"><div class="ubar"><i id="ubarfill"></i></div><div id="uloadtxt"></div></div>'
+    /* When something throws inside the build, Unity's own handler
+       calls alert(). A native modal is the wrong thing to put in
+       front of a child — it cannot be read out, it cannot be pressed
+       by a switch, and it freezes the page until somebody taps OK
+       with a finger. This says the same thing in the game's language,
+       and offers the one action that helps. */
+    +     '<div id="uerr" class="hidden"><div class="uerrbox">'
+    +       '<div class="uerri">🛠️</div><h2 id="uerrT"></h2><p id="uerrP"></p>'
+    +       '<button class="btn btnp" id="uerrgo"></button>'
+    +     '</div></div>'
+    +   '</div>'
     + '</div>';
   }
 
@@ -195,6 +222,7 @@
       setText('gobtn', T.play); setText('backlink', T.allGames);
       setText('calretry', T.calRetry); setText('calkey', T.calUseKey);
       setText('uquit', T.quit); setText('uloadtxt', T.loading);
+      setText('uerrT', T.errT); setText('uerrP', T.errP); setText('uerrgo', T.errRetry);
       if (!$('scam').textContent.trim()) $('scam').innerHTML = '<span class="sdot"></span>' + T.cam;
       if (!$('smp').textContent.trim()) $('smp').innerHTML = '<span class="sdot"></span>' + T.track;
       buildSrcRow();
@@ -370,7 +398,9 @@
         if (!gone && sw) sw.lost();
       }
 
-      if (out.pressed) { fired = now; sendJump(); }
+      // Flash the meter only for a movement that actually jumped, so
+      // the mark means "that one counted" and not "that one was seen".
+      if (out.pressed && sendJump()) fired = now;
     }
 
     function cue() {
@@ -379,19 +409,59 @@
     }
 
     /* ── The bridge ───────────────────────────────────────────
-       His game asks `Input.GetKeyDown(KeyCode.Space)`. A Unity WebGL
-       build listens for real keyboard events on the document, so this
-       is the entire integration: press, and release shortly after, the
-       way a key behaves. */
+       A movement calls his jump method. It does not press a key, and
+       that distinction is the whole of this section.
+
+       A Space keydown reaches his Jump() by TWO routes at once:
+
+         1. Character_Controller.Update() — if (Input.GetKeyDown(Space))
+         2. the EventSystem — InputManager.asset binds the UI "Submit"
+            axis to `altPositiveButton: space`, so the same keystroke
+            fires onClick on whichever button happens to be selected,
+            and his jump button's onClick is wired straight to
+            Character_Controller.Jump.
+
+       Two calls, two AddForce impulses, from one press — so a mouth or
+       a hand sent the animal about twice as high as his own jump
+       button. Sending fewer events never fixed it: the fault was one
+       event taking two paths inside Unity, not too many events.
+
+       SendMessage goes to the single method his button goes to:
+         jump button onClick -> m_TargetAssemblyTypeName:
+         Character_Controller, m_MethodName: Jump, on the GameObject
+         named "Characters" (the same object in SampleScene,
+         SampleScene Alphabates and SampleScene Numbers).
+       One call, one impulse, identical to a tap of his button. It also
+       means a mouth or a hand can no longer trip whatever menu button
+       is selected, which Space could.
+
+       If that object or method is ever renamed, the jump stops with no
+       error of any kind — Unity logs a missing-object message and
+       carries on. tools/unity/README.md says so next to the rebuild
+       recipe.
+
+       The wait below is his, too. Character_Controller.Jump() has no
+       grounded check; the only thing stopping a second one is that
+       GameManager.JumpDisable() switches his on-screen button off and
+       Invoke("JumpEnable", 0.9f) switches it back on. Calling the
+       method directly skips that button, so without the wait a held
+       movement would stack impulses and float the animal — which is
+       exactly what it did. If his cooldown changes, this is the
+       number to match. */
+    var JUMP_COOLDOWN_MS = 900;
+    var lastJumpAt = -1e9;
+    var JUMP_OBJECT = 'Characters';
+    var JUMP_METHOD = 'Jump';
+
     function sendJump() {
-      var o = { key: ' ', code: 'Space', keyCode: 32, which: 32, bubbles: true, cancelable: true };
-      var c = $('unity-canvas');
-      try { c.dispatchEvent(new KeyboardEvent('keydown', o)); } catch (e) {}
-      try { document.dispatchEvent(new KeyboardEvent('keydown', o)); } catch (e) {}
-      setTimeout(function () {
-        try { c.dispatchEvent(new KeyboardEvent('keyup', o)); } catch (e) {}
-        try { document.dispatchEvent(new KeyboardEvent('keyup', o)); } catch (e) {}
-      }, 90);
+      var t = (global.performance && performance.now) ? performance.now() : Date.now();
+      if (t - lastJumpAt < JUMP_COOLDOWN_MS) return false;
+      // Not ready yet: do not spend the cooldown on a jump that never
+      // happened, or the next real movement would be refused too.
+      if (!unity || !unity.SendMessage) return false;
+      try { unity.SendMessage(JUMP_OBJECT, JUMP_METHOD); } catch (e) { return false; }
+      lastJumpAt = t;
+      return true;
     }
 
     /* ── Calibration ────────────────────────────────────────── */
@@ -482,8 +552,14 @@
       var usingCam = SW.SOURCES[srcId].tracker !== 'none' && !!stream;
       sw = cal ? new SW.Switch(cal) : null;
 
+      lastJumpAt = -1e9;          // a fresh round starts off cooldown
+      /* The site's own top bar sits over his AR button and his
+         "choose this next" panel, and the strip already carries a way
+         out. It goes away for the duration of the game. */
+      document.body.classList.add('uplaying');
       show('setupscreen', false);
       show('ustage', true);
+      patchAlert();
       show('rcue', true);
       show('rmeter', usingCam);
       $('rvid').classList.toggle('hidden', !usingCam);
@@ -530,6 +606,37 @@
       document.head.appendChild(s);
     }
 
+    /* Unity's framework answers an uncaught error with alert(). On a
+       phone that is a native modal the child cannot dismiss, over a
+       page that is frozen until somebody taps OK — and the game is
+       already gone by then, so there is nothing to protect. Take the
+       message, show it the way the rest of the page talks, and leave
+       the strip reachable behind it.
+
+       Only Unity's own wording is intercepted; any other alert on the
+       page still behaves normally. */
+    var nativeAlert = global.alert;
+    var alertPatched = false;
+    function patchAlert() {
+      if (alertPatched) return;
+      alertPatched = true;
+      global.alert = function (msg) {
+        var s = String(msg == null ? '' : msg);
+        if (/Unity content/i.test(s)) {
+          if (global.console) console.error('[unity] ' + s);
+          show('uerr', true);
+          return undefined;
+        }
+        return nativeAlert.apply(global, arguments);
+      };
+    }
+    function unpatchAlert() {
+      if (!alertPatched) return;
+      alertPatched = false;
+      global.alert = nativeAlert;
+    }
+    $('uerrgo').onclick = function () { global.location.reload(); };
+
     /* Unity sizes its drawing buffer from the canvas attributes, not
        from CSS; without this the game renders at 300x150 and is then
        stretched across the screen. */
@@ -542,15 +649,37 @@
     }
     global.addEventListener('resize', function () { if (unity) sizeCanvas(); });
 
-    // The space bar works whatever movement was chosen, so an adult can
-    // always help.
-    document.addEventListener('keydown', function (e) {
-      if ((e.code === 'Space' || e.key === ' ') && playing && !e.ig) e.ig = true;
-    });
+    /* The space bar works whatever movement was chosen, so an adult can
+       always help — and it has to jump by exactly as much as a
+       movement does, and as his own button does.
+
+       A real Space reaching Unity takes the same two routes a
+       synthetic one did (Update's GetKeyDown, and the UI "Submit"
+       axis, which InputManager.asset binds to space), so it would
+       jump twice as high as the button an adult is standing next to.
+       Catch it on the way in, before Unity's own handler on the
+       document, and route it through the one path everything else
+       uses. Capture on window runs first; stopping it there is what
+       keeps Unity from seeing the key at all. */
+    global.addEventListener('keydown', function (e) {
+      if (!playing) return;
+      if (e.code !== 'Space' && e.key !== ' ') return;
+      if (e.repeat) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      sendJump();
+    }, true);
+    global.addEventListener('keyup', function (e) {
+      if (!playing) return;
+      if (e.code === 'Space' || e.key === ' ') e.stopImmediatePropagation();
+    }, true);
 
     $('uquit').onclick = function () {
       stopPump(); stopCam();
       playing = false;
+      document.body.classList.remove('uplaying');
+      unpatchAlert();
+      show('uerr', false);
       show('ustage', false); show('rcue', false); show('rmeter', false);
       show('setupscreen', true);
       if (unity && unity.Quit) { try { unity.Quit(); } catch (e) {} }
@@ -561,8 +690,20 @@
       $('ubarfill').style.width = '0%';
     };
 
+    document.body.classList.add('ig-unity');
     applyLang();
     $('gobtn').disabled = false;
+
+    /* The setup screen can open part-way down — Chrome's scroll
+       anchoring moves it while the web font and the emoji in the pick
+       buttons are still settling, which puts the title and the
+       language buttons above the top edge. The CSS opts the box out of
+       anchoring; this puts it back for anything else that might move
+       it, once the fonts have actually landed. */
+    function toTop() { var s = $('setupscreen'); if (s && !playing) s.scrollTop = 0; }
+    toTop();
+    global.addEventListener('load', toTop);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(toTop);
 
     global.IG_UNITY_DEBUG = {
       jump: sendJump,

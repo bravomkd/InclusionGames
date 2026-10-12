@@ -13,18 +13,51 @@ changed** — each one adds its full size to the history for good.
 
 ## Why it needs no changes to his C#
 
-The whole of that game's input is one line:
+The switch layer calls the same method his own jump button calls:
 
-```csharp
-// Character_Controller.cs:45
-if (Input.GetKeyDown(KeyCode.Space))
+```js
+unityInstance.SendMessage('Characters', 'Jump');
 ```
 
-A Unity WebGL build reads real keyboard events off the page, so the
-switch layer turns a mouth, a hand or an eyebrow into a Space keydown
-aimed at the canvas. His code never learns the difference. That is
+`Characters` is the GameObject carrying `Character_Controller` in all
+three gameplay scenes, and his jump button's `onClick` is wired to
+`Character_Controller.Jump` on it. One call, one impulse — exactly a
+tap of his button. His code never learns the difference. That is
 deliberate: a reimplementation drifts from the original every time
 either side is touched, and this cannot.
+
+**If that object or method is renamed, the jump stops silently.** Unity
+logs `SendMessage: object Characters not found!` and carries on;
+nothing throws and no error reaches the page. So if a rebuild ever
+makes the animal stop jumping, check those two names first — they are
+`JUMP_OBJECT` and `JUMP_METHOD` in `assets/unity-switch.js`.
+
+### Why not just press Space
+
+It was a Space keydown, and that was wrong. A Space reaches `Jump()` by
+**two** routes at once:
+
+1. `Character_Controller.Update()` — `if (Input.GetKeyDown(KeyCode.Space))`
+2. the EventSystem — `InputManager.asset` binds the UI `Submit` axis to
+   `altPositiveButton: space`, so the same keystroke fires `onClick` on
+   whichever button is selected, and the jump button's `onClick` is
+   `Jump`.
+
+Two `AddForce` impulses from one press, so a movement jumped about
+twice as high as the on-screen button did. The page intercepts the real
+space bar now for the same reason.
+
+### The 0.9s wait
+
+`Jump()` has no grounded check. The only thing limiting it in the
+original is that `JumpDisable()` switches the on-screen button off and
+`Invoke("JumpEnable", 0.9f)` switches it back on. Calling the method
+directly skips that button, so the page holds the same 0.9s — without
+it a held movement stacks impulses and the animal never comes down.
+
+This is a latent fault in the original project's keyboard path: hold
+space in a desktop build and the animal flies. The phone build has no
+keyboard, so nothing ever reached it.
 
 ## What was changed, and only this
 
