@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AR Animal Run 3D — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+<link rel="stylesheet" href="assets/runner-engine.css">
+</head><body>
+<script src="assets/switch-input.js"></script>
+<script src="assets/unity-switch.js"></script>
+<script>
+/* game46 — the client's own Unity game, unchanged, played with a movement.
+   The build under /games/animal-run-3d is his AR Animal Run compiled to
+   WebGL: his scenes, his animals, his three modes, his scoring. The only
+   thing this page adds is a different way to press the jump. */
+IG_UNITY_GAME({
+  id:'game46', icon:'🐘',
+  build:'/games/animal-run-3d',
+  product:'AR Animal Run',
+  text:{
+    en:{tag:'Sport · Grades 1–4 · Game #46', title:'AR Animal ', titleEm:'Run 3D!', desc:'The full 3D game, in your browser. Jump with your mouth, your hand or your eyebrows.', quest:'🐘 Pick your animal and your mode, then run! A grown-up can set it up on the first screen.', questLbl:'RUN'},
+    de:{tag:'Sport · Kl. 1–4 · Spiel #46', title:'AR Tier-', titleEm:'Lauf 3D!', desc:'Das ganze 3D-Spiel im Browser. Springe mit dem Mund, der Hand oder den Augenbrauen.', quest:'🐘 Tier und Spielmodus wählen, dann loslaufen! Erwachsene können es auf dem ersten Bildschirm einstellen.', questLbl:'LAUFEN'},
+    pl:{tag:'Sport · Kl. 1–4 · Gra #46', title:'AR Zwierzęcy ', titleEm:'Bieg 3D!', desc:'Pełna gra 3D w przeglądarce. Skacz ustami, ręką lub brwiami.', quest:'🐘 Wybierz zwierzę i tryb, potem biegnij! Dorosły może to ustawić na pierwszym ekranie.', questLbl:'BIEGNIJ'},
+    es:{tag:'Deporte · Grados 1–4 · Juego #46', title:'¡AR Carrera ', titleEm:'Animal 3D!', desc:'El juego 3D completo, en el navegador. Salta con la boca, la mano o las cejas.', quest:'🐘 Elige tu animal y tu modo, ¡y corre! Un adulto puede configurarlo en la primera pantalla.', questLbl:'CORRER'}
+  }
+});
+</script>
+</body></html>

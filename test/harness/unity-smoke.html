@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Animal Run 3D — does it run?</title>
+<style>
+  html,body{margin:0;height:100%;background:#0d1a2e;color:#9ae6b4;
+    font:12px/1.5 ui-monospace,monospace}
+  #wrap{position:fixed;inset:0}
+  canvas{width:100%;height:100%;display:block;background:#000}
+  #log{position:fixed;left:0;top:0;z-index:9;background:rgba(0,0,0,.8);padding:8px;
+    white-space:pre;max-width:60vw;max-height:60vh;overflow:auto}
+</style>
+</head><body>
+<div id="log">loading…</div>
+<div id="wrap"><canvas id="unity-canvas" tabindex="-1"></canvas></div>
+<script>
+/* ============================================================
+ * Does the client's own Unity game actually run in a browser?
+ *
+ * Nothing here is part of the product. It answers one question before
+ * any integration work is built on top of it: a 2020.2 project built
+ * by Unity 6 can compile cleanly and still fail to start, and finding
+ * that out after wiring up a camera would be finding it out late.
+ *
+ * It also pokes the game the way the real page eventually will — by
+ * dispatching a Space keydown at the canvas, which is the whole of
+ * Character_Controller's input surface — so the bridge is proven here
+ * rather than assumed.
+ * ============================================================ */
+(function () {
+  'use strict';
+  var out = [];
+  function log(s) {
+    out.push(s);
+    document.getElementById('log').textContent = out.join('\n');
+    if (window.console) console.log('[unity-smoke] ' + s);
+  }
+  window.SMOKE = { log: out, loaded: false, error: null, frames: 0, presses: 0 };
+
+  /* A window nobody is looking at gets no animation frames, and Unity's
+     entire main loop is one. Without this it loads and then sits there,
+     which looks exactly like a build that does not work. */
+  if (document.hidden) {
+    var pend = {}, n = 0;
+    window.requestAnimationFrame = function (cb) {
+      n += 1; var id = n;
+      pend[id] = setTimeout(function () {
+        delete pend[id];
+        try { cb(performance.now()); } catch (e) { log('rAF threw: ' + e.message); }
+      }, 16);
+      return id;
+    };
+    window.cancelAnimationFrame = function (id) {
+      if (pend[id]) { clearTimeout(pend[id]); delete pend[id]; }
+    };
+    log('hidden window: animation frames are coming off a timer');
+  }
+
+  window.addEventListener('error', function (e) {
+    window.SMOKE.error = (e.message || 'error');
+    log('ERROR: ' + e.message);
+  });
+
+  var BASE = '/games/animal-run-3d';
+  var cfg = {
+    dataUrl: BASE + '/Build/WebBuild.data.unityweb',
+    frameworkUrl: BASE + '/Build/WebBuild.framework.js.unityweb',
+    codeUrl: BASE + '/Build/WebBuild.wasm.unityweb',
+    streamingAssetsUrl: BASE + '/StreamingAssets',
+    companyName: 'InclusionGames',
+    productName: 'Animal Run 3D',
+    productVersion: '1.0',
+  };
+
+  var t0 = Date.now();
+  var s = document.createElement('script');
+  s.src = BASE + '/Build/WebBuild.loader.js';
+  s.onerror = function () { log('loader.js failed to load'); };
+  s.onload = function () {
+    log('loader.js in, ' + (Date.now() - t0) + 'ms — creating the instance');
+    createUnityInstance(document.getElementById('unity-canvas'), cfg, function (p) {
+      if (Math.round(p * 100) % 20 === 0) log('  loading ' + Math.round(p * 100) + '%');
+    }).then(function (inst) {
+      window.unityInstance = inst;
+      window.SMOKE.loaded = true;
+      log('RUNNING after ' + ((Date.now() - t0) / 1000).toFixed(1) + 's');
+
+      /* Count real frames: Unity renders into the canvas, so a WebGL
+         context whose drawing buffer changes size and keeps ticking is
+         the proof it is alive. */
+      var c = document.getElementById('unity-canvas');
+      log('canvas drawing buffer: ' + c.width + 'x' + c.height);
+
+      // The bridge the product will use: a plain Space keydown.
+      setTimeout(function () {
+        log('sending Space to the canvas (the game reads KeyCode.Space)');
+        press();
+        setTimeout(press, 1200);
+        setTimeout(press, 2400);
+      }, 4000);
+    }).catch(function (e) {
+      window.SMOKE.error = String(e);
+      log('FAILED to start: ' + e);
+    });
+  };
+  document.head.appendChild(s);
+
+  function press() {
+    var c = document.getElementById('unity-canvas');
+    var opts = { key: ' ', code: 'Space', keyCode: 32, which: 32, bubbles: true, cancelable: true };
+    c.focus();
+    c.dispatchEvent(new KeyboardEvent('keydown', opts));
+    document.dispatchEvent(new KeyboardEvent('keydown', opts));
+    setTimeout(function () {
+      c.dispatchEvent(new KeyboardEvent('keyup', opts));
+      document.dispatchEvent(new KeyboardEvent('keyup', opts));
+    }, 90);
+    window.SMOKE.presses += 1;
+    log('press #' + window.SMOKE.presses);
+  }
+  window.SMOKE.press = press;
+})();
+</script>
+</body></html>

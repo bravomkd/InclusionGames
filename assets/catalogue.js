@@ -93,6 +93,13 @@
     { n: 43, icon: '🦁', title: 'Animal Run', cat: 'sport', desc: 'Run and jump — with your mouth, your hand or your eyebrows. Catch the fruit, jump the rocks.', age: 'Gr. 1–3', file: 'game43.html' },
     { n: 44, icon: '🔤', title: 'Alphabet Run', cat: 'jezyk', desc: 'Catch A to Z in order. Jump with your mouth, your hand or your eyebrows.', age: 'Gr. 1–2', file: 'game44.html' },
     { n: 45, icon: '🔢', title: 'Number Run', cat: 'mat', desc: 'Catch 1 to 20 in order. Jump with your mouth, your hand or your eyebrows.', age: 'Gr. 1–2', file: 'game45.html' },
+
+    /* The original, as it was built: the client's own Unity game compiled
+       to WebGL and given a different way to be pressed. Listed beside the
+       lighter version rather than replacing it — this one is the full 3D
+       game and costs a 22MB download, which is not the right first game
+       for every child or every school connection. */
+    { n: 46, icon: '🐘', title: 'AR Animal Run 3D', cat: 'sport', desc: 'The full 3D game in your browser. Jump with your mouth, your hand or your eyebrows. Larger download.', age: 'Gr. 1–3', file: 'game46.html' },
   ];
 
   /* Progress rows store the game as "game07", so index by that. */
