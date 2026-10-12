@@ -74,11 +74,10 @@ test('static exposure and the paywall gate', async (t) => {
   await t.test('gates game pages however the URL is spelled', async () => {
     // express.static runs with extensions:['html'], so all of these resolve to
     // the same file and all of them have to be gated.
-    // game43 is Animal Run, which is not in the catalogue yet: the gate
-    // has to come from the page name, not from a list somebody has to
-    // remember to update when a game is added.
+    // 43-45 are Animal Run. The gate has to come from the page name, not
+    // from a list somebody has to remember to update when a game is added.
     for (const p of ['/game02.html', '/game02', '/GAME02', '/Game02.HTML', '/game01-pl.html',
-      '/game43.html', '/game43']) {
+      '/game43.html', '/game43', '/game44.html', '/game45']) {
       const res = await srv.get(p);
       assert.equal(res.status, 302, `${p} should redirect (got ${res.status})`);
       assert.match(res.headers.get('location'), /login\.html$/, `${p} should go to login`);

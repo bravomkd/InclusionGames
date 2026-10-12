@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Alphabet Run — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+<link rel="stylesheet" href="assets/runner-engine.css">
+</head><body>
+<script src="assets/switch-input.js"></script>
+<script src="assets/runner-core.js"></script>
+<script src="assets/runner-engine.js"></script>
+<script>
+/* game44 — Alphabet Run. Catch the letters in order; jump over the wrong
+   ones. Ten letters a round rather than the original's full twenty-six:
+   a session has to be finishable, and A to Z at this pace is a quarter of
+   an hour of sustained concentration. A teacher can raise it per child. */
+IG_RUNNER_GAME({
+  id:'game44', icon:'🔤', mode:'letters', goal:10,
+  sequence: IG_RUNNER.letterSequence(),
+  text:{
+    en:{tag:'Literacy · Grades 1–2 · Game #44', title:'Alphabet ', titleEm:'Run!', desc:'Catch the letters in order, from A onwards. Jump with your mouth, your hand or your eyebrows.', quest:'🔤 Collect the lost letters! Catch the one you are asked for and jump over the rest.', questLbl:'COLLECT THE LETTERS'},
+    de:{tag:'Sprache · Kl. 1–2 · Spiel #44', title:'Buchstaben-', titleEm:'Lauf!', desc:'Fange die Buchstaben der Reihe nach, ab A. Springe mit dem Mund, der Hand oder den Augenbrauen.', quest:'🔤 Sammle die verlorenen Buchstaben! Fange den gesuchten und springe über die anderen.', questLbl:'SAMMLE DIE BUCHSTABEN'},
+    pl:{tag:'Język polski · Kl. 1–2 · Gra #44', title:'Literkowy ', titleEm:'Bieg!', desc:'Łap litery po kolei, od A. Skacz ustami, ręką lub brwiami.', quest:'🔤 Zbierz zagubione litery! Złap tę, o którą prosimy, a nad resztą przeskocz.', questLbl:'ZBIERZ LITERY'},
+    es:{tag:'Lectura · Grados 1–2 · Juego #44', title:'¡Carrera del ', titleEm:'Abecedario!', desc:'Atrapa las letras en orden, desde la A. Salta con la boca, la mano o las cejas.', quest:'🔤 ¡Recoge las letras perdidas! Atrapa la que te pedimos y salta sobre las demás.', questLbl:'RECOGE LAS LETRAS'}
+  }
+});
+</script>
+</body></html>

@@ -83,6 +83,16 @@
     { n: 40, icon: '🤾', title: 'Move It!', cat: 'sport', desc: 'Name the movement — and do it too.', age: 'Gr. 1–2', file: 'game40.html' },
     { n: 41, icon: '🥇', title: 'Olympic Heroes', cat: 'sport', desc: 'Name the Olympic prizes.', age: 'Gr. 2–4', file: 'game41.html' },
     { n: 42, icon: '🤝', title: 'Fair Play', cat: 'sport', desc: 'Fair play, or not?', age: 'Gr. 1–3', file: 'game42.html' },
+
+    /* Animal Run. One movement, one jump — no pointing, no aiming, so it
+       reaches children the bubble games cannot. The three modes are listed
+       separately rather than as one game with a menu, because a teacher
+       looking through Maths for something a particular child can play
+       should find the counting one there, not three clicks inside a
+       sports game. */
+    { n: 43, icon: '🦁', title: 'Animal Run', cat: 'sport', desc: 'Run and jump — with your mouth, your hand or your eyebrows. Catch the fruit, jump the rocks.', age: 'Gr. 1–3', file: 'game43.html' },
+    { n: 44, icon: '🔤', title: 'Alphabet Run', cat: 'jezyk', desc: 'Catch A to Z in order. Jump with your mouth, your hand or your eyebrows.', age: 'Gr. 1–2', file: 'game44.html' },
+    { n: 45, icon: '🔢', title: 'Number Run', cat: 'mat', desc: 'Catch 1 to 20 in order. Jump with your mouth, your hand or your eyebrows.', age: 'Gr. 1–2', file: 'game45.html' },
   ];
 
   /* Progress rows store the game as "game07", so index by that. */

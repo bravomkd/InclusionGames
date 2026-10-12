@@ -28,7 +28,14 @@ function childWith(rows) {
 }
 
 test('the catalogue is consistent', () => {
-  assert.equal(catalogue.games.length, 42);
+  /* A floor, not an exact count. "There are exactly 42 games" is a
+     snapshot of the content rather than a property of the code: it
+     fails every time a game is added, which is not a defect, and it
+     catches nothing that the checks below do not. The floor still
+     catches the thing worth catching, which is games disappearing.
+     The structural rules live in catalogue.test.js. */
+  assert.ok(catalogue.games.length >= 42,
+    `the catalogue is down to ${catalogue.games.length} games`);
   catalogue.games.forEach((g) => {
     assert.ok(catalogue.cats[g.cat], `${g.id} has an unknown category "${g.cat}"`);
     assert.equal(catalogue.byId(g.id).title, g.title);

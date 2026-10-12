@@ -637,24 +637,49 @@ test('both lanes actually get used', () => {
 
 /* ── The page that loads all this ──────────────────────────── */
 
-test('the game page loads the pieces in an order that works', () => {
+test('every Animal Run page loads the pieces in an order that works', () => {
   /* runner-engine.js reads IG_SWITCH and IG_RUNNER the moment it is
      called, so a page that loads them the other way round shows a
      blank screen and one console line. Cheap to get wrong when a new
      game page is copied from an old one. */
   const fs = require('node:fs');
   const path = require('node:path');
-  const html = fs.readFileSync(path.join(__dirname, '..', 'game43.html'), 'utf8');
-  const srcs = [...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map(m => m[1]);
   const want = ['assets/switch-input.js', 'assets/runner-core.js', 'assets/runner-engine.js'];
-  assert.deepEqual(srcs, want, `game43.html loads ${JSON.stringify(srcs)}`);
 
-  const css = [...html.matchAll(/<link[^>]+href="(assets\/[^"]+)"/g)].map(m => m[1]);
-  assert.ok(css.indexOf('assets/game-engine.css') >= 0, 'the shared chrome styles are missing');
-  assert.ok(css.indexOf('assets/runner-engine.css') >= 0, 'the runner styles are missing');
+  for (const page of ['game43.html', 'game44.html', 'game45.html']) {
+    const html = fs.readFileSync(path.join(__dirname, '..', page), 'utf8');
+    const srcs = [...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map(m => m[1]);
+    assert.deepEqual(srcs, want, `${page} loads ${JSON.stringify(srcs)}`);
 
-  // The id has to match the server's own idea of a game id, or every
-  // settings and progress call for this game is rejected as a bad id.
-  const id = (html.match(/id:\s*'(game\d{1,3})'/) || [])[1];
-  assert.ok(id && /^game\d{1,3}$/.test(id), `game43.html declares id ${id}`);
+    const css = [...html.matchAll(/<link[^>]+href="(assets\/[^"]+)"/g)].map(m => m[1]);
+    assert.ok(css.indexOf('assets/game-engine.css') >= 0, `${page}: shared chrome styles missing`);
+    assert.ok(css.indexOf('assets/runner-engine.css') >= 0, `${page}: runner styles missing`);
+
+    // The id has to match the server's own idea of a game id, or every
+    // settings and progress call for this game is rejected as a bad id.
+    const id = (html.match(/id:\s*'(game\d{1,3})'/) || [])[1];
+    assert.ok(id && /^game\d{1,3}$/.test(id), `${page} declares id ${id}`);
+    assert.equal(id, page.replace('.html', ''), `${page} calls itself ${id}`);
+
+    // All four languages, or a child gets an English screen.
+    for (const lang of ['en', 'de', 'pl', 'es']) {
+      assert.ok(html.includes(lang + ':{'), `${page} has no ${lang} text`);
+    }
+  }
+});
+
+test('the letter and number modes name a sequence; the simple mode does not', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const read = (f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+
+  assert.match(read('game44.html'), /letterSequence\(\)/, 'game44 should run the alphabet');
+  assert.match(read('game45.html'), /numberSequence\(20\)/, 'game45 should count to twenty');
+  assert.ok(!/Sequence\(/.test(read('game43.html')), 'game43 is not a sequence game');
+
+  // A goal nobody will sit through is the same as a game nobody finishes.
+  for (const f of ['game43.html', 'game44.html', 'game45.html']) {
+    const goal = Number((read(f).match(/goal:\s*(\d+)/) || [])[1]);
+    assert.ok(goal >= 3 && goal <= 15, `${f} asks for ${goal} in one round`);
+  }
 });
