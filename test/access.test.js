@@ -46,6 +46,7 @@ test('static exposure and the paywall gate', async (t) => {
     const prod = await startServer({ APP_URL: 'https://www.inclusion-games.com', NODE_ENV: 'production' });
     try {
       for (const p of ['/test/harness/rehab-harness.html', '/test/harness/game-settings-race.html',
+        '/test/harness/runner-harness.html', '/test/runner-core.test.js',
         '/test/helpers.js', '//test//harness//run-all.html', '/TEST/harness/run-all.html']) {
         const res = await prod.get(p);
         assert.equal(res.status, 404, `${p} should not be served in production (got ${res.status})`);
@@ -73,7 +74,11 @@ test('static exposure and the paywall gate', async (t) => {
   await t.test('gates game pages however the URL is spelled', async () => {
     // express.static runs with extensions:['html'], so all of these resolve to
     // the same file and all of them have to be gated.
-    for (const p of ['/game02.html', '/game02', '/GAME02', '/Game02.HTML', '/game01-pl.html']) {
+    // game43 is Animal Run, which is not in the catalogue yet: the gate
+    // has to come from the page name, not from a list somebody has to
+    // remember to update when a game is added.
+    for (const p of ['/game02.html', '/game02', '/GAME02', '/Game02.HTML', '/game01-pl.html',
+      '/game43.html', '/game43']) {
       const res = await srv.get(p);
       assert.equal(res.status, 302, `${p} should redirect (got ${res.status})`);
       assert.match(res.headers.get('location'), /login\.html$/, `${p} should go to login`);
@@ -92,6 +97,8 @@ test('static exposure and the paywall gate', async (t) => {
       '/', '/index.html', '/login.html', '/login', '/signup.html',
       '/privacy.html', '/terms.html', '/contact.html', '/payment-success.html',
       '/assets/auth.js', '/assets/game-engine.js', '/assets/game-engine.css',
+      '/assets/switch-input.js', '/assets/runner-core.js',
+      '/assets/runner-engine.js', '/assets/runner-engine.css',
     ];
     for (const p of publicPages) {
       const res = await srv.get(p);

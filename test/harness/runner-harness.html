@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Animal Run harness</title>
+<link rel="stylesheet" href="/assets/game-engine.css">
+<link rel="stylesheet" href="/assets/runner-engine.css">
+<style>
+  #hlog{position:fixed;left:0;top:0;width:380px;max-height:100vh;overflow:auto;z-index:99;
+    background:rgba(0,0,0,.84);color:#9ae6b4;font:11px/1.45 monospace;padding:8px;white-space:pre-wrap}
+</style>
+</head><body>
+<div id="hlog">starting…</div>
+
+<script src="/assets/switch-input.js"></script>
+<script src="/assets/runner-core.js"></script>
+
+<script>
+/* ============================================================
+ * Animal Run — played by a machine, with no webcam.
+ *
+ * The simulation has unit tests. What those cannot reach is
+ * everything between a camera frame and a score: the calibration
+ * screen, the switch thresholds applied to real landmark geometry,
+ * the frame pump, the loop, the end of the round, handing the camera
+ * back. That is the part nobody executes until a child sits in front
+ * of it.
+ *
+ * So this stubs the camera and the tracker, synthesises a face whose
+ * mouth it opens on purpose, and plays whole rounds. Its presses are
+ * deliberately slow: it raises the mouth and waits for the switch to
+ * confirm the movement over several frames, which is what a camera
+ * press really costs. A round won here is evidence that the timing
+ * window absorbs detection latency, rather than an assertion that it
+ * ought to.
+ *
+ * One round per page load, reloading itself for the next — a second
+ * engine in the same document would leave the first one's loop
+ * drawing into DOM that no longer exists, and the bug reports would
+ * be about the harness instead of the game.
+ *
+ * ?mode=classic|letters &diff=gentle|standard|challenge &runs=3 &goal=6
+ * The final verdict lands in window.HARNESS_RESULT (and sessionStorage).
+ * ============================================================ */
+(function () {
+  'use strict';
+  /* ── Animation frames in a hidden window ───────────────────
+     The engine drives both its camera pump and its game loop with
+     requestAnimationFrame, which a browser stops outright for a
+     window nobody is looking at — measured here as 0 frames per
+     second against 60 for a timer. An automated run therefore sees a
+     game that loads and then does absolutely nothing, which looks
+     exactly like a game that is broken.
+
+     So when this page is hidden, frames come off a timer instead.
+     Nothing about the engine changes; it is the clock that is
+     stubbed, the same as the camera. */
+  if (document.hidden) {
+    var pending = {}, nextId = 0;
+    window.requestAnimationFrame = function (cb) {
+      nextId += 1;
+      var id = nextId;
+      pending[id] = setTimeout(function () {
+        delete pending[id];
+        try { cb(performance.now()); } catch (e) { if (window.console) console.error(e); }
+      }, 16);
+      return id;
+    };
+    window.cancelAnimationFrame = function (id) {
+      if (pending[id]) { clearTimeout(pending[id]); delete pending[id]; }
+    };
+  }
+
+  var Q = new URLSearchParams(location.search);
+  var MODE = Q.get('mode') || 'classic';
+  var DIFF = Q.get('diff') || 'standard';
+  var RUNS = Math.max(1, Math.min(8, parseInt(Q.get('runs') || '2', 10)));
+  var GOAL = Math.max(1, Math.min(20, parseInt(Q.get('goal') || '6', 10)));
+  var KEY = 'runner_harness_state';
+
+  // The engine reads the saved language; pin it so prompts are known.
+  try { localStorage.setItem('ig_lang', 'en'); } catch (e) {}
+  // No child signed in: no settings fetch, no progress post.
+  try { localStorage.removeItem('ig_active_child'); } catch (e) {}
+
+  var prior = { done: [], log: [] };
+  try { prior = JSON.parse(sessionStorage.getItem(KEY) || 'null') || prior; } catch (e) {}
+
+  var lines = prior.log.slice();
+  function log(s) {
+    lines.push(s);
+    var el = document.getElementById('hlog');
+    if (el) el.textContent = lines.join('\n');
+    if (window.console) console.log('[harness] ' + s);
+  }
+  window.HARNESS_LOG = lines;
+
+  var runNo = prior.done.length + 1;
+
+  /* ── A face, built by hand ──────────────────────────────────
+     Only the landmarks switch-input.js actually reads, in the same
+     normalised image coordinates MediaPipe uses. The eyes are kept
+     0.20 apart because the mouth measurement is divided by that
+     distance, so the numbers reaching the switch are on a realistic
+     scale rather than an arbitrary one. */
+  var mouth = 0;                 // 0 = closed, 1 = as wide as it goes
+  function face() {
+    var lm = [];
+    for (var i = 0; i < 468; i += 1) lm.push({ x: 0.5, y: 0.5, z: 0 });
+    lm[33] = { x: 0.40, y: 0.45, z: 0 };
+    lm[263] = { x: 0.60, y: 0.45, z: 0 };
+    lm[159] = { x: 0.42, y: 0.43, z: 0 };
+    lm[386] = { x: 0.58, y: 0.43, z: 0 };
+    lm[105] = { x: 0.42, y: 0.39, z: 0 };
+    lm[334] = { x: 0.58, y: 0.39, z: 0 };
+    var gap = 0.010 + mouth * 0.100;        // 0.05 .. 0.55 after scaling
+    lm[13] = { x: 0.50, y: 0.60, z: 0 };
+    lm[14] = { x: 0.50, y: 0.60 + gap, z: 0 };
+    return lm;
+  }
+
+  /* ── Stubs ──────────────────────────────────────────────────
+     A real MediaStream, captured from a canvas, so the <video>
+     genuinely reaches readyState 2 and the engine's own frame pump
+     runs instead of being bypassed. */
+  var cvs = document.createElement('canvas');
+  cvs.width = 320; cvs.height = 240;
+  /* Attached, not detached. A canvas that is not in the document
+     produces a captureStream whose track goes live and then never
+     delivers a frame, so the <video> sits at readyState 0 and the
+     engine's frame pump — correctly — waits forever. That cost an hour
+     once; it is in the DOM now, one pixel and invisible. */
+  cvs.style.cssText = 'position:fixed;left:0;bottom:0;width:2px;height:2px;opacity:.01;pointer-events:none';
+  document.body.appendChild(cvs);
+  var cx = cvs.getContext('2d');
+  (function paint() {
+    // Something has to change every frame or the stream has nothing to send.
+    cx.fillStyle = '#123'; cx.fillRect(0, 0, 320, 240);
+    cx.fillStyle = '#fff'; cx.fillRect((Date.now() / 20) % 300, 4, 8, 8);
+    requestAnimationFrame(paint);
+  })();
+
+  try {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: {
+        getUserMedia: function () {
+          try { return Promise.resolve(cvs.captureStream(30)); }
+          catch (e) { return Promise.reject(e); }
+        },
+      },
+      configurable: true,
+    });
+  } catch (e) {
+    log('! could not stub mediaDevices: ' + e.message);
+  }
+
+  var frames = 0;
+  window.IG_TRACKER_STUB = function (kind, onResults) {
+    return {
+      setOptions: function () {}, onResults: function () {},
+      initialize: function () { return Promise.resolve(); },
+      close: function () {},
+      send: function () {
+        frames += 1;
+        onResults(kind === 'face'
+          ? { multiFaceLandmarks: [face()] }
+          : { multiHandLandmarks: [], multiHandedness: [] });
+        return Promise.resolve();
+      },
+    };
+  };
+
+  /* ── Waiting, always with a deadline ───────────────────────── */
+  function until(what, test, ms) {
+    var t0 = Date.now();
+    return new Promise(function (res, rej) {
+      (function look() {
+        if (test()) return res(Date.now() - t0);
+        if (Date.now() - t0 > ms) return rej(new Error('timed out waiting for ' + what));
+        setTimeout(look, 40);
+      })();
+    });
+  }
+
+  /* ── Making a press ─────────────────────────────────────────
+     Raise the mouth and hold it long enough for the switch to confirm
+     it, then close it so the switch re-arms. This is the latency a
+     camera costs, and the harness pays it rather than pretending to. */
+  var pressing = false;
+  function doPress() {
+    if (pressing) return;
+    pressing = true;
+    mouth = 1;
+    setTimeout(function () {
+      mouth = 0;
+      setTimeout(function () { pressing = false; }, 90);
+    }, 170);
+  }
+  var CAM_LATENCY = 0.08;        // seconds the hold above costs
+
+  function playRound(dbg, RC) {
+    var handled = Object.create(null);
+    var started = Date.now();
+    return new Promise(function (res) {
+      var iv = setInterval(function () {
+        var g = dbg.game();
+        if (!g) { clearInterval(iv); return res({ reason: 'lost the game object' }); }
+        var st = g.state();
+        if (st.over) { clearInterval(iv); return res(st); }
+        if (Date.now() - started > 180000) {
+          clearInterval(iv);
+          return res({ reason: 'never ended', score: st.score, goal: st.goal, hits: st.hits });
+        }
+        var objs = g.view()
+          .filter(function (o) { return o.needJump && !handled[o.n] && o.x > -0.4; })
+          .sort(function (a, b) { return a.x - b.x; });
+        if (!objs.length) return;
+        var o = objs[0];
+        var w = RC.windowFor(g.cfg, o.lane, o.wanted, o.x);
+        if (!w) { handled[o.n] = true; return; }
+        if ((w.lo + w.hi) / 2 - CAM_LATENCY <= 0.02) { handled[o.n] = true; doPress(); }
+      }, 16);
+    });
+  }
+
+  function oneRun() {
+    var RC = window.IG_RUNNER;
+    window.IG_RUNNER_GAME({
+      id: 'game43', icon: '🦁', mode: MODE, goal: GOAL,
+      sequence: MODE === 'letters' ? RC.letterSequence() : null,
+      text: { en: { tag: 'harness', title: 'Animal ', titleEm: 'Run', desc: '', quest: '' } },
+    });
+
+    var pick = document.querySelector('.pick[data-src="mouthOpen"]');
+    if (!pick) throw new Error('no mouthOpen source in the movement picker');
+    pick.click();
+    document.getElementById('diffsel').value = DIFF;
+    var tv = document.getElementById('tvoice');
+    if (tv.classList.contains('on')) tv.click();          // silence
+
+    mouth = 0;
+    document.getElementById('gobtn').click();
+
+    return until('calibration to open', function () {
+      return !document.getElementById('calwrap').classList.contains('hidden');
+    }, 9000).then(function () {
+      log('run ' + runNo + ': calibrating, ' + frames + ' camera frames so far');
+      // The prompt emoji says which phase it is, in any language.
+      return until('the effort phase', function () {
+        return document.getElementById('calface').textContent === '💪';
+      }, 10000);
+    }).then(function () {
+      var osc = setInterval(function () { mouth = mouth > 0.5 ? 0 : 1; }, 320);
+      /* Stop on either outcome. Calibration can also end by giving up
+         on the movement, and waiting for a screen that will never
+         appear reports a timeout where the real answer was "the engine
+         could not see you" — which is a different bug entirely. */
+      return until('calibration to settle', function () {
+        return document.getElementById('calwrap').classList.contains('hidden')
+          || !document.getElementById('calbtns').classList.contains('hidden');
+      }, 16000).then(function () {
+        clearInterval(osc); mouth = 0;
+        if (!document.getElementById('calbtns').classList.contains('hidden')) {
+          throw new Error('calibration gave up: "'
+            + document.getElementById('calT').textContent + '" after '
+            + frames + ' camera frames');
+        }
+        var cal = window.IG_RUNNER_DEBUG.state().cal;
+        if (!cal) throw new Error('calibration produced nothing');
+        log('run ' + runNo + ': base ' + cal.base.toFixed(3) + '  peak ' + cal.peak.toFixed(3)
+          + '  press ' + cal.press.toFixed(3) + '  weak ' + cal.weak);
+        if (cal.weak) throw new Error('a ten-fold movement was called too weak to use');
+      });
+    }).then(function () {
+      return until('the round to start', function () {
+        return window.IG_RUNNER_DEBUG.state().running;
+      }, 10000);
+    }).then(function () {
+      log('run ' + runNo + ': playing');
+      return playRound(window.IG_RUNNER_DEBUG, window.IG_RUNNER);
+    }).then(function (st) {
+      return until('the result screen', function () {
+        return !document.getElementById('resultscreen').classList.contains('hidden');
+      }, 5000).then(function () { return st; });
+    }).then(function (st) {
+      var shown = document.getElementById('rs1').textContent;
+      var camOff = !document.getElementById('rvid').srcObject;
+      log('run ' + runNo + ': ' + st.reason + '  score ' + st.score + '/' + st.goal
+        + '  hits ' + st.hits + '  missed ' + st.missed + '  jumps ' + st.jumps
+        + '  result shows "' + shown + '"  camera released ' + camOff);
+      return {
+        run: runNo, reason: st.reason, score: st.score, goal: st.goal, hits: st.hits,
+        missed: st.missed, jumps: st.jumps, shown: shown, cameraReleased: camOff,
+        frames: frames,
+      };
+    });
+  }
+
+  function finish(rec) {
+    var done = prior.done.concat([rec]);
+    if (done.length < RUNS) {
+      try { sessionStorage.setItem(KEY, JSON.stringify({ done: done, log: lines })); } catch (e) {}
+      log('reloading for run ' + (done.length + 1) + ' of ' + RUNS);
+      setTimeout(function () { location.reload(); }, 150);
+      return;
+    }
+    try { sessionStorage.removeItem(KEY); } catch (e) {}
+    var bad = done.filter(function (r) {
+      return r.error || r.reason !== 'won' || r.hits > 0 || !r.cameraReleased;
+    });
+    window.HARNESS_RESULT = {
+      done: true, mode: MODE, diff: DIFF, runs: done, failures: bad, pass: bad.length === 0,
+    };
+    log('—— ' + (bad.length ? 'FAIL ' + bad.length + '/' + done.length : 'PASS ' + done.length + '/' + done.length) + ' ——');
+  }
+
+  var s = document.createElement('script');
+  s.src = '/assets/runner-engine.js';
+  s.onload = function () {
+    log('run ' + runNo + ' of ' + RUNS + '  mode=' + MODE + ' diff=' + DIFF + ' goal=' + GOAL);
+    Promise.resolve().then(oneRun).then(finish).catch(function (e) {
+      log('run ' + runNo + ': FAILED — ' + e.message);
+      finish({ run: runNo, error: e.message });
+    });
+  };
+  s.onerror = function () { log('! runner-engine.js failed to load'); };
+  document.head.appendChild(s);
+})();
+</script>
+</body></html>

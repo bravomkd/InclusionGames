@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Animal Run — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+<link rel="stylesheet" href="assets/runner-engine.css">
+</head><body>
+<script src="assets/switch-input.js"></script>
+<script src="assets/runner-core.js"></script>
+<script src="assets/runner-engine.js"></script>
+<script>
+/* game43 — Animal Run. One movement, one jump: run into the good things
+   and over the bad ones. A port of the client's Unity AR runner, with the
+   timing opened up far enough that a camera can actually be the controller. */
+IG_RUNNER_GAME({
+  id:'game43', icon:'🦁', mode:'classic', goal:12,
+  text:{
+    en:{tag:'Sport · Grades 1–4 · Game #43', title:'Animal ', titleEm:'Run!', desc:'Your animal runs by itself. Jump with your mouth, your hand or your eyebrows.', quest:'🦁 Help your animal home! Catch the fruit, jump the rocks.', questLbl:'RUN HOME'},
+    de:{tag:'Sport · Kl. 1–4 · Spiel #43', title:'Tier-', titleEm:'Lauf!', desc:'Dein Tier läuft von selbst. Springe mit dem Mund, der Hand oder den Augenbrauen.', quest:'🦁 Bring dein Tier nach Hause! Fange das Obst, springe über die Steine.', questLbl:'LAUF NACH HAUSE'},
+    pl:{tag:'Sport · Kl. 1–4 · Gra #43', title:'Zwierzęcy ', titleEm:'Bieg!', desc:'Twoje zwierzę biegnie samo. Skacz ustami, ręką lub brwiami.', quest:'🦁 Zaprowadź zwierzę do domu! Łap owoce, przeskakuj kamienie.', questLbl:'BIEGNIJ DO DOMU'},
+    es:{tag:'Deporte · Grados 1–4 · Juego #43', title:'¡Carrera ', titleEm:'Animal!', desc:'Tu animal corre solo. Salta con la boca, la mano o las cejas.', quest:'🦁 ¡Lleva a tu animal a casa! Atrapa la fruta, salta las rocas.', questLbl:'CORRE A CASA'}
+  }
+});
+</script>
+</body></html>

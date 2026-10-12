@@ -1,0 +1,136 @@
+/* ============================================================
+ * Animal Run — the parts the bubble games do not have.
+ *
+ * Everything shared (top bar, cards, buttons, language row, toggles,
+ * the result screen) comes from game-engine.css, which this loads on
+ * top of. A game that looked like a different product would read as a
+ * different product.
+ * ============================================================ */
+
+/* The stage. Behind everything, sized by script. */
+#stage { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
+
+/* The camera feed, small and in the corner. The player needs to be
+   able to see that they are in shot — being out of frame is the most
+   common reason a movement stops working, and invisible when the
+   preview is hidden. */
+#rvid {
+  position: fixed; right: 14px; bottom: 14px; width: 168px; height: 126px;
+  object-fit: cover; border-radius: 14px; border: 2px solid var(--border);
+  transform: scaleX(-1); z-index: 3; background: #000; opacity: .9;
+  box-shadow: 0 8px 28px rgba(0,0,0,.45);
+}
+#rvid.hidden { display: none; }
+
+/* ── Heads-up display ─────────────────────────────────────── */
+/* Below the top bar AND below the break button, which is centred in
+   the strip between them. All three were at the same height to begin
+   with and the "catch this next" prompt — the one thing the letter
+   modes are about — was sitting underneath a button. */
+.rhud {
+  position: fixed; top: 106px; left: 0; right: 0; z-index: 4;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 0 16px; pointer-events: none;
+}
+.rhud > div { pointer-events: auto; }
+.rbadge {
+  background: rgba(8,14,30,.6); border: 1px solid var(--border);
+  border-radius: 14px; padding: 8px 14px; backdrop-filter: blur(6px);
+}
+.rlives { font-size: 1.5rem; letter-spacing: 2px; line-height: 1; }
+.rlives .gone { opacity: .22; filter: grayscale(1); }
+.rlbl { font-size: .62rem; letter-spacing: 1.4px; color: var(--muted); display: block; margin-bottom: 2px; }
+.rnum { font-family: var(--font); font-size: 1.5rem; line-height: 1; }
+
+/* What to catch next. The whole point of the letter modes, so it is
+   the biggest thing on the screen after the animal. */
+.rnext { text-align: center; }
+.rnext .big {
+  font-family: var(--font); font-size: 2.6rem; line-height: 1;
+  color: var(--gold); text-shadow: 0 0 22px rgba(255,215,0,.5);
+}
+
+/* ── The movement meter ───────────────────────────────────────
+   A bar that fills as the player moves, with their own press point
+   marked on it. Without this a movement that is not quite enough looks
+   exactly like a camera that is not working. */
+.rmeter {
+  position: fixed; left: 16px; top: 50%; transform: translateY(-50%);
+  width: 20px; height: 190px; z-index: 4;
+  background: rgba(8,14,30,.6); border: 1px solid var(--border); border-radius: 12px;
+  overflow: hidden;
+}
+.rmeter .fill {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 0%;
+  background: linear-gradient(0deg, var(--blue), var(--green)); transition: height .05s linear;
+}
+.rmeter .mark { position: absolute; left: 0; right: 0; height: 2px; background: var(--gold); opacity: .85; }
+.rmeter.fired .fill { background: linear-gradient(0deg, var(--gold), #fff); }
+.rmeter.hidden, .rhud.hidden { display: none; }
+
+/* ── Cue line ─────────────────────────────────────────────── */
+.rcue {
+  position: fixed; left: 0; right: 0; bottom: 18px; z-index: 4; text-align: center;
+  font-family: var(--font); font-size: 1.15rem; pointer-events: none;
+  text-shadow: 0 2px 14px rgba(0,0,0,.8);
+}
+.rcue.warn { color: var(--gold); }
+.rcue.hidden { display: none; }
+
+/* ── Calibration ──────────────────────────────────────────── */
+.calwrap {
+  position: fixed; inset: 0; z-index: 6; display: flex; align-items: center;
+  justify-content: center; background: rgba(8,14,30,.86); backdrop-filter: blur(8px);
+  padding: 20px;
+}
+.calwrap.hidden { display: none; }
+.calbox {
+  width: min(560px, 94vw); background: var(--panel); border: 1px solid var(--border);
+  border-radius: 22px; padding: 26px; text-align: center;
+}
+.calbox h2 { font-family: var(--font); font-size: 1.7rem; margin-bottom: 8px; }
+.calbox p { color: var(--muted); margin-bottom: 18px; line-height: 1.5; }
+.calface { font-size: 3.4rem; margin-bottom: 10px; }
+.calbar { height: 16px; border-radius: 10px; background: rgba(255,255,255,.1); overflow: hidden; margin: 0 0 8px; }
+.calbar > i { display: block; height: 100%; width: 0%; background: var(--green); transition: width .1s linear; }
+.calhint { font-size: .8rem; color: var(--muted); }
+.calbtns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+
+/* ── Pickers on the setup screen ──────────────────────────── */
+.pickrow { display: flex; gap: 8px; flex-wrap: wrap; }
+.pick {
+  flex: 1 1 auto; min-width: 104px; padding: 10px 12px; border-radius: 14px;
+  border: 1px solid var(--border); background: rgba(255,255,255,.05);
+  color: var(--text); font-family: var(--body); font-weight: 700; font-size: .84rem;
+  cursor: pointer; text-align: center; transition: .15s;
+}
+.pick:hover { background: rgba(255,255,255,.1); }
+.pick.on { background: rgba(96,165,250,.26); border-color: var(--blue); }
+.pick .ic { display: block; font-size: 1.5rem; margin-bottom: 3px; }
+/* Icon-only choices — the animals — do not need room for a word, and
+   stacking five of them one per row pushed everything else off a
+   phone screen. */
+.pickrow.icons .pick { min-width: 0; flex: 1 1 46px; padding: 8px 6px; }
+.pickrow.icons .pick .ic { margin-bottom: 0; }
+
+/* ── Countdown and pause ──────────────────────────────────── */
+#rcount {
+  position: fixed; inset: 0; z-index: 5; display: flex; align-items: center;
+  justify-content: center; font-family: var(--font); font-size: 7rem;
+  color: var(--gold); text-shadow: 0 0 40px rgba(255,215,0,.5); pointer-events: none;
+}
+#rcount.hidden { display: none; }
+
+#rpause {
+  position: fixed; top: 58px; left: 50%; transform: translateX(-50%); z-index: 5;
+  display: none;
+}
+#rpause.vis { display: block; }
+
+@media (max-width: 640px) {
+  #rvid { width: 112px; height: 84px; }
+  .rmeter { height: 130px; width: 16px; }
+  .rhud { top: 96px; }
+  .rnext .big { font-size: 2rem; }
+  .rcue { font-size: .95rem; }
+}
