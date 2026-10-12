@@ -96,7 +96,12 @@ const COPECART_PRODUCTS = {};
 // ── Storage (simple JSON file — no native modules) ──────────
 // For launch/testing this is plenty. To move to Postgres/MySQL
 // later, only the helpers below need to change.
-const DATA_DIR = path.join(ROOT, 'data');
+// DATA_DIR defaults to ./data, which is what the server has always used and
+// what production runs. It is overridable so the tests can point a throwaway
+// server at a temp directory — without it, running the suite writes into the
+// real account database. The static blocklist below matches on the URL path,
+// not the filesystem, so moving this cannot un-protect anything.
+const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(ROOT, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 const DB_FILE = path.join(DATA_DIR, 'users.json');
 
@@ -1686,10 +1691,24 @@ const BLOCKED = [
   /\.(bak|log|sh|md|sql|zip|tar|gz|env)$/i,
   /\.bak-[\w.-]*$/i,                         // server.js.bak-1788… and friends
 ];
+/* The patterns above are anchored at "/", so they only ever saw one spelling
+   of a path. express.static sees another: it collapses repeated slashes and
+   backslashes before resolving the file, so "//data//users.json" slipped past
+   every rule here and was then served — the whole account table, bcrypt
+   hashes and live reset tokens included. Normalise to the single spelling
+   express.static will actually resolve, and test that as well as the raw
+   path. */
+function normalisePath(urlPath) {
+  let p = urlPath;
+  try { p = decodeURIComponent(p); } catch { /* malformed: keep the raw path */ }
+  p = p.replace(/\\/g, '/').replace(/\/{2,}/g, '/');
+  return p.startsWith('/') ? p : '/' + p;
+}
+
 app.use((req, res, next) => {
-  let p = req.path;
-  try { p = decodeURIComponent(p); } catch { /* keep the raw path */ }
-  if (BLOCKED.some(re => re.test(p))) {
+  const raw = req.path;
+  const p = normalisePath(raw);
+  if (BLOCKED.some(re => re.test(p) || re.test(raw))) {
     console.warn('   [static] blocked ' + p + ' from ' + (req.ip || '?'));
     return res.status(404).type('txt').send('Not found');
   }
