@@ -54,6 +54,7 @@
       calRetry: '↻ Try again', calUseKey: '␣ Use the space bar', calSkip: 'Skip',
       ready: 'Get ready…',
       lives: 'LIVES', points: 'POINTS', toCatch: 'CATCH',
+      tooEarly: 'A bit too early — try again',
       lost: '👀 I cannot see you — move back into the picture',
       pauseBtn: '⏸️ Break', pauseT: '⏸️ BREAK', pauseP: 'Press the button, or Escape, to carry on',
       wonT: 'You did it! 👑', wonS: 'All of them caught — you are a hero!',
@@ -80,6 +81,7 @@
       calRetry: '↻ Nochmal versuchen', calUseKey: '␣ Leertaste benutzen', calSkip: 'Überspringen',
       ready: 'Bereit machen…',
       lives: 'LEBEN', points: 'PUNKTE', toCatch: 'FANGEN',
+      tooEarly: 'Etwas zu früh — nochmal',
       lost: '👀 Ich sehe dich nicht — komm zurück ins Bild',
       pauseBtn: '⏸️ Pause', pauseT: '⏸️ PAUSE', pauseP: 'Drücke den Knopf oder Escape, um weiterzuspielen',
       wonT: 'Geschafft! 👑', wonS: 'Alle gefangen — du bist ein Held!',
@@ -106,6 +108,7 @@
       calRetry: '↻ Spróbuj jeszcze raz', calUseKey: '␣ Użyj spacji', calSkip: 'Pomiń',
       ready: 'Przygotuj się…',
       lives: 'ŻYCIA', points: 'PUNKTY', toCatch: 'ZŁAP',
+      tooEarly: 'Trochę za wcześnie — jeszcze raz',
       lost: '👀 Nie widzę cię — wróć do kadru',
       pauseBtn: '⏸️ Przerwa', pauseT: '⏸️ PRZERWA', pauseP: 'Naciśnij przycisk lub Escape, aby grać dalej',
       wonT: 'Udało się! 👑', wonS: 'Wszystkie złapane — jesteś bohaterem!',
@@ -132,6 +135,7 @@
       calRetry: '↻ Intentar otra vez', calUseKey: '␣ Usar la barra espaciadora', calSkip: 'Omitir',
       ready: 'Prepárate…',
       lives: 'VIDAS', points: 'PUNTOS', toCatch: 'ATRAPA',
+      tooEarly: 'Un poco pronto — otra vez',
       lost: '👀 No te veo — vuelve a la imagen',
       pauseBtn: '⏸️ Pausa', pauseT: '⏸️ PAUSA', pauseP: 'Pulsa el botón, o Escape, para continuar',
       wonT: '¡Lo lograste! 👑', wonS: '¡Todos atrapados — eres un héroe!',
@@ -249,9 +253,14 @@
     var lang = 'en', T = T4.en;
     var srcId = 'mouthOpen', animal = 'lion', diff = 'standard';
     var voice = true, hint = true;
-    var cal = null, sw = null, game = null;
+    var cal = null, calSource = null, sw = null, game = null;
     var stream = null, mp = null, mpKind = null, mpReady = false;
-    var running = false, paused = false, pausedByTracking = false;
+    var running = false, paused = false;
+    /* Two different reasons to stop, which have to be tracked apart.
+       Treating them as one flag meant a player who stepped out of
+       shot could never start again: the loop stopped calling the
+       very check that would have noticed them coming back. */
+    var pausedByUser = false, pausedByTracking = false;
     var pendingPress = false, lastSeenAt = 0, meterN = 0, fired = 0;
     var raf = null, lastTs = 0, startedAt = 0;
     var childGoal = null, childDiff = null;
@@ -301,7 +310,12 @@
           + '<span class="ic">' + ic + '</span>' + label + '</button>';
       }).join('');
       Array.prototype.forEach.call($('srcrow').children, function (b) {
-        b.onclick = function () { touched.src = true; srcId = b.getAttribute('data-src'); buildSrcRow(); };
+        b.onclick = function () {
+          touched.src = true;
+          srcId = b.getAttribute('data-src');
+          cal = null; calSource = null;      // a new movement needs its own measurement
+          buildSrcRow();
+        };
       });
     }
 
@@ -326,7 +340,11 @@
         $(id).classList.toggle('on');
       };
     });
-    $('diffsel').onchange = function () { touched.diff = true; };
+    /* `diff` has to move with the control: applyLang() rebuilds these
+       options and marks the one matching `diff`, so leaving it stale
+       meant switching language silently undid a difficulty someone had
+       just chosen. */
+    $('diffsel').onchange = function () { touched.diff = true; diff = this.value; };
 
     function say(s) {
       if (!voice || !global.speechSynthesis) return;
@@ -556,6 +574,7 @@
       }).then(function () {
         calPhase = null;
         cal = calibrator.finish();
+        calSource = cal.weak ? null : srcId;
         if (cal.weak) return weak();
         show('calwrap', false);
         return true;
@@ -597,7 +616,12 @@
         return new Promise(function (res) {
           $('calretry').onclick = function () { show('calbtns', false); calibrate().then(res); };
           $('calkey').onclick = function () {
-            srcId = 'key'; cal = null; show('calwrap', false); buildSrcRow(); res(true);
+            /* Nothing will be watched any more, so stop watching. A
+               camera light left on through a whole round that does not
+               use it is its own kind of wrong. */
+            srcId = 'key'; cal = null; calSource = null; calPhase = null;
+            stopPump(); stopCam();
+            show('calwrap', false); buildSrcRow(); res(true);
           };
         });
       }
@@ -630,6 +654,12 @@
           return initTracker(src.tracker).then(function (tok) {
             if (!tok) { srcId = 'key'; buildSrcRow(); stopCam(); return true; }
             startPump();
+            /* Already measured for this movement. Pressing "play again"
+               should start a game, not another eight seconds of sitting
+               still; replaying is the commonest thing a child does and
+               was the most punished. Changing the movement clears this,
+               because the measurement belongs to the movement. */
+            if (cal && calSource === srcId && !cal.weak) return true;
             return calibrate();
           });
         });
@@ -676,7 +706,7 @@
         $('rmmark').style.bottom = Math.min(96, ((cal.press - cal.base) / span) / 1.2 * 100) + '%';
       }
 
-      paused = false; pausedByTracking = false; show('pauseov', false);
+      pausedByUser = false; pausedByTracking = false; syncPause();
       layout();
       startedAt = Date.now();
       lastSeenAt = (global.performance && performance.now()) || Date.now();
@@ -685,8 +715,7 @@
         running = true;
         lastTs = 0;
         if (!raf) raf = requestAnimationFrame(frame);
-        var cue = SW.SOURCES[srcId].cue;
-        setText('rcue', (cue && (cue[lang] || cue.en)) || '');
+        showCue();
         say(T.ready);
       });
     }
@@ -730,17 +759,24 @@
        gone because a grown-up checked their email is not acceptable.
        Hold the game instead, and let them restart it deliberately. */
     document.addEventListener('visibilitychange', function () {
-      if (document.hidden && running && !paused) {
-        paused = true;
-        show('pauseov', true);
+      if (document.hidden && running && !pausedByUser) {
+        pausedByUser = true;
+        syncPause();
       }
     });
 
     $('rpause').onclick = function () { togglePause(); };
+
+    function syncPause() {
+      paused = pausedByUser || pausedByTracking;
+      show('pauseov', pausedByUser);        // the tracking notice is the cue line
+    }
+
     function togglePause() {
-      if (pausedByTracking) return;         // resumes on its own
-      paused = !paused;
-      show('pauseov', paused);
+      if (pausedByTracking) return;         // that one resumes on its own
+      pausedByUser = !pausedByUser;
+      if (!pausedByUser) pendingPress = false;
+      syncPause();
     }
 
     /* ── The loop ───────────────────────────────────────────── */
@@ -750,10 +786,11 @@
       lastTs = ts;
 
       if (!game) { return; }
+      /* Before the early return, not after it. This check is the only
+         thing that can undo a pause it caused, so skipping it while
+         paused made the pause permanent. */
+      if (running && !pausedByUser) checkTracking(ts);
       if (!running || paused) { render(game.state()); return; }
-
-      checkTracking(ts);
-      if (paused) { render(game.state()); return; }
 
       var pressed = pendingPress; pendingPress = false;
       var st = game.step(dt, pressed);
@@ -768,18 +805,35 @@
     function checkTracking(ts) {
       if (!sw || !stream) return;
       var gone = ts - lastSeenAt > 900;
-      if (gone && !pausedByTracking) {
-        pausedByTracking = true; paused = true;
+      if (gone === pausedByTracking) return;         // nothing changed
+      pausedByTracking = gone;
+      if (gone) {
         $('rcue').classList.add('warn');
         setText('rcue', T.lost);
-        show('pauseov', false);
-      } else if (!gone && pausedByTracking) {
-        pausedByTracking = false; paused = false;
+      } else {
         $('rcue').classList.remove('warn');
-        var cue = SW.SOURCES[srcId].cue;
-        setText('rcue', (cue && (cue[lang] || cue.en)) || '');
+        showCue();
         if (sw) sw.lost();        // do not fire on the way back in
+        pendingPress = false;     // nor spend one made while out of shot
       }
+      syncPause();
+    }
+
+    function showCue() {
+      var cue = SW.SOURCES[srcId].cue;
+      setText('rcue', (cue && (cue[lang] || cue.en)) || '');
+    }
+
+    /* A brief message over the cue line, then back to the standing
+       instruction. */
+    var cueTimer = null;
+    function flashCue(msg) {
+      setText('rcue', msg);
+      $('rcue').classList.add('warn');
+      if (cueTimer) clearTimeout(cueTimer);
+      cueTimer = setTimeout(function () {
+        if (!pausedByTracking) { $('rcue').classList.remove('warn'); showCue(); }
+      }, 1100);
     }
 
     var flash = 0, flashKind = '';
@@ -788,6 +842,10 @@
         var e = events[i];
         if (e.type === 'collect' || e.type === 'correct') { flash = 1; flashKind = 'good'; }
         else if (e.type === 'hit' || e.type === 'wrong') { flash = 1; flashKind = 'bad'; }
+        /* The player made the movement and the game could not use it.
+           Silence reads as "the camera is broken" or "I did it wrong";
+           saying "too early" is the truth and it is actionable. */
+        else if (e.type === 'dropped') flashCue(T.tooEarly);
       }
     }
 
@@ -961,6 +1019,10 @@
       var ms = Date.now() - startedAt;
       setText('rs3', fmtTime(ms));
       show('resultscreen', true);
+      /* The last frame stays on the canvas behind the result screen;
+         redrawing it sixty times a second until somebody clicks is
+         battery a school tablet does not have to spare. */
+      if (raf) { cancelAnimationFrame(raf); raf = null; }
       say((won ? T.wonSpeech + ' ' : '') + T.scored(st.score, st.goal));
 
       // Progress for the active child, same shape as the bubble games.

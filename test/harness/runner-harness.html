@@ -76,6 +76,7 @@
   var RUNS = Math.max(1, Math.min(8, parseInt(Q.get('runs') || '2', 10)));
   var GOAL = Math.max(1, Math.min(20, parseInt(Q.get('goal') || '6', 10)));
   var SEQ = Q.get('seq') || 'letters';          // letters | numbers
+  var LOST = Q.get('lost') === '1';             // walk out of shot mid-round
   var KEY = 'runner_harness_state';
 
   // The engine reads the saved language; pin it so prompts are known.
@@ -104,6 +105,7 @@
      distance, so the numbers reaching the switch are on a realistic
      scale rather than an arbitrary one. */
   var mouth = 0;                 // 0 = closed, 1 = as wide as it goes
+  var faceGone = false;          // the player has left the picture
   function face() {
     var lm = [];
     for (var i = 0; i < 468; i += 1) lm.push({ x: 0.5, y: 0.5, z: 0 });
@@ -162,8 +164,10 @@
       close: function () {},
       send: function () {
         frames += 1;
+        // Nothing in shot is a frame with no landmarks in it, which is
+        // exactly what MediaPipe hands back for an empty picture.
         onResults(kind === 'face'
-          ? { multiFaceLandmarks: [face()] }
+          ? { multiFaceLandmarks: faceGone ? [] : [face()] }
           : { multiHandLandmarks: [], multiHandedness: [] });
         return Promise.resolve();
       },
@@ -201,15 +205,45 @@
   function playRound(dbg, RC) {
     var handled = Object.create(null);
     var started = Date.now();
+    var lostDone = false, sawPause = false, sawResume = false;
+
+    /* Walking out of shot, and back. A child leaning out of frame is
+       not a wrong answer, and the game is supposed to hold rather than
+       spend their lives while they are not in the picture — but it has
+       to start again when they come back, and that is the half nobody
+       exercises by playing normally. */
+    function maybeLeave() {
+      if (!LOST || lostDone || Date.now() - started < 6000) return;
+      lostDone = true;
+      log('run ' + runNo + ': stepping out of shot');
+      faceGone = true;
+      setTimeout(function () {
+        var paused = dbg.state().paused;
+        sawPause = sawPause || paused;
+        log('run ' + runNo + ': out of shot, game paused = ' + paused);
+        faceGone = false;
+        setTimeout(function () {
+          sawResume = !dbg.state().paused;
+          log('run ' + runNo + ': back in shot, game resumed = ' + sawResume);
+        }, 1500);
+      }, 2200);
+    }
+
     return new Promise(function (res) {
       var iv = setInterval(function () {
         var g = dbg.game();
         if (!g) { clearInterval(iv); return res({ reason: 'lost the game object' }); }
         var st = g.state();
-        if (st.over) { clearInterval(iv); return res(st); }
+        if (st.over) {
+          clearInterval(iv);
+          st.sawPause = sawPause; st.sawResume = sawResume;
+          return res(st);
+        }
+        maybeLeave();
         if (Date.now() - started > 180000) {
           clearInterval(iv);
-          return res({ reason: 'never ended', score: st.score, goal: st.goal, hits: st.hits });
+          return res({ reason: 'never ended', score: st.score, goal: st.goal, hits: st.hits,
+            sawPause: sawPause, sawResume: sawResume, stuckPaused: dbg.state().paused });
         }
         var objs = g.view()
           .filter(function (o) { return o.needJump && !handled[o.n] && o.x > -0.4; })
@@ -294,6 +328,7 @@
         run: runNo, reason: st.reason, score: st.score, goal: st.goal, hits: st.hits,
         missed: st.missed, jumps: st.jumps, shown: shown, cameraReleased: camOff,
         frames: frames,
+        sawPause: st.sawPause, sawResume: st.sawResume, stuckPaused: st.stuckPaused,
       };
     });
   }
@@ -308,7 +343,9 @@
     }
     try { sessionStorage.removeItem(KEY); } catch (e) {}
     var bad = done.filter(function (r) {
-      return r.error || r.reason !== 'won' || r.hits > 0 || !r.cameraReleased;
+      if (r.error || r.reason !== 'won' || r.hits > 0 || !r.cameraReleased) return true;
+      // When the scenario asked for it, both halves have to have happened.
+      return LOST && !(r.sawPause && r.sawResume);
     });
     window.HARNESS_RESULT = {
       done: true, mode: MODE, seq: SEQ, diff: DIFF, runs: done, failures: bad, pass: bad.length === 0,
