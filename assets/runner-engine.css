@@ -134,3 +134,110 @@
   .rnext .big { font-size: 2rem; }
   .rcue { font-size: .95rem; }
 }
+
+/* ── A phone held sideways ──────────────────────────────────
+   This is how the game is actually held — and it was the one shape
+   nothing had been checked against. Once the browser's own bar is out
+   of the way a phone gives roughly 700x320, and the setup screen is a
+   vertical stack: the language row, the hero, the cards and the Play
+   button needed about three screens of scrolling before a child could
+   start. The width is there; it just was not being used.
+
+   Everything here is scoped to this stylesheet, so only Animal Run is
+   affected and the other forty-two games keep the layout they have. */
+@media (orientation: landscape) and (max-height: 540px) {
+
+  /* Chrome, trimmed back. */
+  .topnav { padding: 4px 10px; }
+  .brand { font-size: .9rem; }
+  .brand-box { width: 26px; height: 26px; font-size: .95rem; }
+  .back { font-size: .7rem; padding: 5px 10px; }
+
+  /* Two columns: who you are on the left, what you choose on the
+     right, and Play always on screen rather than below the fold. */
+  #setupscreen {
+    display: grid;
+    grid-template-columns: minmax(170px, 33%) 1fr;
+    grid-template-areas:
+      "lang  lang"
+      "hero  cards"
+      "cam   cards"
+      "play  cards";
+    /* The hero row is the one allowed to give way. Everything else is
+       auto, so "Play" keeps its place at the bottom of the left column
+       instead of being pushed off the screen by a long description. */
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    align-content: start;
+    justify-content: stretch;
+    gap: 5px 14px;
+    padding: 36px 12px 8px;
+    overflow: hidden;
+  }
+  #setupscreen > .langrow { grid-area: lang; gap: 4px; }
+  #setupscreen > .hero    { grid-area: hero; text-align: left; overflow: hidden; min-height: 0; }
+  #setupscreen > .grid2   { grid-area: cards; max-width: none; align-self: stretch;
+                            overflow-y: auto; padding-right: 2px; }
+  /* One line, not a card. It is a status strip, and at this height a
+     45px box that is usually empty is a whole option somewhere else. */
+  #setupscreen > .camrow  { grid-area: cam; }
+  #setupscreen > .camrow .cambox { padding: 3px 7px; border-radius: 8px; gap: 1px; }
+  #setupscreen > .gobtn   { grid-area: play; align-self: start; margin-top: 2px; }
+
+  .langbtn { font-size: .68rem; padding: 4px 9px; gap: 4px; }
+  .game-icon { font-size: 1.6rem; margin-bottom: 2px; }
+  .gtitle { font-size: 1.45rem; }
+  .tag { font-size: .58rem; letter-spacing: 1.2px; margin-bottom: 2px; }
+  .gdesc { font-size: .72rem; margin-top: 2px; max-width: none; }
+  /* Flavour text is the first thing to go when there is no room. */
+  .quest { display: none; }
+  .card { padding: 8px 10px; border-radius: 11px; }
+  .clabel { font-size: .56rem; letter-spacing: 1.2px; margin-bottom: 4px; }
+  .pick { min-width: 86px; padding: 6px 8px; font-size: .74rem; }
+  .pick .ic { font-size: 1.1rem; margin-bottom: 1px; }
+  /* Five animals on one line. `flex-basis` let the last one spill onto
+     a row of its own and stretch across it, which read as a mistake
+     rather than a choice. */
+  .pickrow.icons { gap: 4px; }
+  .pickrow.icons .pick { flex: 1 1 0; min-width: 0; padding: 5px 2px; }
+  .pickrow.icons .pick .ic { font-size: 1.15rem; }
+  .sel { padding: 6px 8px; font-size: .78rem; }
+  .toglbl { font-size: .74rem; }
+  .gobtn { padding: 9px; font-size: .9rem; }
+  .sline { font-size: .62rem; }
+
+  /* ── Playing ─────────────────────────────────────────────
+     A third of a short screen was going to the heads-up display. */
+  .rhud { top: 44px; padding: 0 8px; gap: 8px; }
+  .rbadge { padding: 4px 9px; border-radius: 10px; }
+  .rlbl { font-size: .52rem; letter-spacing: 1px; margin-bottom: 1px; }
+  .rlives { font-size: 1rem; letter-spacing: 1px; }
+  .rnum { font-size: 1rem; }
+  .rnext .big { font-size: 1.5rem; }
+  /* Out of the heads-up display's way, and off the cue line. */
+  #rpause { top: auto; bottom: 8px; left: 8px; transform: none;
+            padding: 5px 11px; font-size: .7rem; }
+  #rvid { width: 96px; height: 72px; right: 8px; bottom: 8px; border-radius: 10px; }
+  .rmeter { width: 14px; height: 96px; left: 8px; }
+  .rcue { font-size: .8rem; bottom: 10px; }
+  #rcount { font-size: 3.6rem; }
+
+  /* ── Calibration and the result ──────────────────────────── */
+  .calbox { padding: 12px 16px; border-radius: 16px; }
+  .calface { font-size: 1.9rem; margin-bottom: 2px; }
+  .calbox h2 { font-size: 1.15rem; margin-bottom: 4px; }
+  .calbox p { font-size: .76rem; margin-bottom: 9px; line-height: 1.35; }
+  .calbar { height: 11px; }
+  .calbtns { margin-top: 10px; gap: 8px; }
+
+  #resultscreen { padding: 36px 12px 10px; gap: 6px; }
+  .remoji { font-size: 2.2rem; }
+  .rtitle { font-size: 1.5rem; }
+  .rsub { font-size: .78rem; }
+  .rstars { font-size: .9rem; }
+  .rstats { gap: 8px; }
+  .rstat { padding: 6px 12px; }
+  .rsn { font-size: 1.2rem; }
+  .rsl { font-size: .58rem; }
+  .rbtns { gap: 8px; }
+  .rbtns .btn { padding: 8px 14px; font-size: .8rem; }
+}

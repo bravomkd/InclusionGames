@@ -288,6 +288,19 @@
         return '<option value="' + d[0] + '"' + (d[0] === diff ? ' selected' : '') + '>' + T[d[1]] + '</option>';
       }).join('');
       buildSrcRow(); buildAnimalRow();
+      /* An empty status strip reads as a broken panel. Say what is
+         about to happen instead of nothing. */
+      if (!$('scam').textContent.trim()) {
+        $('scam').innerHTML = '<span class="sdot"></span>' + T.cam;
+      }
+      if (!$('smp').textContent.trim()) {
+        $('smp').innerHTML = '<span class="sdot"></span>' + T.track;
+      }
+      /* Rebuilding the pickers can leave the options column scrolled to
+         wherever the old selection was, which hides the first choices
+         behind an invisible scroll. */
+      var cards = document.querySelector('#setupscreen .grid2');
+      if (cards) cards.scrollTop = 0;
       document.documentElement.lang = lang;
       LANG_BTNS.forEach(function (l) {
         var b = document.querySelector('.langbtn[data-l="' + l[0] + '"]');
@@ -438,16 +451,59 @@
         video: { width: 640, height: 480, facingMode: 'user' }, audio: false,
       }).then(function (s) {
         stream = s;
-        var v = $('rvid');
-        v.srcObject = s;
-        v.play().catch(function () {});
-        $('scam').className = 'sline ok';
-        $('scam').innerHTML = '<span class="sdot"></span>' + T.camReady;
-        return true;
+        return showVideo().then(function (ok) {
+          if (!ok) {
+            /* The track is live and the sensor is running, but the
+               element never received a frame. Saying "camera ready"
+               here sends the player into a calibration that cannot
+               measure anything. */
+            $('scam').className = 'sline warn';
+            $('scam').innerHTML = '<span class="sdot"></span>' + T.camDenied;
+            return false;
+          }
+          $('scam').className = 'sline ok';
+          $('scam').innerHTML = '<span class="sdot"></span>' + T.camReady;
+          return true;
+        });
       }).catch(function () {
         $('scam').className = 'sline warn';
         $('scam').innerHTML = '<span class="sdot"></span>' + T.camDenied;
         return false;
+      });
+    }
+
+    /* Show the preview and get it decoding.
+
+       It has to be visible BEFORE play(): Android Chrome will not
+       decode a MediaStream into a `display:none` video, and un-hiding
+       it later does not start it retroactively — the element sits at
+       readyState 0 with a perfectly live camera track attached, and
+       every landmark reader downstream sees nothing at all. Desktop
+       Chrome decodes it hidden, which is exactly why this survived
+       every test that was not run on a phone.
+
+       Resolves once frames are genuinely arriving, so nothing asks the
+       player to hold still in front of a camera that is not yet
+       producing a picture. */
+    function showVideo() {
+      var v = $('rvid');
+      v.classList.remove('hidden');
+      if (v.srcObject !== stream) v.srcObject = stream;
+      var p = v.play();
+      if (p && p.catch) p.catch(function () {});
+      return new Promise(function (res) {
+        if (v.readyState >= 2 && v.videoWidth > 0) return res(true);
+        var done = false;
+        function finish(ok) {
+          if (done) return;
+          done = true;
+          clearInterval(poll); clearTimeout(bail);
+          res(ok);
+        }
+        var poll = setInterval(function () {
+          if (v.readyState >= 2 && v.videoWidth > 0) finish(true);
+        }, 100);
+        var bail = setTimeout(function () { finish(false); }, 6000);
       });
     }
 
@@ -568,6 +624,8 @@
       show('calwrap', true); show('calbtns', false);
       $('rvid').classList.remove('hidden');
       $('calfill').style.width = '0%';
+      // Nothing to measure if the preview stalled while we were away.
+      if ($('rvid').paused) { var pp = $('rvid').play(); if (pp && pp.catch) pp.catch(function () {}); }
 
       return phase('rest', 2600).then(function () {
         return phase('effort', 5200);
@@ -700,6 +758,9 @@
       show('rmeter', usingCam);
       $('rpause').classList.add('vis');
       $('rvid').classList.toggle('hidden', !usingCam);
+      if (usingCam && $('rvid').paused) {
+        var vp = $('rvid').play(); if (vp && vp.catch) vp.catch(function () {});
+      }
 
       if (usingCam && cal) {
         var span = Math.max(1e-6, cal.peak - cal.base);
@@ -860,7 +921,10 @@
       H = cv.clientHeight || global.innerHeight;
       cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      groundY = H - Math.max(84, H * 0.17);
+      /* The grass is scenery; the sky is where the game happens. A flat
+         84px floor took nearly a third of a sideways phone, which is
+         exactly the screen with the least to spare. */
+      groundY = H - Math.max(40, Math.min(H * 0.18, 110));
       playerPx = Math.max(60, W * 0.2);
       /* Pixels per metre has to satisfy both directions: tall enough
          for the biggest jump, and wide enough that an obstacle is on
@@ -1061,7 +1125,24 @@
       press: function () { pendingPress = true; },
       game: function () { return game; },
       state: function () {
-        return { running: running, paused: paused, srcId: srcId, diff: diff, cal: cal };
+        return {
+          running: running, paused: paused, pausedByTracking: pausedByTracking,
+          srcId: srcId, diff: diff, cal: cal, hasCam: !!stream, mpReady: mpReady,
+        };
+      },
+      /* What the camera is making of the player, right now. For a
+         device check: on a real face in real light, "the movement is
+         too small" and "the tracker is not running" look the same from
+         the outside. */
+      meter: function () {
+        var now = (global.performance && performance.now()) || Date.now();
+        return {
+          n: meterN,
+          presses: sw ? sw.presses : 0,
+          down: sw ? sw.down : false,
+          seenMsAgo: Math.round(now - lastSeenAt),
+          calPhase: calPhase,
+        };
       },
     };
   }
