@@ -301,7 +301,7 @@
           + '<span class="ic">' + ic + '</span>' + label + '</button>';
       }).join('');
       Array.prototype.forEach.call($('srcrow').children, function (b) {
-        b.onclick = function () { srcId = b.getAttribute('data-src'); buildSrcRow(); };
+        b.onclick = function () { touched.src = true; srcId = b.getAttribute('data-src'); buildSrcRow(); };
       });
     }
 
@@ -312,7 +312,7 @@
           + 'aria-label="' + a + '"><span class="ic">' + RC.ANIMALS[a] + '</span></button>';
       }).join('');
       Array.prototype.forEach.call($('animrow').children, function (b) {
-        b.onclick = function () { animal = b.getAttribute('data-a'); buildAnimalRow(); };
+        b.onclick = function () { touched.animal = true; animal = b.getAttribute('data-a'); buildAnimalRow(); };
       });
     }
 
@@ -321,8 +321,12 @@
       if (b) b.onclick = function () { lang = l[0]; try { localStorage.setItem('ig_lang', lang); } catch (e) {} applyLang(); };
     });
     ['thint', 'tvoice'].forEach(function (id) {
-      $(id).onclick = function () { $(id).classList.toggle('on'); };
+      $(id).onclick = function () {
+        if (id === 'thint') touched.hint = true;
+        $(id).classList.toggle('on');
+      };
     });
+    $('diffsel').onchange = function () { touched.diff = true; };
 
     function say(s) {
       if (!voice || !global.speechSynthesis) return;
@@ -343,6 +347,9 @@
        for what this game actually varies — the reaction window in
        milliseconds — belongs in the settings work, not here. */
     var settingsReady = Promise.resolve(null);
+    var childRunner = null;        // this child's saved Animal Run settings
+    var autoDiff = null;           // the tier those settings imply
+    var touched = {};              // controls the person in front of it changed
     (function () {
       var active = null;
       try { active = JSON.parse(localStorage.getItem('ig_active_child') || 'null'); } catch (e) {}
@@ -356,10 +363,39 @@
           if (!s) return null;
           if (s.count) childGoal = s.count;
           if (s.level != null) childDiff = s.level <= 3 ? 'gentle' : (s.level >= 7 ? 'challenge' : 'standard');
+          if (s.runner) childRunner = s.runner;
+          applyChildSettings();
           return s;
         })
         .catch(function () { return null; });
     })();
+
+    /* Put the child's own setup on the screen.
+
+       Only where nobody has chosen otherwise: these arrive from the
+       network, so they can land after a teacher has already picked
+       something for today, and a saved preference quietly overwriting a
+       deliberate choice made two seconds ago is worse than having no
+       saved preference at all. */
+    function applyChildSettings() {
+      var r = childRunner;
+      if (r) {
+        if (r.source && !touched.src && SW.SOURCES[r.source]) { srcId = r.source; buildSrcRow(); }
+        if (r.animal && !touched.animal && RC.ANIMALS[r.animal]) { animal = r.animal; buildAnimalRow(); }
+        if (r.hint != null && !touched.hint) $('thint').classList.toggle('on', !!r.hint);
+        if (r.windowMs != null && !touched.diff) {
+          autoDiff = RC.presetForWindow(r.windowMs);
+          diff = autoDiff;
+          $('diffsel').value = autoDiff;
+        }
+      }
+      // The older generic level field, for a child set up before this
+      // game existed.
+      if (childDiff && !touched.diff && (!r || r.windowMs == null)) {
+        diff = childDiff;
+        $('diffsel').value = childDiff;
+      }
+    }
 
     function withTimeout(p, ms) {
       return new Promise(function (res) {
@@ -578,11 +614,16 @@
       hint = $('thint').classList.contains('on');
       voice = $('tvoice').classList.contains('on');
 
-      var src = SW.SOURCES[srcId];
-      var needsCam = src && src.tracker !== 'none';
-
       withTimeout(settingsReady, 2500).then(function () {
-        if (childDiff) { diff = childDiff; $('diffsel').value = diff; }
+        applyChildSettings();            // if they only just arrived
+        diff = $('diffsel').value;
+        hint = $('thint').classList.contains('on');
+
+        /* Decided here and not before the wait: a child whose saved
+           movement is the space bar should never see a camera prompt,
+           and their settings can land after Play was pressed. */
+        var src = SW.SOURCES[srcId];
+        var needsCam = src && src.tracker !== 'none';
         if (!needsCam) return true;
         return initCam().then(function (ok) {
           if (!ok) { srcId = 'key'; buildSrcRow(); return true; }
@@ -607,14 +648,22 @@
       sw = cal ? new SW.Switch(cal) : null;
       pendingPress = false;
 
-      game = new RC.Game({
+      /* The teacher set a number of milliseconds, not a tier. Honour
+         the number exactly, as long as the tier on screen is still the
+         one it implies — if a grown-up has moved that control for
+         today, today's choice wins. */
+      var opts = {
         preset: diff,
         mode: cfg.mode === 'letters' ? 'letters' : 'classic',
         sequence: cfg.sequence || null,
         goal: childGoal || cfg.goal || null,
         animal: animal,
         seed: (Math.random() * 0xffffffff) >>> 0,
-      });
+      };
+      if (childRunner && childRunner.windowMs != null && diff === autoDiff) {
+        opts.windowS = childRunner.windowMs / 1000;
+      }
+      game = new RC.Game(opts);
 
       show('setupscreen', false); show('resultscreen', false);
       show('rhud', true); show('rcue', true);

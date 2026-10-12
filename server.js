@@ -19,6 +19,12 @@ const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const nodemailer = require('nodemailer');
 
+/* The browser modules load in Node too, deliberately, so the lists of
+   valid movements and animals are not retyped here to drift out of step
+   with the game that has to honour them. */
+const RUNNER_SOURCES = require('./assets/switch-input.js').sourceIds();
+const RUNNER_ANIMALS = Object.keys(require('./assets/runner-core.js').ANIMALS);
+
 // ── Config ──────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 const APP_URL = (process.env.APP_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
@@ -1027,6 +1033,34 @@ function sanitizeSettings(body) {
   } else {
     s.mathRange = null;
   }
+
+  /* Animal Run. The dial that matters for it is not a level but the
+     reaction window: how late a child's movement may be and still
+     work, in milliseconds. That is a thing a teacher can actually
+     observe and decide about, and it is what the physics is solved
+     backwards from.
+
+     The rest is what a child should not have to re-choose every
+     session: which movement they use, which animal, and whether the
+     marker showing when to jump is on. */
+  if (body.runner && typeof body.runner === 'object') {
+    const r = body.runner;
+    const windowMs = Number.isFinite(+r.windowMs)
+      ? Math.max(150, Math.min(1200, Math.round(+r.windowMs)))
+      : null;
+    const runner = {
+      windowMs,
+      source: RUNNER_SOURCES.includes(r.source) ? r.source : null,
+      animal: RUNNER_ANIMALS.includes(r.animal) ? r.animal : null,
+      hint: typeof r.hint === 'boolean' ? r.hint : null,
+    };
+    const blank = runner.windowMs == null && runner.source == null
+      && runner.animal == null && runner.hint == null;
+    s.runner = blank ? null : runner;
+  } else {
+    s.runner = null;
+  }
+
   return s;
 }
 
@@ -1050,7 +1084,8 @@ children.put('/:id/settings/:game', authMiddleware, (req, res) => {
   const clean = sanitizeSettings(req.body || {});
   // If everything is empty/default, remove the override entirely (keeps data tidy).
   const isEmpty = clean.disabled.length === 0 && clean.custom.length === 0 &&
-                  clean.level == null && clean.count == null && !clean.mathRange && clean.mathLevel == null;
+                  clean.level == null && clean.count == null && !clean.mathRange &&
+                  clean.mathLevel == null && !clean.runner;
   if (isEmpty) { delete c.settings[req.params.game]; }
   else { c.settings[req.params.game] = clean; }
   c.updated_at = now();

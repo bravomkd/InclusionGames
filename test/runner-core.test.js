@@ -7,16 +7,17 @@
    see that by playing it either, because when you fail you assume you
    were too slow.
 
-   So the central test is a player. It works out, from the jump
-   kinematics alone, when each obstacle has to be jumped, plays whole
-   rounds in every mode at every setting, and insists on taking no
-   damage at all. If the generator can produce a situation that a
-   perfectly-timed press cannot survive, that player finds it.
+   So the central test is a player, which lives in runner-player.js
+   because runner-pages.test.js drives the shipped game pages with the
+   same one. It works out, from the jump kinematics alone, when each
+   obstacle has to be jumped, plays whole rounds in every mode at every
+   setting, and insists on taking no damage at all.
 
    It derives its own physics on purpose: it reads the configuration
    numbers out of the engine but does the kinematics itself, so a sign
    error in the engine's solver cannot cancel out against the same sign
-   error in the check. */
+   error in the check. The cross-check test below holds the two to each
+   other. */
 'use strict';
 
 const test = require('node:test');
@@ -25,109 +26,7 @@ const R = require('../assets/runner-core.js');
 
 const G = 9.81;
 
-/* ── Kinematics, worked out here and nowhere else ──────────── */
-
-// Feet reach height y on the way up at this time, on the way down at
-// the other. Null when the jump never gets there.
-function upAt(v0, y) {
-  const disc = v0 * v0 - 2 * G * y;
-  if (!(disc > 0)) return null;
-  return (v0 - Math.sqrt(disc)) / G;
-}
-function downAt(v0, y) {
-  const disc = v0 * v0 - 2 * G * y;
-  if (!(disc > 0)) return null;
-  return (v0 + Math.sqrt(disc)) / G;
-}
-
-/* When must a jump start, for the player to be dealing with this thing
-   correctly? Returns the window of valid start times relative to now,
-   or null if there is no such window — which is the interesting answer. */
-function jumpWindow(cfg, obj) {
-  const span = (cfg.playerW + cfg.objW) / 2;
-  const tEnter = (obj.x - span) / cfg.speed;
-  const tExit = (obj.x + span) / cfg.speed;
-
-  if (obj.lane === 'low') {
-    // Must be above it for the whole time it is passing through us.
-    const a = upAt(cfg.jumpV0, cfg.objH);
-    const b = downAt(cfg.jumpV0, cfg.objH);
-    if (a == null) return null;
-    const lo = tExit - b;
-    const hi = tEnter - a;
-    return hi >= lo ? { lo, hi } : null;
-  }
-
-  // Overhead: the boxes only have to touch for an instant. The feet
-  // have to be inside [highY0 - playerH, highY1] — above the band's
-  // bottom edge, and not past its top, which a big jump does go past.
-  const lo0 = Math.max(0, cfg.highY0 - cfg.playerH);
-  const hi0 = cfg.highY1;
-  const inLo = upAt(cfg.jumpV0, lo0);
-  if (inLo == null) return null;
-  const topUp = upAt(cfg.jumpV0, hi0);
-  const inHi = topUp == null ? downAt(cfg.jumpV0, lo0) : topUp;
-
-  // Overlap if [t+inLo, t+inHi] meets [tEnter, tExit].
-  const lo = tEnter - inHi;
-  const hi = tExit - inLo;
-  return hi >= lo ? { lo, hi } : null;
-}
-
-/* A player that presses at the best moment it can and never guesses.
-   Returns the final state plus anything it could not physically do. */
-function play(game, opts) {
-  opts = opts || {};
-  const dt = opts.dt || 1 / 60;
-  const maxFrames = opts.maxFrames || 60 * 400;
-  const cfg = game.cfg;
-  const impossible = [];
-  const serviced = Object.create(null);
-  let frames = 0;
-  let st = game.state();
-
-  while (!st.over && frames < maxFrames) {
-    frames += 1;
-    let press = false;
-
-    // The nearest thing ahead that wants a jump and has not had one.
-    const ahead = game.view()
-      .filter(o => o.needJump && !serviced[o.n] && o.x > -0.5)
-      .sort((a, b) => a.x - b.x);
-
-    if (ahead.length) {
-      const o = ahead[0];
-      const w = jumpWindow(cfg, o);
-      if (!w) {
-        impossible.push({ n: o.n, lane: o.lane, label: o.label, why: 'no valid jump exists' });
-        serviced[o.n] = true;
-      } else {
-        // Aim for the middle of the window, which is what a player who
-        // has learned the game would do.
-        const aim = (w.lo + w.hi) / 2;
-        if (aim <= 0) {
-          if (w.hi <= 0) {
-            // The moment has gone by without us being able to act.
-            impossible.push({
-              n: o.n, lane: o.lane, label: o.label,
-              why: 'window closed before the jump was available',
-            });
-            serviced[o.n] = true;
-          } else if (st.canJump) {
-            press = true;
-            serviced[o.n] = true;
-          }
-        } else if (aim <= dt && st.canJump) {
-          press = true;
-          serviced[o.n] = true;
-        }
-      }
-    }
-
-    st = game.step(dt, press);
-  }
-  return { st, frames, impossible, ranOut: frames >= maxFrames };
-}
+const { jumpWindow, play } = require('./runner-player.js');
 
 const PLAYABLE = ['gentle', 'standard', 'challenge'];
 
@@ -677,9 +576,11 @@ test('the letter and number modes name a sequence; the simple mode does not', ()
   assert.match(read('game45.html'), /numberSequence\(20\)/, 'game45 should count to twenty');
   assert.ok(!/Sequence\(/.test(read('game43.html')), 'game43 is not a sequence game');
 
-  // A goal nobody will sit through is the same as a game nobody finishes.
+  /* No page sets its own goal. How many items a round is a property of
+     the difficulty the child is playing at, not of the page, and a
+     page that pinned it would hand the gentlest setting — the slowest
+     one — the longest session. */
   for (const f of ['game43.html', 'game44.html', 'game45.html']) {
-    const goal = Number((read(f).match(/goal:\s*(\d+)/) || [])[1]);
-    assert.ok(goal >= 3 && goal <= 15, `${f} asks for ${goal} in one round`);
+    assert.ok(!/goal\s*:/.test(read(f)), `${f} pins its own round length`);
   }
 });

@@ -103,3 +103,42 @@ test('a game that no longer exists still renders as something readable', () => {
   assert.equal(cat.catOf('game99'), null);
   assert.equal(cat.byId('game99'), null);
 });
+
+test('the teacher page agrees with the catalogue about every game it lists', () => {
+  /* teacher.html keeps its own list, deliberately: it is the subset a
+     teacher can configure, with a finer subject label and the grade in
+     German. What it must not do is disagree about a game's name or
+     icon, which is how a teacher ends up setting up one game believing
+     it is another. */
+  const html = fs.readFileSync(path.join(ROOT, 'teacher.html'), 'utf8');
+  const m = html.match(/var GAMES_MANIFEST=\[([\s\S]*?)\n\];/);
+  assert.ok(m, 'could not find GAMES_MANIFEST in teacher.html');
+  // eslint-disable-next-line no-new-func
+  const manifest = new Function('return [' + m[1] + '];')();
+
+  assert.ok(manifest.length > 30, `teacher.html lists only ${manifest.length} games`);
+  for (const entry of manifest) {
+    const g = cat.byId(entry.id);
+    assert.ok(g, `teacher.html offers "${entry.id}", which is not in the catalogue`);
+    assert.equal(entry.title, g.title, `${entry.id} is named differently on the teacher page`);
+    assert.equal(entry.icon, g.icon, `${entry.id} has a different icon on the teacher page`);
+  }
+  const ids = manifest.map(e => e.id);
+  assert.equal(new Set(ids).size, ids.length, 'a game is listed twice on the teacher page');
+});
+
+test('Animal Run can be set up for a child', () => {
+  /* These games have no content to edit, so they would have landed in
+     the "bald" (coming soon) bucket by default — and the settings that
+     decide whether a child can play them at all would have been
+     unreachable. */
+  const html = fs.readFileSync(path.join(ROOT, 'teacher.html'), 'utf8');
+  for (const id of ['game43', 'game44', 'game45']) {
+    assert.ok(html.includes(`"${id}"`), `${id} is not on the teacher page at all`);
+    const editable = (html.match(/var EDITABLE=\[([^\]]*)\]/) || [])[1] || '';
+    assert.ok(editable.includes(`"${id}"`),
+      `${id} is on the teacher page but marked as not yet editable`);
+  }
+  assert.match(html, /RUNNER_GAMES=\[[^\]]*game43[^\]]*game44[^\]]*game45/,
+    'the runner editor is not wired to all three games');
+});

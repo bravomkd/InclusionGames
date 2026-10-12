@@ -96,6 +96,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);min-height:10
 .mtier.on{border-color:var(--p1);background:var(--s2);box-shadow:0 3px 12px rgba(124,58,237,.15);}
 .mtier .mtl{font-weight:800;font-size:1rem;margin-bottom:3px;}
 .mtier .mtd{font-size:.8rem;color:var(--muted);font-weight:700;}
+.mtier.sm{flex:0 1 66px;min-width:66px;padding:10px 6px;}
+.mtier.sm .mtl{font-size:1.5rem;margin:0;}
 .controls{display:flex;gap:18px;flex-wrap:wrap;margin-top:6px;}
 .ctrl label{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--ink2);display:block;margin-bottom:6px;}
 .ctrl select,.ctrl input{padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-weight:700;}
@@ -149,6 +151,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);min-height:10
 <div class="toast" id="toast"></div>
 
 <script src="assets/auth.js"></script>
+<script src="assets/switch-input.js"></script>
+<script src="assets/runner-core.js"></script>
 <script>
 IG.requireAuth('login.html');
 (function(){ var u=IG.user(); if(u){ document.getElementById('uname').textContent = u.name||(u.email?u.email.split('@')[0]:'Konto'); } })();
@@ -168,8 +172,11 @@ var SUBJECTS=[
 ];
 // which games are fully wired for custom editing right now (Type V vocabulary)
 // game24 is the first; others can be enabled as we extend.
-var EDITABLE=["game05","game07","game08","game09","game10","game11","game12","game23","game03","game04","game06","game13","game14","game15","game16","game17","game18","game19","game20","game21","game22","game24","game25","game26","game27","game28","game29","game31","game32","game34","game35","game37","game38","game39","game40","game41","game42"];
+var EDITABLE=["game05","game07","game08","game09","game10","game11","game12","game23","game03","game04","game06","game13","game14","game15","game16","game17","game18","game19","game20","game21","game22","game24","game25","game26","game27","game28","game29","game31","game32","game34","game35","game37","game38","game39","game40","game41","game42","game43","game44","game45"];
 var MATH_GAMES=['game07','game08','game09','game10','game11'];
+// Animal Run: not content to edit, but a movement and a reaction time
+// to set, which is the whole reason these games exist.
+var RUNNER_GAMES=['game43','game44','game45'];
 var SENTENCE_GAMES=['game05'];
 var MATH_TIERS={
   game07:{title:'Eier zählen',gentle:'bis 5',normal:'bis 6',challenge:'bis 8',unit:'Höchste Anzahl'},
@@ -275,6 +282,7 @@ function renderGames(){
 async function openEditor(g){
   if(!state.active){ toast('Erst ein Kind wählen'); return; }
   state.editing=g;
+  if(RUNNER_GAMES.indexOf(g.id)>=0){ return openRunnerEditor(g); }
   if(MATH_GAMES.indexOf(g.id)>=0){ return openMathEditor(g); }
   if(SENTENCE_GAMES.indexOf(g.id)>=0){ return openSentenceEditor(g); }
   var modal=document.getElementById('modal');
@@ -414,6 +422,118 @@ function renderMathEditor(g){
   document.querySelectorAll('.mtier').forEach(function(b){ b.onclick=function(){ state.editState.mathLevel=b.dataset.v; renderMathEditor(g); }; });
   document.getElementById('saveBtn').onclick=saveSettings;
 }
+// ───────── Animal Run: Bewegung und Reaktionszeit ─────────
+// Diese Spiele haben keine Inhalte zum Bearbeiten. Eingestellt wird,
+// WIE ein Kind spielt: mit welcher Bewegung, und wie spät die Bewegung
+// noch zählen darf. Die zweite Zahl ist die wichtigere — aus ihr wird
+// die Sprunghöhe des Spiels berechnet.
+async function openRunnerEditor(g){
+  var modal=document.getElementById('modal');
+  modal.innerHTML='<div class="empty"><span class="spin" style="border-top-color:var(--p1);border-color:var(--p3);"></span> Lädt…</div>';
+  document.getElementById('ov').classList.add('show');
+  var saved;
+  try{ saved=(await IG.apiFetch('/children/'+state.active.id+'/settings/'+g.id)).settings; }
+  catch(e){ modal.innerHTML='<div class="empty">Konnte Einstellungen nicht laden.<br><br><button class="close" onclick="closeOv()">Schließen</button></div>'; return; }
+  var r=(saved&&saved.runner)||{};
+  state.editState={
+    isRunner:true,
+    windowMs:(r.windowMs!=null?r.windowMs:null),
+    source:(r.source||null),
+    animal:(r.animal||null),
+    hint:(r.hint!=null?r.hint:null),
+    count:(saved&&saved.count)||null
+  };
+  renderRunnerEditor(g);
+}
+
+// Die drei Stufen zeigen die Zeiten, die das Spiel wirklich liefert —
+// nicht gerundete Wunschwerte.
+function runnerTiers(){
+  return ['gentle','standard','challenge'].map(function(k){
+    return { key:k, ms:Math.round(IG_RUNNER.resolve({preset:k}).windowS*1000) };
+  });
+}
+
+function renderRunnerEditor(g){
+  var s=state.editState;
+  var TIER_LBL={gentle:'Viel Zeit',standard:'Normal',challenge:'Schnell'};
+  var tiers=runnerTiers();
+  var nearest=(s.windowMs!=null)?IG_RUNNER.presetForWindow(s.windowMs):null;
+
+  var h='<h3>'+g.icon+' '+esc(g.title)+'</h3>'+
+    '<div class="msub">Für <b>'+esc(state.active.name)+'</b> · Bewegung und Reaktionszeit</div>';
+
+  h+='<div class="fieldlbl">Reaktionszeit</div><div class="mtiers">';
+  tiers.forEach(function(t){
+    h+='<button class="mtier'+(nearest===t.key?' on':'')+'" data-tier="'+t.key+'" data-ms="'+t.ms+'">'+
+       '<div class="mtl">'+TIER_LBL[t.key]+'</div><div class="mtd">'+t.ms+' ms</div></button>';
+  });
+  h+='</div>';
+  h+='<div class="hint">Wie spät die Bewegung noch kommen darf und der Sprung trotzdem klappt. '+
+     'Eine Kamera braucht allein schon 100–200 ms. Mehr Zeit bedeutet einen größeren Sprung '+
+     '<i>und</i> ein langsameres Tempo — beides zusammen, sonst wird es nicht leichter.</div>';
+  h+='<div class="controls"><div class="ctrl"><label for="rms">Genau (ms)</label>'+
+     '<input id="rms" type="number" min="150" max="1200" step="10" placeholder="nicht festgelegt" style="width:120px;"></div></div>';
+
+  h+='<div class="fieldlbl">Bewegung</div><div class="mtiers">';
+  IG_SWITCH.sourceIds().forEach(function(id){
+    var src=IG_SWITCH.SOURCES[id];
+    var lbl=(src.label&&(src.label.de||src.label.en))||id;
+    h+='<button class="mtier'+(s.source===id?' on':'')+'" data-src="'+id+'">'+
+       '<div class="mtl" style="font-size:.9rem;">'+esc(lbl)+'</div></button>';
+  });
+  h+='</div><div class="hint">Leer lassen, wenn das Kind es jedes Mal selbst wählen soll. '+
+     'Die Leertaste funktioniert immer, egal was hier steht.</div>';
+
+  h+='<div class="fieldlbl">Tier</div><div class="mtiers">';
+  ['lion','elephant','giraffe','crocodile','hippo'].forEach(function(a){
+    h+='<button class="mtier sm'+(s.animal===a?' on':'')+'" data-animal="'+a+'">'+
+       '<div class="mtl">'+IG_RUNNER.ANIMALS[a]+'</div></button>';
+  });
+  h+='</div>';
+
+  h+='<div class="fieldlbl">Sprunghilfe</div><div class="mtiers">'+
+     '<button class="mtier'+(s.hint===true?' on':'')+'" data-hint="1"><div class="mtl">Zeigen</div>'+
+       '<div class="mtd">Pfeil am Boden</div></button>'+
+     '<button class="mtier'+(s.hint===false?' on':'')+'" data-hint="0"><div class="mtl">Aus</div>'+
+       '<div class="mtd">selbst abschätzen</div></button></div>';
+  h+='<div class="hint">Ein Pfeil läuft über den Boden auf das Tier zu. Wenn er ankommt, springen.</div>';
+
+  h+='<div class="fieldlbl">Runden</div><div class="controls"><div class="ctrl">'+
+     '<input id="rcnt" type="number" min="1" max="50" placeholder="Standard" style="width:90px;"></div></div>'+
+     '<div class="hint">Leer = passend zur Reaktionszeit (etwa eine Minute pro Runde).</div>';
+
+  h+='<div class="modal-foot"><button class="save" id="saveBtn">Speichern</button>'+
+     '<button class="close" onclick="closeOv()">Abbrechen</button></div>';
+  document.getElementById('modal').innerHTML=h;
+
+  if(s.windowMs!=null) document.getElementById('rms').value=String(s.windowMs);
+  if(s.count) document.getElementById('rcnt').value=String(s.count);
+
+  // Nochmal auf die gewählte Schaltfläche tippen hebt die Auswahl auf:
+  // "nicht festgelegt" ist eine echte Antwort und muss erreichbar bleiben.
+  function pick(attr, field, parse){
+    document.querySelectorAll('[data-'+attr+']').forEach(function(b){
+      b.onclick=function(){
+        var v=parse(b.getAttribute('data-'+attr), b);
+        state.editState[field]=(state.editState[field]===v)?null:v;
+        renderRunnerEditor(g);
+      };
+    });
+  }
+  pick('tier','windowMs',function(v,b){ return parseInt(b.getAttribute('data-ms'),10); });
+  pick('src','source',function(v){ return v; });
+  pick('animal','animal',function(v){ return v; });
+  pick('hint','hint',function(v){ return v==='1'; });
+
+  document.getElementById('rms').onchange=function(){
+    var v=parseInt(this.value,10);
+    state.editState.windowMs=isNaN(v)?null:Math.max(150,Math.min(1200,v));
+    renderRunnerEditor(g);
+  };
+  document.getElementById('saveBtn').onclick=saveSettings;
+}
+
 async function openSentenceEditor(g){
   var modal=document.getElementById('modal');
   modal.innerHTML='<div class="empty"><span class="spin" style="border-top-color:var(--p1);border-color:var(--p3);"></span> L\u00e4dt\u2026</div>';
@@ -497,6 +617,11 @@ async function saveSettings(){
   if(s.isSentence){
     var disabled=s.builtin.filter(function(it){return !it.on;}).map(function(it){return it.key;});
     payload={ disabled:disabled, custom:s.custom, count:document.getElementById('sCnt').value?parseInt(document.getElementById('sCnt').value):null };
+  } else if(s.isRunner){
+    payload={
+      runner:{ windowMs:s.windowMs, source:s.source, animal:s.animal, hint:s.hint },
+      count:document.getElementById('rcnt').value?parseInt(document.getElementById('rcnt').value):null
+    };
   } else if(s.isMath){
     payload={ mathLevel:(s.mathLevel!=null?s.mathLevel:null), count:document.getElementById('mcnt').value?parseInt(document.getElementById('mcnt').value):null };
   } else {
@@ -803,7 +928,10 @@ var GAMES_MANIFEST=[
     subject: "Sport",
     grade: "Kl. 1–3",
     icon: "🤝"
-  }
+  },
+  { id: "game43", title: "Animal Run", subject: "Sport", grade: "Kl. 1–3", icon: "🦁" },
+  { id: "game44", title: "Alphabet Run", subject: "Literacy", grade: "Kl. 1–2", icon: "🔤" },
+  { id: "game45", title: "Number Run", subject: "Math", grade: "Kl. 1–2", icon: "🔢" }
 ];
 
 loadKids();

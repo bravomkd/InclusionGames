@@ -47,6 +47,36 @@ test('the catalogue is consistent', () => {
   assert.equal(catalogue.catOf('game99'), null);
 });
 
+test('Animal Run sessions reach the reports like any other game', () => {
+  /* The reports are built from the catalogue, so a new game should
+     appear without anything being added here. "Should" is why this
+     test exists: a game whose sessions are recorded but never shown is
+     invisible to the one person checking whether a child is getting
+     anywhere. */
+  const rows = [
+    session('game43', 8, 8, 1),
+    session('game43', 6, 8, 3),
+    session('game44', 4, 5, 2),
+    session('game45', 5, 6, 4),
+  ];
+  const r = analytics.buildReport(childWith(rows), { now: NOW });
+
+  assert.equal(r.overview.sessions, 4);
+  const named = r.byGame.map((g) => g.title).sort();
+  assert.deepEqual(named, ['Alphabet Run', 'Animal Run', 'Number Run'],
+    'a new game showed up in the reports without a name');
+
+  // And filed under the subject a teacher would look for it in.
+  const skill = (cat) => r.bySkill.find((s) => s.cat === cat);
+  assert.ok(skill('sport').sessions >= 2, 'Animal Run did not count towards Sport');
+  assert.ok(skill('jezyk').sessions >= 1, 'Alphabet Run did not count towards Language');
+  assert.ok(skill('mat').sessions >= 1, 'Number Run did not count towards Math');
+
+  // The count of what is available has to include them too, or a
+  // teacher reads "3 of 42 tried" for a product with 45 games.
+  assert.equal(r.overview.gamesAvailable, catalogue.games.length);
+});
+
 test('analytics: an empty history', () => {
   const r = analytics.buildReport(childWith([]), { now: NOW });
   assert.equal(r.overview.sessions, 0);

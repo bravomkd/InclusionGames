@@ -37,7 +37,8 @@
  * drawing into DOM that no longer exists, and the bug reports would
  * be about the harness instead of the game.
  *
- * ?mode=classic|letters &diff=gentle|standard|challenge &runs=3 &goal=6
+ * ?mode=classic|letters &seq=letters|numbers
+ * &diff=gentle|standard|challenge &runs=3 &goal=6
  * The final verdict lands in window.HARNESS_RESULT (and sessionStorage).
  * ============================================================ */
 (function () {
@@ -74,6 +75,7 @@
   var DIFF = Q.get('diff') || 'standard';
   var RUNS = Math.max(1, Math.min(8, parseInt(Q.get('runs') || '2', 10)));
   var GOAL = Math.max(1, Math.min(20, parseInt(Q.get('goal') || '6', 10)));
+  var SEQ = Q.get('seq') || 'letters';          // letters | numbers
   var KEY = 'runner_harness_state';
 
   // The engine reads the saved language; pin it so prompts are known.
@@ -225,7 +227,9 @@
     var RC = window.IG_RUNNER;
     window.IG_RUNNER_GAME({
       id: 'game43', icon: '🦁', mode: MODE, goal: GOAL,
-      sequence: MODE === 'letters' ? RC.letterSequence() : null,
+      sequence: MODE === 'letters'
+        ? (SEQ === 'numbers' ? RC.numberSequence(20) : RC.letterSequence())
+        : null,
       text: { en: { tag: 'harness', title: 'Animal ', titleEm: 'Run', desc: '', quest: '' } },
     });
 
@@ -307,7 +311,7 @@
       return r.error || r.reason !== 'won' || r.hits > 0 || !r.cameraReleased;
     });
     window.HARNESS_RESULT = {
-      done: true, mode: MODE, diff: DIFF, runs: done, failures: bad, pass: bad.length === 0,
+      done: true, mode: MODE, seq: SEQ, diff: DIFF, runs: done, failures: bad, pass: bad.length === 0,
     };
     log('—— ' + (bad.length ? 'FAIL ' + bad.length + '/' + done.length : 'PASS ' + done.length + '/' + done.length) + ' ——');
   }
@@ -315,7 +319,7 @@
   var s = document.createElement('script');
   s.src = '/assets/runner-engine.js';
   s.onload = function () {
-    log('run ' + runNo + ' of ' + RUNS + '  mode=' + MODE + ' diff=' + DIFF + ' goal=' + GOAL);
+    log('run ' + runNo + ' of ' + RUNS + '  mode=' + MODE + ' seq=' + SEQ + ' diff=' + DIFF + ' goal=' + GOAL);
     Promise.resolve().then(oneRun).then(finish).catch(function (e) {
       log('run ' + runNo + ': FAILED — ' + e.message);
       finish({ run: runNo, error: e.message });

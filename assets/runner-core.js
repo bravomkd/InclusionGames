@@ -131,6 +131,25 @@
 
   var MODES = { classic: 'classic', letters: 'letters' };
 
+  /* ── How long a round lasts ────────────────────────────────
+     Fewer items at the gentler settings, which is how the bubble games
+     already do it (8 / 10 / 12 rounds) and the opposite of what a
+     fixed goal produces here: the gentlest setting is the slowest, so
+     a fixed number of items made the longest session the one given to
+     the child least able to sustain it.
+
+     Scaled so a round lands around a minute whichever setting is
+     chosen. The letter modes get fewer because each correct letter
+     costs about four objects — only one correct answer is allowed on
+     screen at a time, and two or three more are already queued ahead
+     of it before it can be caught.
+
+     A teacher's own count overrides all of this. */
+  var GOALS = {
+    classic: { gentle: 8, standard: 10, challenge: 12 },
+    letters: { gentle: 5, standard: 6, challenge: 7 },
+  };
+
   /* 1..20 and A..Z, the two sequences the original shipped. */
   function numberSequence(n) {
     var out = [];
@@ -157,8 +176,9 @@
      margin it really has. */
   function resolve(opts) {
     var o = opts || {};
-    var preset = PRESETS[o.preset] || PRESETS.standard;
-    var c = {};
+    var presetName = PRESETS[o.preset] ? o.preset : 'standard';
+    var preset = PRESETS[presetName];
+    var c = { presetName: presetName };
     var k;
     for (k in GEOM) if (Object.prototype.hasOwnProperty.call(GEOM, k)) c[k] = GEOM[k];
     for (k in preset) if (Object.prototype.hasOwnProperty.call(preset, k)) c[k] = preset[k];
@@ -193,13 +213,15 @@
     if (c.targetBias == null) c.targetBias = 0.65;
     if (c.highBias == null) c.highBias = 0.45;
 
+    var defaultGoal = (GOALS[c.mode] || GOALS.classic)[presetName]
+      || GOALS[c.mode].standard;
     if (c.mode === MODES.letters) {
       if (!c.sequence || !c.sequence.length) c.sequence = letterSequence();
-      if (c.goal == null) c.goal = Math.min(10, c.sequence.length);
+      if (c.goal == null) c.goal = defaultGoal;
       c.goal = Math.max(1, Math.min(c.goal, c.sequence.length));
     } else {
       c.sequence = null;
-      if (c.goal == null) c.goal = 12;
+      if (c.goal == null) c.goal = defaultGoal;
       c.goal = Math.max(1, c.goal);
     }
 
@@ -232,6 +254,21 @@
     c.startGapM = Math.max(c.minGapM, c.viewAheadM);
 
     return c;
+  }
+
+  /* Which difficulty tier is closest to a reaction window a teacher
+     asked for? The teacher sets milliseconds, because that is the thing
+     they can observe about a child; the tier is only how it is shown
+     back to them and which running speed comes with it. */
+  function presetForWindow(ms) {
+    var best = 'standard', bestGap = Infinity, k;
+    for (k in PRESETS) {
+      if (!Object.prototype.hasOwnProperty.call(PRESETS, k)) continue;
+      if (k === 'original') continue;          // not a setting anyone picks
+      var gap = Math.abs(resolve({ preset: k }).windowS * 1000 - ms);
+      if (gap < bestGap) { bestGap = gap; best = k; }
+    }
+    return best;
   }
 
   /* ── The spawner ───────────────────────────────────────────
@@ -608,11 +645,11 @@
   };
 
   return {
-    G: G, GEOM: GEOM, PRESETS: PRESETS, MODES: MODES,
+    G: G, GEOM: GEOM, PRESETS: PRESETS, MODES: MODES, GOALS: GOALS,
     COLLECT: COLLECT, AVOID: AVOID, ANIMALS: ANIMALS,
     timeAbove: timeAbove, solveJumpSpeed: solveJumpSpeed,
     airtime: airtime, jumpHeight: jumpHeight,
     numberSequence: numberSequence, letterSequence: letterSequence,
-    Rng: Rng, resolve: resolve, Spawner: Spawner, duty: duty, windowFor: windowFor, Game: Game,
+    Rng: Rng, resolve: resolve, presetForWindow: presetForWindow, Spawner: Spawner, duty: duty, windowFor: windowFor, Game: Game,
   };
 });
