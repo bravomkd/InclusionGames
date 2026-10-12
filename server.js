@@ -83,6 +83,7 @@ const PLANS = {
   school:   { name: 'School Plan',      monthly: 99.99, annual: 839.88, stripe: process.env.STRIPE_PRICE_SCHOOL },
 };
 const TRIAL_DAYS = 3;
+const VERIFY_DAYS = 7;          // how long an email-confirmation link stays usable
 const COOKIE_SECURE = APP_URL.startsWith('https');
 
 // Accounts listed here always have full access (e.g. the owner). Comma-separated in .env.
@@ -105,9 +106,34 @@ const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : pat
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 const DB_FILE = path.join(DATA_DIR, 'users.json');
 
+/* "There is no database yet" and "the database is damaged" are different
+   situations and must not be handled alike. Treating a truncated or
+   half-written file as an empty one brings the site up with zero accounts —
+   every customer locked out, no error anywhere — and then the first write
+   replaces the real table with a one-row one. Stop instead: it is loud, and
+   nothing is overwritten. The .lkg snapshot written below is the way back. */
+function dbFatal(reason) {
+  console.error(`\n   [db] FATAL: ${reason}`);
+  console.error('   Starting with an empty table would lock every customer out, and the next');
+  console.error('   write would replace the real one, so the server is stopping instead.');
+  console.error('   Restore the last good snapshot and restart:');
+  console.error(`     cp ${DB_FILE}.lkg ${DB_FILE} && pm2 restart inclusion\n`);
+  process.exit(1);
+}
+
 let users = [];
-try { users = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); }
-catch { users = []; }
+if (fs.existsSync(DB_FILE)) {
+  let raw;
+  try { raw = fs.readFileSync(DB_FILE, 'utf8'); }
+  catch (e) { dbFatal(`cannot read ${DB_FILE}: ${e.message}`); }
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new Error('expected a JSON array of users');
+    users = parsed;
+  } catch (e) {
+    dbFatal(`${DB_FILE} is not a readable user table: ${e.message}`);
+  }
+}
 
 /* ── Durable writes ──────────────────────────────────────────
    The whole user table is rewritten on every change. A plain writeFileSync
@@ -696,6 +722,7 @@ auth.post('/register', async (req, res) => {
       user.name = name || user.name;
       user.password_hash = hash;
       user.verify_token = token();
+      user.verify_expires = t + days(VERIFY_DAYS);
       user.updated_at = t;
     } else {
       user = {
@@ -704,6 +731,7 @@ auth.post('/register', async (req, res) => {
         password_hash: hash,
         email_verified: 0,
         verify_token: token(),
+        verify_expires: t + days(VERIFY_DAYS),
         reset_token: null, reset_expires: null,
         plan: 'trial', billing: null, status: 'trialing',
         trial_ends: t + days(TRIAL_DAYS),
@@ -736,22 +764,69 @@ auth.get('/verify', (req, res) => {
   if (!t) return res.status(400).json({ ok: false, error: 'Missing token.' });
   const u = getUserByField('verify_token', t);
   if (!u) return res.status(400).json({ ok: false, error: 'Invalid or expired verification link.' });
+  // A link that never expires stays usable for ever out of an old inbox.
+  // Accounts created before this shipped have no expiry recorded and are
+  // left alone rather than being locked out retrospectively.
+  if (u.verify_expires && u.verify_expires < now()) {
+    return res.status(400).json({ ok: false, error: 'This verification link has expired. Please sign up again to get a new one.' });
+  }
   u.email_verified = 1;
   u.verify_token = null;
+  u.verify_expires = null;
   u.updated_at = now();
   saveNow();
   return res.json({ ok: true, message: 'Email verified. You can now sign in.' });
 });
 
+/* Per-account sign-in throttle.
+   authLimiter above caps requests per IP, which does nothing against many
+   addresses all guessing at one account — which is exactly what credential
+   stuffing looks like, and this site is now taking money. Counting per email
+   closes that.
+   Unknown addresses are counted too, so a locked account cannot be told apart
+   from a wrong password and this cannot be used to discover who has an
+   account here. */
+const loginFails = new Map();   // email -> { count, until }
+const LOGIN_MAX_FAILS = 8;
+const LOGIN_LOCK_MS = 15 * 60 * 1000;
+
+function loginLockedUntil(email) {
+  const rec = loginFails.get(email);
+  if (!rec) return 0;
+  if (!rec.until) return 0;                 // still counting, not locked yet
+  if (rec.until > now()) return rec.until;  // locked
+  loginFails.delete(email);                 // lock has run out, start fresh
+  return 0;
+}
+
+function noteLoginFail(email) {
+  const rec = loginFails.get(email) || { count: 0, until: 0 };
+  rec.count += 1;
+  if (rec.count >= LOGIN_MAX_FAILS) { rec.until = now() + LOGIN_LOCK_MS; rec.count = 0; }
+  loginFails.set(email, rec);
+  // Keep the map from growing without bound on a long-running process.
+  if (loginFails.size > 5000) {
+    for (const [k, v] of loginFails) { if (!v.until || v.until <= now()) loginFails.delete(k); }
+  }
+}
+
 auth.post('/login', async (req, res) => {
   const email = (req.body.email || '').toLowerCase().trim();
   const password = req.body.password || '';
+
+  const until = loginLockedUntil(email);
+  if (until) {
+    const mins = Math.max(1, Math.ceil((until - now()) / 60000));
+    return res.status(429).json({ error: `Too many failed sign-in attempts. Please try again in ${mins} minute${mins === 1 ? '' : 's'}, or reset your password.` });
+  }
+
   const u = getUserByEmail(email);
-  if (!u) return res.status(401).json({ error: 'Invalid login credentials' });
+  if (!u) { noteLoginFail(email); return res.status(401).json({ error: 'Invalid login credentials' }); }
   const ok = await bcrypt.compare(password, u.password_hash);
-  if (!ok) return res.status(401).json({ error: 'Invalid login credentials' });
+  if (!ok) { noteLoginFail(email); return res.status(401).json({ error: 'Invalid login credentials' }); }
   if (!u.email_verified && !ADMIN_EMAILS.includes(email))
     return res.status(403).json({ error: 'Please verify your email first — check your inbox for the confirmation link.' });
+  loginFails.delete(email);   // a correct password clears the count
   setSession(res, u);
   return res.json({ token: signToken(u), user: publicUser(u) });
 });
@@ -1272,7 +1347,12 @@ pay.post('/create-checkout-session', authMiddleware, async (req, res) => {
   }
 
   // DEMO MODE: no Stripe key — simulate a successful checkout return.
+  // Guarded the same way verify-session is. Production has keys today, so this
+  // branch does not fire there; but if one were ever missing or mis-rotated,
+  // a paying customer would be handed a URL that looks like a completed
+  // purchase and then fails at verification. Refuse plainly instead.
   if (!stripe) {
+    if (IS_PRODUCTION) return res.status(503).json({ error: PAYMENTS_UNCONFIGURED });
     return res.json({
       url: `${APP_URL}/payment-success.html?demo=1&plan=${plan}&billing=${billing}&session_id=demo_${token(8)}`,
       demo: true,
