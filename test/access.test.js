@@ -38,6 +38,29 @@ test('static exposure and the paywall gate', async (t) => {
     }
   });
 
+  await t.test('the browser harnesses are not served in production', async () => {
+    // test/ holds pages that stub the camera and the tracker. They are served
+    // on a developer machine so the engines can be driven without a webcam,
+    // and must not exist on the live site — somebody could otherwise open one
+    // and post invented sessions to their own child's profile.
+    const prod = await startServer({ APP_URL: 'https://www.inclusion-games.com', NODE_ENV: 'production' });
+    try {
+      for (const p of ['/test/harness/rehab-harness.html', '/test/harness/game-settings-race.html',
+        '/test/helpers.js', '//test//harness//run-all.html', '/TEST/harness/run-all.html']) {
+        const res = await prod.get(p);
+        assert.equal(res.status, 404, `${p} should not be served in production (got ${res.status})`);
+      }
+    } finally {
+      await prod.stop();
+    }
+  });
+
+  await t.test('the harnesses ARE reachable on a developer machine', async () => {
+    // Otherwise the engines go back to having no way to be driven at all.
+    const res = await srv.get('/test/harness/game-settings-race.html');
+    assert.equal(res.status, 200, 'localhost should still serve the harness');
+  });
+
   await t.test('does not leak the database through a backslash or doubled slash', async () => {
     for (const p of ['/data\\users.json', '//data//users.json']) {
       const res = await srv.get(p);

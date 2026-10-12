@@ -1763,14 +1763,18 @@ const BLOCKED = [
   /^\/data(\/|$)/i,
   /^\/scripts(\/|$)/i,
   /^\/lib(\/|$)/i,                        // server-side report + analytics logic
-  /^\/test(\/|$)/i,
   /^\/node_modules(\/|$)/i,
   /^\/server\.js$/i,
   /^\/package(-lock)?\.json$/i,
   /^\/\./,                                   // any dotfile or dotdir
   /\.(bak|log|sh|md|sql|zip|tar|gz|env)$/i,
   /\.bak-[\w.-]*$/i,                         // server.js.bak-1788… and friends
-];
+]
+  // test/ holds browser harnesses that stub the camera and the tracker so the
+  // game and rehab engines can be driven without a webcam. They are useful on
+  // a developer's machine and have no business on the live site, so they are
+  // served only off production — same rule, just not applied to localhost.
+  .concat(IS_PRODUCTION ? [/^\/test(\/|$)/i] : []);
 /* The patterns above are anchored at "/", so they only ever saw one spelling
    of a path. express.static sees another: it collapses repeated slashes and
    backslashes before resolving the file, so "//data//users.json" slipped past
