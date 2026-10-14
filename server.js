@@ -238,6 +238,12 @@ function publicUser(u) {
     // Lets the client route a lapsed trial straight to checkout instead of
     // bouncing it off the dashboard gate.
     access: hasAccess(u),
+    /* Whether the account page can offer a cancel button. Only whether one
+       exists — never the subscription id itself. A CopeCart buyer has no
+       subscription recorded here and has to cancel where they bought. */
+    canCancel: !!(u.subscription_id &&
+      (u.billing_provider === 'stripe' || u.billing_provider === 'paypal')),
+    cancelRequestedAt: u.cancel_requested_at || null,
   };
 }
 
@@ -1269,6 +1275,13 @@ app.get('/api/complete-item', authMiddleware, completeLimiter, async (req, res) 
   const hit = ITEM_LIB[q];
   if (hit) return res.json({ found: true, source: 'library', item: hit });
 
+  /* Past this point the lookup costs us money at Anthropic. The library above
+     is free and stays open to any signed-in account, so nothing that already
+     works stops working; it is only the paid call that now needs a live
+     subscription. Without this, an account whose plan lapsed — which can no
+     longer open a single game page — could still spend the owner's credit. */
+  if (!hasAccess(req.user)) return res.json({ found: false, source: 'none', item: null });
+
   // Library miss — ask Claude Haiku for the item, then cache it.
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.json({ found: false, source: 'none', item: null });
@@ -1834,6 +1847,60 @@ pay.post('/paypal/confirm', authMiddleware, async (req, res) => {
   } catch (e) {
     console.error('   [billing] paypal confirm:', e.message);
     res.status(500).json({ ok: false, error: 'Could not confirm PayPal subscription.' });
+  }
+});
+
+/* Cancel a subscription, from the site.
+   Until now the only way out was to email us — which a customer may not do,
+   and which § 312k BGB does not accept for a contract concluded online.
+
+   Two rules make this safe to run on live money:
+
+     1. It never takes away access that has been paid for. Stripe is told to
+        stop at the end of the period, not now. PayPal has no such option, so
+        it is cancelled there and access here runs to current_period_end, which
+        hasAccess() already honours for a cancelled plan.
+     2. It does not touch u.status. Setting 'canceled' here would read as "no
+        access" for any account whose current_period_end was never recorded —
+        cutting off the customer the moment they asked to leave, which is the
+        opposite of what this is for. The provider's own webhook moves the
+        status, as it does today. */
+pay.post('/cancel', authMiddleware, async (req, res) => {
+  const u = req.user;
+  const subId = u.subscription_id;
+  const provider = u.billing_provider;
+
+  if (!subId || (provider !== 'stripe' && provider !== 'paypal')) {
+    return res.status(400).json({
+      ok: false,
+      error: 'There is no subscription on this account that we can cancel for you. If you bought through CopeCart, cancel it there; otherwise email info@inclusion-games.com and we will do it.',
+    });
+  }
+
+  try {
+    if (provider === 'stripe') {
+      if (!stripe) return res.status(503).json({ ok: false, error: PAYMENTS_UNCONFIGURED });
+      const sub = await stripe.subscriptions.update(subId, { cancel_at_period_end: true });
+      const end = periodEndOfSub(sub) || u.current_period_end || null;
+      if (end) u.current_period_end = end;
+    } else {
+      if (!paypalEnabled) return res.status(503).json({ ok: false, error: PAYMENTS_UNCONFIGURED });
+      await paypalFetch(`/v1/billing/subscriptions/${encodeURIComponent(subId)}/cancel`, {
+        method: 'POST', body: JSON.stringify({ reason: 'Cancelled by the customer' }),
+      });
+    }
+    u.cancel_requested_at = now();
+    u.updated_at = now();
+    saveNow();
+    console.log('   [billing]', u.email, 'asked to cancel', provider, subId,
+      u.current_period_end ? '— access until ' + new Date(u.current_period_end).toISOString() : '');
+    return res.json({ ok: true, accessUntil: u.current_period_end || null, user: publicUser(u) });
+  } catch (e) {
+    console.error('   [billing] cancel failed for', u.email, e.message);
+    return res.status(502).json({
+      ok: false,
+      error: 'We could not cancel it automatically. Please email info@inclusion-games.com and we will cancel it for you right away.',
+    });
   }
 });
 

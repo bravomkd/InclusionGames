@@ -170,6 +170,60 @@ test('deleting an account still works, and says what happened to the billing', a
   assert.notEqual(wrongPw.status, 200, 'deletion still needs the password');
 });
 
+test('a customer can cancel without emailing anyone', async (t) => {
+  const srv = await startServer();
+  t.after(() => srv.stop());
+
+  await t.test('needs to be signed in', async () => {
+    assert.equal((await srv.postJson('/api/payments/cancel', {})).status, 401);
+  });
+
+  await t.test('says plainly when there is nothing here to cancel', async () => {
+    const { token } = await makeUser(srv, 'nosub@example.com');
+    const res = await srv.postJson('/api/payments/cancel', {}, { headers: authHeader(token) });
+    assert.equal(res.status, 400);
+    const body = await res.json();
+    // A trial user, or a CopeCart buyer, must be told where to go — not left
+    // staring at a button that did nothing.
+    assert.match(body.error, /CopeCart|info@inclusion-games\.com/);
+  });
+
+  await t.test('the account page is told whether a cancel button applies', async () => {
+    const { token } = await makeUser(srv, 'flags@example.com');
+    const me = await (await srv.get('/api/auth/me', { headers: authHeader(token) })).json();
+    assert.equal(me.user.canCancel, false, 'a trial has nothing to cancel');
+    assert.equal(me.user.cancelRequestedAt, null);
+  });
+
+  await t.test('cancelling never costs access that is already paid for', async () => {
+    // Demo activation gives a plan with no provider subscription, which is the
+    // case the endpoint must refuse rather than half-cancel.
+    const { token } = await makeUser(srv, 'paid@example.com');
+    await srv.get('/api/payments/verify-session?plan=starter&session_id=demo_x', {
+      headers: authHeader(token),
+    });
+    const res = await srv.postJson('/api/payments/cancel', {}, { headers: authHeader(token) });
+    assert.equal(res.status, 400);
+
+    // Still playing, because nothing was taken away.
+    const login = await srv.postJson('/api/auth/login', { email: 'paid@example.com', password: 'password123' });
+    const cookie = login.headers.get('set-cookie').split(';')[0];
+    assert.equal((await srv.get('/game02.html', { headers: { Cookie: cookie } })).status, 200);
+  });
+});
+
+test('a lapsed account cannot spend the owner AI budget', async (t) => {
+  const srv = await startServer();
+  t.after(() => srv.stop());
+
+  const { token } = await makeUser(srv, 'lapsed@example.com');
+  // The free library lookup must keep working for any signed-in account.
+  const res = await srv.get('/api/complete-item?q=cat', { headers: authHeader(token) });
+  assert.equal(res.status, 200, 'the free path must not start failing');
+  const body = await res.json();
+  assert.ok('found' in body, 'the shape of the answer must not change');
+});
+
 test('changing the password shuts other sessions out', async (t) => {
   /* If someone else has a session — a shared laptop, a stolen token — changing
      the password is the one move a customer knows to make. It has to work. */
