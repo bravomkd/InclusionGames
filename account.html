@@ -116,8 +116,13 @@ async function changePw(){
   if (nw.length < 8) { m.style.color = 'var(--r1)'; m.textContent = 'New password must be at least 8 characters.'; return; }
   const btn = document.getElementById('pw-btn'); btn.disabled = true;
   try {
-    await IG.apiFetch('/auth/change-password', { method:'POST', body: JSON.stringify({ currentPassword: cur, newPassword: nw }) });
-    m.style.color = 'var(--g1)'; m.textContent = '✅ Password updated.';
+    /* Changing the password ends every session on the account — which is the
+       point of it — and this tab is one of them. The server hands back a
+       replacement; store it, or the customer is signed out by the very thing
+       they just did. */
+    const r = await IG.apiFetch('/auth/change-password', { method:'POST', body: JSON.stringify({ currentPassword: cur, newPassword: nw }) });
+    if (r && r.token) IG.setSession(r.token, r.user || null);
+    m.style.color = 'var(--g1)'; m.textContent = '✅ Password updated. Any other device is now signed out.';
     document.getElementById('cur').value = ''; document.getElementById('new').value = '';
   } catch (e) { m.style.color = 'var(--r1)'; m.textContent = e.message || 'Could not update password.'; }
   btn.disabled = false;

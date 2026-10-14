@@ -243,7 +243,7 @@ function publicUser(u) {
 
 function signToken(u) {
   return jwt.sign(
-    { sub: u.id, email: u.email, plan: u.plan, name: u.name },
+    { sub: u.id, email: u.email, plan: u.plan, name: u.name, pwv: u.pw_version || 0 },
     JWT_SECRET,
     { expiresIn: '30d' }
   );
@@ -279,8 +279,16 @@ function parseCookies(req) {
   return out;
 }
 function userFromSession(req) {
-  try { const t = parseCookies(req).ig_session; if (!t) return null; return getUserById(jwt.verify(t, JWT_SECRET).sub) || null; }
-  catch { return null; }
+  try {
+    const t = parseCookies(req).ig_session;
+    if (!t) return null;
+    const payload = jwt.verify(t, JWT_SECRET);
+    const u = getUserById(payload.sub);
+    if (!u) return null;
+    // The cookie is a session too, so a password change has to close it.
+    if (tokenIsStale(payload, u)) return null;
+    return u;
+  } catch { return null; }
 }
 function setSession(res, u) {
   res.cookie('ig_session', signToken(u), { httpOnly: true, secure: COOKIE_SECURE, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000, path: '/' });
@@ -319,6 +327,23 @@ async function sendMail(to, subject, html, opts) {
   }
 }
 
+/* Sessions are stateless JWTs, so changing a password cannot invalidate them
+   on its own — which makes "change your password" useless against the very
+   thing a customer reaches for it to stop: somebody else already signed in,
+   on a shared laptop or with a stolen token.
+
+   So every token carries the password version it was minted under, and only
+   the current one is accepted. A counter, not a timestamp: `iat` is in whole
+   seconds, and the stolen session and the replacement are very often minted
+   in the same second, which a time comparison cannot tell apart — the first
+   attempt at this failed exactly there.
+
+   Tokens issued before this shipped carry no version, and accounts have none
+   either; both read as 0, so nobody is signed out by the deploy. */
+function tokenIsStale(payload, u) {
+  return (payload.pwv || 0) !== (u.pw_version || 0);
+}
+
 function authMiddleware(req, res, next) {
   const h = req.headers.authorization || '';
   const t = h.startsWith('Bearer ') ? h.slice(7) : null;
@@ -327,6 +352,8 @@ function authMiddleware(req, res, next) {
     const payload = jwt.verify(t, JWT_SECRET);
     const u = getUserById(payload.sub);
     if (!u) return res.status(401).json({ error: 'Account not found' });
+    if (tokenIsStale(payload, u))
+      return res.status(401).json({ error: 'Session expired' });
     req.user = u;
     next();
   } catch {
@@ -605,8 +632,30 @@ app.post('/api/webhooks/copecart', express.raw({ type: '*/*' }), (req, res) => {
   const email = String(d.email || d.buyer_email || d.customer_email || (d.buyer && d.buyer.email) || '').toLowerCase().trim();
   const event = String(d.event || d.event_type || d.type || d.payment_status || d.status || '').toLowerCase();
   const productId = String(d.product_id || d.productId || (d.product && (d.product.id || d.product)) || '');
-  const plan = COPECART_PRODUCTS[productId] || (d.plan && PLANS[d.plan] ? d.plan : 'family');
-  const billing = /year|annual|jähr/i.test(body) ? 'annual' : 'monthly';
+  /* COPECART_PRODUCT_* maps a product to the plan it sells. Nothing fills that
+     map unless those are set in .env, and an unmapped product then falls back
+     to whatever COPECART_DEFAULT_PLAN says — Family, as it always has, so no
+     existing arrangement changes by upgrading to this.
+
+     Worth knowing: while the map is empty, a 9.99 Starter sale and a 99.99
+     School sale both provision the same fallback plan. Set the product ids,
+     and this line stops mattering. The warning below names the id to map. */
+  const mapped = COPECART_PRODUCTS[productId];
+  const fallback = PLANS[process.env.COPECART_DEFAULT_PLAN] ? process.env.COPECART_DEFAULT_PLAN : 'family';
+  const plan = mapped || (d.plan && PLANS[d.plan] ? d.plan : fallback);
+  if (!mapped) {
+    console.warn(`   [billing] copecart: product "${productId}" is not mapped to a plan — ` +
+      `granting "${plan}". Set COPECART_PRODUCT_<PLAN>=${productId} in .env to bill it correctly.`);
+  }
+  /* Monthly or annual is read from the fields that say so, not from the whole
+     payload: a search across the raw body matched "year" anywhere in it — a
+     date field, or a buyer living on Yearsley Road — and quietly turned a
+     monthly sale into an annual one. */
+  const billingHint = String(
+    d.billing || d.billing_cycle || d.billingCycle || d.interval ||
+    d.payment_plan || d.paymentPlan || d.period || d.subscription_interval || ''
+  );
+  const billing = /year|annual|jähr|annually/i.test(billingHint) ? 'annual' : 'monthly';
 
   res.json({ ok: true }); // acknowledge immediately; provision in the background
   if (!email) return;
@@ -689,8 +738,25 @@ async function provisionFromCopecart(email, plan, billing) {
     users.push(u);
     console.log('copecart: created account for', email, '→', plan);
   } else {
+    /* An account that was signed up for but never verified is nobody's yet —
+       the address has not been proven, and anyone can create one for an
+       address they do not own, choosing the password. Marking it verified
+       here because a payment arrived would hand whoever did that the account
+       the real customer just paid for. So the stranger's password goes: only
+       the set-password link below, which goes to the address that was
+       actually billed, opens the account.
+
+       An already-verified account is left alone — that customer proved the
+       address is theirs, and an upgrade must not lock them out. */
+    const unproven = !u.email_verified;
+    if (unproven) {
+      u.password_hash = await bcrypt.hash(token(24), 10);
+      console.log('copecart: account for', email, 'was never verified — password reset, set-password link sent');
+    }
     u.plan = plan; u.billing = billing || 'monthly'; u.status = 'active'; u.email_verified = 1; u.updated_at = t;
-    setTok = u.reset_token || token();
+    // A fresh link for an unproven account, so a token a stranger may already
+    // be holding from their own sign-up cannot be the one that sets it.
+    setTok = (unproven ? null : u.reset_token) || token();
     u.reset_token = setTok; u.reset_expires = t + days(7);
     console.log('copecart: upgraded', email, '→', plan);
   }
@@ -796,6 +862,11 @@ const loginFails = new Map();   // email -> { count, until }
 const LOGIN_MAX_FAILS = 8;
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
 
+/* A real bcrypt hash of a value nobody can supply, compared against when the
+   address is unknown so that path costs the same as a real one. Generated at
+   boot, with the same cost factor as a stored password. */
+const DUMMY_HASH = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), 10);
+
 function loginLockedUntil(email) {
   const rec = loginFails.get(email);
   if (!rec) return 0;
@@ -827,7 +898,16 @@ auth.post('/login', async (req, res) => {
   }
 
   const u = getUserByEmail(email);
-  if (!u) { noteLoginFail(email); return res.status(401).json({ error: 'Invalid login credentials' }); }
+  if (!u) {
+    /* Hash anyway. Returning here without one answers in a millisecond while a
+       real address takes the ~100ms bcrypt costs, and that gap is readable
+       over the network — it tells anyone who asks which addresses have an
+       account here. The message and the status were already identical; the
+       timing was not. */
+    await bcrypt.compare(password, DUMMY_HASH);
+    noteLoginFail(email);
+    return res.status(401).json({ error: 'Invalid login credentials' });
+  }
   const ok = await bcrypt.compare(password, u.password_hash);
   if (!ok) { noteLoginFail(email); return res.status(401).json({ error: 'Invalid login credentials' }); }
   if (!u.email_verified && !ADMIN_EMAILS.includes(email))
@@ -866,6 +946,9 @@ auth.post('/reset', async (req, res) => {
   u.password_hash = await bcrypt.hash(password, 10);
   u.reset_token = null;
   u.reset_expires = null;
+  // A reset is how someone takes their account back. Whoever was already
+  // signed in — which may be the reason they are resetting — loses it.
+  u.pw_version = (u.pw_version || 0) + 1;
   u.updated_at = now();
   saveNow();
   return res.json({ ok: true, message: 'Password updated. You can now sign in.' });
@@ -882,17 +965,82 @@ auth.post('/change-password', authMiddleware, async (req, res) => {
   const ok = await bcrypt.compare(cur, req.user.password_hash);
   if (!ok) return res.status(403).json({ error: 'Your current password is incorrect.' });
   req.user.password_hash = await bcrypt.hash(next, 10);
+  req.user.pw_version = (req.user.pw_version || 0) + 1;   // every older session ends here
   req.user.updated_at = now();
   saveNow();
-  res.json({ ok: true, message: 'Password updated.' });
+  // The caller is not the one being signed out: hand back a session minted
+  // after the stamp, and refresh the cookie for the same reason.
+  setSession(res, req.user);
+  res.json({ ok: true, message: 'Password updated.', token: signToken(req.user), user: publicUser(req.user) });
 });
 
 // GDPR: permanently delete the account and all its data.
+/* Stop charging a card we are about to forget the owner of.
+   Deleting the account removed the row and nothing else, so the subscription
+   at Stripe or PayPal kept renewing — the customer went on paying, with no
+   account to show for it and no record here to match the renewal webhooks
+   against. Returns a short reason when it could not be done, so the caller
+   can decide what to do about it. */
+async function cancelProviderSubscription(u) {
+  const subId = u.subscription_id;
+  if (!subId) return { ok: true, note: 'no subscription on file' };
+  const provider = u.billing_provider;
+  try {
+    if (provider === 'stripe') {
+      if (!stripe) return { ok: false, reason: 'stripe not configured on this server' };
+      // Named cancel() in current SDKs, del() in older ones.
+      const subs = stripe.subscriptions;
+      if (typeof subs.cancel === 'function') await subs.cancel(subId);
+      else await subs.del(subId);
+      return { ok: true };
+    }
+    if (provider === 'paypal') {
+      if (!paypalEnabled) return { ok: false, reason: 'paypal not configured on this server' };
+      await paypalFetch(`/v1/billing/subscriptions/${encodeURIComponent(subId)}/cancel`, {
+        method: 'POST', body: JSON.stringify({ reason: 'Account deleted by the customer' }),
+      });
+      return { ok: true };
+    }
+    return { ok: false, reason: `unknown billing provider "${provider || 'none'}"` };
+  } catch (e) {
+    return { ok: false, reason: (e && e.message) || String(e) };
+  }
+}
+
 auth.post('/delete-account', authMiddleware, async (req, res) => {
   const pw = req.body.password || '';
   const ok = await bcrypt.compare(pw, req.user.password_hash);
   if (!ok) return res.status(403).json({ error: 'Password is incorrect.' });
-  const idx = users.findIndex(u => u.id === req.user.id);
+
+  /* Cancel first, delete second. If the cancellation fails the account is
+     still deleted — erasure is the customer's to ask for, and refusing it
+     would leave them both billed AND stuck — but somebody has to know, or the
+     charges continue with nothing here to trace them to. */
+  const u = req.user;
+  const billingNote = { email: u.email, subscriptionId: u.subscription_id || null,
+    provider: u.billing_provider || null, plan: u.plan, status: u.status };
+  const cancelled = await cancelProviderSubscription(u);
+  if (!cancelled.ok) {
+    console.error('   [billing] COULD NOT CANCEL on account deletion —', JSON.stringify(billingNote),
+      '— reason:', cancelled.reason, '— cancel this by hand or the customer keeps paying.');
+    try {
+      await sendMail(CONTACT_TO, '⚠️ Cancel a subscription by hand — account deleted',
+        `<p>An account was deleted while a subscription was still live, and the
+            cancellation could not be completed automatically. <b>The customer will
+            keep being charged until this is cancelled manually.</b></p>
+         <ul>
+           <li>Email: ${esc(billingNote.email)}</li>
+           <li>Provider: ${esc(billingNote.provider || 'unknown')}</li>
+           <li>Subscription: ${esc(billingNote.subscriptionId || 'none recorded')}</li>
+           <li>Plan: ${esc(billingNote.plan)} (${esc(billingNote.status)})</li>
+         </ul>
+         <p>Reason: ${esc(cancelled.reason)}</p>`);
+    } catch (e) { console.error('   [billing] could not send the manual-cancel warning:', e.message); }
+  } else if (billingNote.subscriptionId) {
+    console.log('   [billing] cancelled', billingNote.provider, billingNote.subscriptionId, 'for a deleted account');
+  }
+
+  const idx = users.findIndex(x => x.id === u.id);
   if (idx > -1) { users.splice(idx, 1); saveNow(); }
   clearSession(res);
   res.json({ ok: true, message: 'Your account and data have been deleted.' });
@@ -1109,6 +1257,15 @@ app.get('/api/complete-item', authMiddleware, completeLimiter, async (req, res) 
   const q = String(req.query.q || '').toLowerCase().trim();
   if (!q) return res.status(400).json({ error: 'Query required.' });
   if (q.length > 60) return res.status(400).json({ error: 'Query too long.' });
+  /* This word is pasted into a prompt and its answer is cached for everybody,
+     so it has to be a word. Quotes close the one the prompt puts it in, and
+     newlines let what follows read as fresh instructions — between them a
+     lookup could choose what the model returns, and the result is served to
+     other people's children. Letters, spaces and hyphens are all a word for a
+     learning game needs; anything else is refused rather than escaped. */
+  if (!/^[\p{L}\p{N} '\-]+$/u.test(q)) {
+    return res.status(400).json({ error: 'That is not a word I can look up.' });
+  }
   const hit = ITEM_LIB[q];
   if (hit) return res.json({ found: true, source: 'library', item: hit });
 
@@ -1117,7 +1274,8 @@ app.get('/api/complete-item', authMiddleware, completeLimiter, async (req, res) 
   if (!apiKey) return res.json({ found: false, source: 'none', item: null });
 
   try {
-    const prompt = 'Give the single best representative emoji and the translations for this word, for a children\'s learning game. Word: "' + req.query.q + '". Respond with ONLY a JSON object, no other text, no markdown, in exactly this shape: {"emoji":"","en":"","de":"","pl":"","es":""}. The emoji must be a single emoji that visually represents the word. Each language field is the word translated into that language (en=English, de=German, pl=Polish, es=Spanish).';
+    // The checked word, not the raw parameter the caller sent.
+    const prompt = 'Give the single best representative emoji and the translations for this word, for a children\'s learning game. Word: "' + q + '". Respond with ONLY a JSON object, no other text, no markdown, in exactly this shape: {"emoji":"","en":"","de":"","pl":"","es":""}. The emoji must be a single emoji that visually represents the word. Each language field is the word translated into that language (en=English, de=German, pl=Polish, es=Spanish).';
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 8000);
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1152,8 +1310,15 @@ app.get('/api/complete-item', authMiddleware, completeLimiter, async (req, res) 
     if (!item.emoji || !(item.en || item.de || item.pl || item.es)) {
       return res.json({ found: false, source: 'ai_invalid', item: null });
     }
-    // cache: index by every language name, persist to disk
-    [item.en, item.de, item.pl, item.es].forEach(k => { if (k) ITEM_LIB[k.toLowerCase().trim()] = item; });
+    /* Cache under the word that was asked for, and under the translations
+       only when they look like words themselves. The library is shared and on
+       disk: every key written here is served to every other account, so a
+       lookup must not be able to put an entry under a key of its choosing. */
+    const WORD = /^[\p{L}\p{N} '\-]{1,60}$/u;
+    const keys = [q].concat([item.en, item.de, item.pl, item.es]
+      .map(k => String(k || '').toLowerCase().trim())
+      .filter(k => k && WORD.test(k)));
+    keys.forEach(k => { ITEM_LIB[k] = item; });
     // Same atomic swap — this file self-grows via the AI cache and a torn write
     // would take the whole library with it.
     try { writeJsonAtomic(path.join(DATA_DIR, 'item-library.json'), ITEM_LIB); } catch (e) {}
@@ -1684,12 +1849,16 @@ app.post('/api/reward', rewardLimiter, async (req, res) => {
   const to = process.env.REWARD_TO || process.env.SMTP_USER || 'info@inclusion-games.com';
   const secs = Math.max(0, Math.round((Number(timeMs) || 0) / 1000));
   const tstr = Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0');
+  /* Escaped, for the same reason the contact form below is: this endpoint is
+     open to anyone, and what it writes lands in our own inbox. Unescaped, a
+     visitor could put markup and links into a mail that appears to come from
+     our own system. The numbers are already numbers; the free text is not. */
   try {
-    await sendMail(to, `🎉 Game result — ${game || 'InclusionGames'}`,
-      `<p>A player completed <b>${game || 'a game'}</b> (${lang || ''}).</p>
+    await sendMail(to, `🎉 Game result — ${esc(String(game || 'InclusionGames').slice(0, 60))}`,
+      `<p>A player completed <b>${esc(String(game || 'a game').slice(0, 60))}</b> (${esc(String(lang || '').slice(0, 10))}).</p>
        <ul><li>Score: ${Number(score) || 0} / ${Number(total) || 0}</li><li>Time: ${tstr}</li></ul>
-       <p>Reply-to (parent/teacher): ${parentEmail}</p>
-       <p>Message: ${(note || '—').toString().slice(0, 500)}</p>`);
+       <p>Reply-to (parent/teacher): ${esc(parentEmail)}</p>
+       <p>Message: ${esc(String(note || '—').slice(0, 500))}</p>`);
     return res.json({ ok: true });
   } catch (e) {
     console.error('reward', e);
