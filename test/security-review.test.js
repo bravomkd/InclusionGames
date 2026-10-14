@@ -123,6 +123,27 @@ test('one account cannot poison what every other account is shown', async (t) =>
     headers: authHeader(token),
   });
   assert.equal(injected.status, 400, 'a query with quotes or newlines must be rejected');
+
+  /* A word already in the library is answered before that rule is applied to
+     it. The live library was grown by this server over months and may hold
+     keys the rule would turn away; those lookups work today and must go on
+     working. */
+  const odd = 'ice cream (large)';
+  const fs = require('node:fs');
+  const path = require('node:path');
+  fs.writeFileSync(path.join(srv.dataDir, 'item-library.json'),
+    JSON.stringify({ [odd]: { emoji: '🍨', en: 'ice cream' } }));
+
+  const srv2 = await startServer({ DATA_DIR: srv.dataDir });
+  t.after(() => srv2.stop());
+  const { token: t2 } = await makeUser(srv2, 'legacy@example.com');
+  const legacy = await srv2.get('/api/complete-item?q=' + encodeURIComponent(odd), {
+    headers: authHeader(t2),
+  });
+  assert.equal(legacy.status, 200, 'an entry already in the library must still resolve');
+  const got = await legacy.json();
+  assert.equal(got.found, true);
+  assert.equal(got.source, 'library');
 });
 
 test('an open form cannot write markup into our own inbox', async (t) => {

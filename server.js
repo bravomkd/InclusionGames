@@ -1263,17 +1263,23 @@ app.get('/api/complete-item', authMiddleware, completeLimiter, async (req, res) 
   const q = String(req.query.q || '').toLowerCase().trim();
   if (!q) return res.status(400).json({ error: 'Query required.' });
   if (q.length > 60) return res.status(400).json({ error: 'Query too long.' });
-  /* This word is pasted into a prompt and its answer is cached for everybody,
-     so it has to be a word. Quotes close the one the prompt puts it in, and
-     newlines let what follows read as fresh instructions — between them a
-     lookup could choose what the model returns, and the result is served to
-     other people's children. Letters, spaces and hyphens are all a word for a
-     learning game needs; anything else is refused rather than escaped. */
+  /* The library first, and unconditionally. It is free, it is already full of
+     keys this server wrote over months, and some of them may well not match
+     the stricter rule below — refusing those would break lookups that work
+     today, on the live site, for words nobody is going to re-add. Anything
+     already known is answered before any rule applies to it. */
+  const hit = ITEM_LIB[q];
+  if (hit) return res.json({ found: true, source: 'library', item: hit });
+
+  /* Only now does the word reach a prompt, so only now does it have to be a
+     word. Quotes close the one the prompt puts it in, and newlines let what
+     follows read as fresh instructions — between them a lookup could choose
+     what the model returns, and the answer is cached and then served to other
+     people's children. Letters, digits, spaces, apostrophes and hyphens are
+     all a learning game needs; anything else is refused rather than escaped. */
   if (!/^[\p{L}\p{N} '\-]+$/u.test(q)) {
     return res.status(400).json({ error: 'That is not a word I can look up.' });
   }
-  const hit = ITEM_LIB[q];
-  if (hit) return res.json({ found: true, source: 'library', item: hit });
 
   /* Past this point the lookup costs us money at Anthropic. The library above
      is free and stays open to any signed-in account, so nothing that already
