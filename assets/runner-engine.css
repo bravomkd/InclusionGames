@@ -1,0 +1,403 @@
+/* ============================================================
+ * Animal Run — the parts the bubble games do not have.
+ *
+ * Everything shared (top bar, cards, buttons, language row, toggles,
+ * the result screen) comes from game-engine.css, which this loads on
+ * top of. A game that looked like a different product would read as a
+ * different product.
+ * ============================================================ */
+
+/* The stage. Behind everything, sized by script. */
+#stage { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
+
+/* The camera feed, small and in the corner. The player needs to be
+   able to see that they are in shot — being out of frame is the most
+   common reason a movement stops working, and invisible when the
+   preview is hidden. */
+#rvid {
+  position: fixed; right: 14px; bottom: 14px; width: 168px; height: 126px;
+  object-fit: cover; border-radius: 14px; border: 2px solid var(--border);
+  transform: scaleX(-1); z-index: 3; background: #000; opacity: .9;
+  box-shadow: 0 8px 28px rgba(0,0,0,.45);
+}
+#rvid.hidden { display: none; }
+
+/* ── Heads-up display ─────────────────────────────────────── */
+/* Below the top bar AND below the break button, which is centred in
+   the strip between them. All three were at the same height to begin
+   with and the "catch this next" prompt — the one thing the letter
+   modes are about — was sitting underneath a button. */
+.rhud {
+  position: fixed; top: 106px; left: 0; right: 0; z-index: 4;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 0 16px; pointer-events: none;
+}
+.rhud > div { pointer-events: auto; }
+.rbadge {
+  background: rgba(8,14,30,.6); border: 1px solid var(--border);
+  border-radius: 14px; padding: 8px 14px; backdrop-filter: blur(6px);
+}
+.rlives { font-size: 1.5rem; letter-spacing: 2px; line-height: 1; }
+.rlives .gone { opacity: .22; filter: grayscale(1); }
+.rlbl { font-size: .62rem; letter-spacing: 1.4px; color: var(--muted); display: block; margin-bottom: 2px; }
+.rnum { font-family: var(--font); font-size: 1.5rem; line-height: 1; }
+
+/* What to catch next. The whole point of the letter modes, so it is
+   the biggest thing on the screen after the animal. */
+.rnext { text-align: center; }
+.rnext .big {
+  font-family: var(--font); font-size: 2.6rem; line-height: 1;
+  color: var(--gold); text-shadow: 0 0 22px rgba(255,215,0,.5);
+}
+
+/* ── The movement meter ───────────────────────────────────────
+   A bar that fills as the player moves, with their own press point
+   marked on it. Without this a movement that is not quite enough looks
+   exactly like a camera that is not working. */
+.rmeter {
+  position: fixed; left: 16px; top: 50%; transform: translateY(-50%);
+  width: 20px; height: 190px; z-index: 4;
+  background: rgba(8,14,30,.6); border: 1px solid var(--border); border-radius: 12px;
+  overflow: hidden;
+}
+.rmeter .fill {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 0%;
+  background: linear-gradient(0deg, var(--blue), var(--green)); transition: height .05s linear;
+}
+.rmeter .mark { position: absolute; left: 0; right: 0; height: 2px; background: var(--gold); opacity: .85; }
+.rmeter.fired .fill { background: linear-gradient(0deg, var(--gold), #fff); }
+.rmeter.hidden, .rhud.hidden { display: none; }
+
+/* ── Cue line ─────────────────────────────────────────────── */
+.rcue {
+  position: fixed; left: 0; right: 0; bottom: 18px; z-index: 4; text-align: center;
+  font-family: var(--font); font-size: 1.15rem; pointer-events: none;
+  text-shadow: 0 2px 14px rgba(0,0,0,.8);
+}
+.rcue.warn { color: var(--gold); }
+.rcue.hidden { display: none; }
+
+/* ── Calibration ──────────────────────────────────────────── */
+.calwrap {
+  position: fixed; inset: 0; z-index: 6; display: flex; align-items: center;
+  justify-content: center; background: rgba(8,14,30,.86); backdrop-filter: blur(8px);
+  padding: 20px;
+}
+.calwrap.hidden { display: none; }
+.calbox {
+  width: min(560px, 94vw); background: var(--panel); border: 1px solid var(--border);
+  border-radius: 22px; padding: 26px; text-align: center;
+}
+.calbox h2 { font-family: var(--font); font-size: 1.7rem; margin-bottom: 8px; }
+.calbox p { color: var(--muted); margin-bottom: 18px; line-height: 1.5; }
+.calface { font-size: 3.4rem; margin-bottom: 10px; }
+.calbar { height: 16px; border-radius: 10px; background: rgba(255,255,255,.1); overflow: hidden; margin: 0 0 8px; }
+.calbar > i { display: block; height: 100%; width: 0%; background: var(--green); transition: width .1s linear; }
+.calhint { font-size: .8rem; color: var(--muted); }
+.calbtns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+
+/* ── Pickers on the setup screen ──────────────────────────── */
+.pickrow { display: flex; gap: 8px; flex-wrap: wrap; }
+.pick {
+  flex: 1 1 auto; min-width: 104px; padding: 10px 12px; border-radius: 14px;
+  border: 1px solid var(--border); background: rgba(255,255,255,.05);
+  color: var(--text); font-family: var(--body); font-weight: 700; font-size: .84rem;
+  cursor: pointer; text-align: center; transition: .15s;
+}
+.pick:hover { background: rgba(255,255,255,.1); }
+.pick.on { background: rgba(96,165,250,.26); border-color: var(--blue); }
+.pick .ic { display: block; font-size: 1.5rem; margin-bottom: 3px; }
+/* Icon-only choices — the animals — do not need room for a word, and
+   stacking five of them one per row pushed everything else off a
+   phone screen. */
+.pickrow.icons .pick { min-width: 0; flex: 1 1 46px; padding: 8px 6px; }
+.pickrow.icons .pick .ic { margin-bottom: 0; }
+
+/* ── Countdown and pause ──────────────────────────────────── */
+#rcount {
+  position: fixed; inset: 0; z-index: 5; display: flex; align-items: center;
+  justify-content: center; font-family: var(--font); font-size: 7rem;
+  color: var(--gold); text-shadow: 0 0 40px rgba(255,215,0,.5); pointer-events: none;
+}
+#rcount.hidden { display: none; }
+
+#rpause {
+  position: fixed; top: 58px; left: 50%; transform: translateX(-50%); z-index: 5;
+  display: none;
+}
+#rpause.vis { display: block; }
+
+@media (max-width: 640px) {
+  #rvid { width: 112px; height: 84px; }
+  .rmeter { height: 130px; width: 16px; }
+  .rhud { top: 96px; }
+  .rnext .big { font-size: 2rem; }
+  .rcue { font-size: .95rem; }
+}
+
+/* ── A phone held sideways ──────────────────────────────────
+   This is how the game is actually held — and it was the one shape
+   nothing had been checked against. Once the browser's own bar is out
+   of the way a phone gives roughly 700x320, and the setup screen is a
+   vertical stack: the language row, the hero, the cards and the Play
+   button needed about three screens of scrolling before a child could
+   start. The width is there; it just was not being used.
+
+   Everything here is scoped to this stylesheet, so only Animal Run is
+   affected and the other forty-two games keep the layout they have. */
+@media (orientation: landscape) and (max-height: 540px) {
+
+  /* Chrome, trimmed back. */
+  .topnav { padding: 4px 10px; }
+  .brand { font-size: .9rem; }
+  .brand-box { width: 26px; height: 26px; font-size: .95rem; }
+  .back { font-size: .7rem; padding: 5px 10px; }
+
+  /* Two columns: who you are on the left, what you choose on the
+     right, and Play always on screen rather than below the fold. */
+  #setupscreen {
+    display: grid;
+    grid-template-columns: minmax(170px, 33%) 1fr;
+    grid-template-areas:
+      "lang  lang"
+      "hero  cards"
+      "cam   cards"
+      "play  cards";
+    /* The hero row is the one allowed to give way. Everything else is
+       auto, so "Play" keeps its place at the bottom of the left column
+       instead of being pushed off the screen by a long description. */
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    align-content: start;
+    justify-content: stretch;
+    gap: 5px 14px;
+    padding: 36px 12px 8px;
+    overflow: hidden;
+  }
+  #setupscreen > .langrow { grid-area: lang; gap: 4px; }
+  #setupscreen > .hero    { grid-area: hero; text-align: left; overflow: hidden; min-height: 0; }
+  #setupscreen > .grid2   { grid-area: cards; max-width: none; align-self: stretch;
+                            overflow-y: auto; padding-right: 2px; }
+  /* One line, not a card. It is a status strip, and at this height a
+     45px box that is usually empty is a whole option somewhere else. */
+  #setupscreen > .camrow  { grid-area: cam; }
+  #setupscreen > .camrow .cambox { padding: 3px 7px; border-radius: 8px; gap: 1px; }
+  /* The band, not the button: "Play" is wrapped in .gobar now, so the
+     direct child this grid places is the band. Placing .gobtn here
+     instead would match nothing and drop the button out of the layout
+     — which is how it ended up off the bottom of a landscape phone in
+     the first place. In this grid it has a cell of its own, so it
+     drops the sticky treatment it needs in the portrait column. */
+  /* `.screen` is on the selector only to outrank the portrait rule
+     for this band, which is written later in the file at the same
+     specificity and would otherwise win here and keep it sticky. */
+  #setupscreen.screen > .gobar {
+    grid-area: play; align-self: start; margin-top: 2px;
+    position: static; padding: 0; margin-bottom: 0;
+    background: none; box-shadow: none;
+  }
+
+  .langbtn { font-size: .68rem; padding: 4px 9px; gap: 4px; }
+  .game-icon { font-size: 1.6rem; margin-bottom: 2px; }
+  .gtitle { font-size: 1.45rem; }
+  .tag { font-size: .58rem; letter-spacing: 1.2px; margin-bottom: 2px; }
+  .gdesc { font-size: .72rem; margin-top: 2px; max-width: none; }
+  /* Flavour text is the first thing to go when there is no room. */
+  .quest { display: none; }
+  .card { padding: 8px 10px; border-radius: 11px; }
+  .clabel { font-size: .56rem; letter-spacing: 1.2px; margin-bottom: 4px; }
+  .pick { min-width: 86px; padding: 6px 8px; font-size: .74rem; }
+  .pick .ic { font-size: 1.1rem; margin-bottom: 1px; }
+  /* Five animals on one line. `flex-basis` let the last one spill onto
+     a row of its own and stretch across it, which read as a mistake
+     rather than a choice. */
+  .pickrow.icons { gap: 4px; }
+  .pickrow.icons .pick { flex: 1 1 0; min-width: 0; padding: 5px 2px; }
+  .pickrow.icons .pick .ic { font-size: 1.15rem; }
+  .sel { padding: 6px 8px; font-size: .78rem; }
+  .toglbl { font-size: .74rem; }
+  .gobtn { padding: 9px; font-size: .9rem; }
+  .sline { font-size: .62rem; }
+
+  /* ── Playing ─────────────────────────────────────────────
+     A third of a short screen was going to the heads-up display. */
+  .rhud { top: 44px; padding: 0 8px; gap: 8px; }
+  .rbadge { padding: 4px 9px; border-radius: 10px; }
+  .rlbl { font-size: .52rem; letter-spacing: 1px; margin-bottom: 1px; }
+  .rlives { font-size: 1rem; letter-spacing: 1px; }
+  .rnum { font-size: 1rem; }
+  .rnext .big { font-size: 1.5rem; }
+  /* Out of the heads-up display's way, and off the cue line. */
+  #rpause { top: auto; bottom: 8px; left: 8px; transform: none;
+            padding: 5px 11px; font-size: .7rem; }
+  #rvid { width: 96px; height: 72px; right: 8px; bottom: 8px; border-radius: 10px; }
+  .rmeter { width: 14px; height: 96px; left: 8px; }
+  .rcue { font-size: .8rem; bottom: 10px; }
+  #rcount { font-size: 3.6rem; }
+
+  /* ── Calibration and the result ──────────────────────────── */
+  .calbox { padding: 12px 16px; border-radius: 16px; }
+  .calface { font-size: 1.9rem; margin-bottom: 2px; }
+  .calbox h2 { font-size: 1.15rem; margin-bottom: 4px; }
+  .calbox p { font-size: .76rem; margin-bottom: 9px; line-height: 1.35; }
+  .calbar { height: 11px; }
+  .calbtns { margin-top: 10px; gap: 8px; }
+
+  #resultscreen { padding: 36px 12px 10px; gap: 6px; }
+  .remoji { font-size: 2.2rem; }
+  .rtitle { font-size: 1.5rem; }
+  .rsub { font-size: .78rem; }
+  .rstars { font-size: .9rem; }
+  .rstats { gap: 8px; }
+  .rstat { padding: 6px 12px; }
+  .rsn { font-size: 1.2rem; }
+  .rsl { font-size: .58rem; }
+  .rbtns { gap: 8px; }
+  .rbtns .btn { padding: 8px 14px; font-size: .8rem; }
+}
+
+/* ── The setup screen on a phone ────────────────────────────
+   Two faults, both only visible on a real device.
+
+   The screen opened 92px down, with the language buttons and the
+   title above the top edge. Nothing scrolls it: Chrome's scroll
+   anchoring moves a scrolling box when content above the viewport
+   changes height, and the web font and the emoji in the pick buttons
+   are still settling when it decides. `overflow-anchor: none` opts
+   this box out; the script also puts it back to the top once the
+   fonts have loaded, because anchoring is not the only thing that can
+   do this.
+
+   And "Play!" sat at y=836 in a 663px viewport — below the fold, with
+   nothing to say it was there. Sticking it to the bottom means the
+   one button that starts the game is on the screen whatever the
+   phone, the language or the length of the list above it.
+
+   Only games 43-46 load this file; the other 42 are untouched. */
+#setupscreen { overflow-anchor: none; }
+
+/* The top bar is transparent and fixed, so a setup screen long enough
+   to scroll runs its text straight under the wordmark and the back
+   link. A band under it, on this page only: games 43-45 share this
+   file but keep their bar over their own canvas while playing, and a
+   band there would be a dark stripe across the game. */
+body.ig-unity .topnav {
+  background: linear-gradient(180deg, var(--bg) 62%, rgba(0,0,0,0));
+  padding-bottom: 16px;
+}
+/* The button rides in a band of its own. It needs to be a wrapper
+   rather than a shadow or a pseudo-element on the button: the button
+   is a rounded pill, so the cards scroll past in the corners around
+   it, and a negative-z pseudo-element paints above its own parent's
+   background — which hid the green and left the word "Play!" floating
+   on nothing. */
+#setupscreen > .gobar {
+  position: sticky; bottom: -20px; z-index: 2; margin-top: auto;
+  flex: 0 0 auto; align-self: stretch;
+  padding: 14px 0 20px; margin-bottom: -20px;
+  background: var(--bg);
+  box-shadow: 0 -16px 18px -6px var(--bg);
+}
+#setupscreen > .gobar > .gobtn { width: 100%; }
+
+/* ── The client's Unity build, embedded ─────────────────────
+   Two rows: a strip of ours, then his game. Nothing of ours is drawn
+   over his picture.
+
+   This was an overlay, like games 43-45, and on a 360x663 phone it put
+   our back link across his "choose this next" panel, our quit button
+   across his AR button, our cue across his home button and our meter
+   across his A-M column. Those games draw their own canvas, so an
+   overlay there costs nothing. This one is his, and every corner of it
+   is already spoken for — so the strip takes its own height off the
+   top and he keeps every pixel below it. */
+#ustage {
+  position: fixed; inset: 0; z-index: 1; background: #000;
+  display: flex; flex-direction: column;
+}
+#ustage.hidden { display: none; }
+
+#uchrome {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 10px;
+  padding: 6px 10px; background: #0b1324;
+  border-bottom: 1px solid var(--border);
+}
+#uview { flex: 1 1 auto; position: relative; min-height: 0; }
+#unity-canvas { width: 100%; height: 100%; display: block; background: #000; outline: none; }
+
+/* The site's top bar belongs to the site, not to his game, and the
+   strip already carries a way out. */
+body.uplaying .topnav { display: none; }
+
+/* In the strip these stop being floating overlays and become a row.
+   Scoped to #uchrome, so the runner games keep theirs unchanged. */
+#uchrome #uquit { position: static; flex: 0 0 auto; }
+#uchrome .rcue {
+  position: static; flex: 1 1 auto; text-align: left; font-size: .95rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* `relative`, never `static`. The fill and the mark inside are
+   absolutely positioned, so the meter has to stay a containing block
+   for them. As `static` it stopped being one, the fill resolved
+   against #ustage instead, and at full movement a 14x42 bar became a
+   360x663 sheet of colour over the whole game — which is what a
+   raised hand looked like.
+
+   `top` and `left` have to be cleared with it. The base rule floats
+   the meter at left:16px/top:50% down the side of the screen; those
+   offsets are inert while it is static, and the moment it became
+   relative they shifted it 27px down — out of the strip, into his
+   game and across the camera preview. */
+#uchrome .rmeter {
+  position: relative; transform: none; flex: 0 0 auto;
+  top: auto; left: auto;
+  width: 14px; height: 42px; border-radius: 7px;
+}
+#uchrome #rvid {
+  position: static; flex: 0 0 auto; width: 60px; height: 44px;
+  border-radius: 8px; box-shadow: none; opacity: 1;
+}
+
+/* On a phone the strip cannot hold both a worded way out and the cue,
+   and of the two it is the cue the child needs — it is the only thing
+   telling them which movement jumps. The button keeps its wording for
+   screen readers (font-size:0 hides the glyphs, not the name) and an
+   adult still has it in full on a tablet. */
+@media (max-width: 460px) {
+  #uchrome #uquit { font-size: 0; padding: 8px 11px; }
+  #uchrome #uquit::before { content: '✕'; font-size: .95rem; line-height: 1; }
+  #uchrome { gap: 8px; padding: 6px 8px; }
+  #uchrome #rvid { width: 52px; height: 40px; }
+}
+
+#uload {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px;
+  background: var(--bg); color: var(--text); font-family: var(--font);
+}
+#uload.hidden { display: none; }
+
+/* What Unity would have said in a native alert(). Covers his picture
+   only — never the strip above it — so the way out of the game stays
+   reachable behind it. */
+#uerr {
+  position: absolute; inset: 0; z-index: 5; display: flex;
+  align-items: center; justify-content: center; padding: 20px;
+  background: rgba(8,14,30,.94); color: var(--text); font-family: var(--font);
+}
+#uerr.hidden { display: none; }
+.uerrbox { text-align: center; max-width: 320px; }
+.uerri { font-size: 2.6rem; margin-bottom: 10px; }
+.uerrbox h2 { font-size: 1.35rem; margin-bottom: 8px; }
+.uerrbox p {
+  color: var(--muted); font-family: var(--font-body, inherit);
+  line-height: 1.5; font-size: .92rem; margin-bottom: 16px;
+}
+#uload .ubar { width: min(320px, 70vw); height: 12px; border-radius: 8px;
+  background: rgba(255,255,255,.12); overflow: hidden; }
+#uload .ubar > i { display: block; height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--blue), var(--green)); transition: width .2s linear; }
+
+#uquit {
+  position: absolute; left: 12px; top: 12px; z-index: 4;
+  padding: 6px 12px; font-size: .78rem;
+}

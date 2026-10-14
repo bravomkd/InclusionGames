@@ -26,7 +26,7 @@
       modeLbl:'🎮 Mode', levelLbl:'📊 Level',
       lvlGentle:'Gentle · 2 bubbles', lvlStandard:'Standard · 3 bubbles', lvlChallenge:'Challenge · 4 bubbles',
       accessLbl:'Accessibility', slow:'Slow motion', big:'Bigger items', voiceLbl:'Voice', spe:'⭐ Special-needs mode',
-      cam:'Camera…', camReady:'Camera ready!', camMouse:'Mouse active', track:'Tracking…', trackReady:'Tracking ready!',
+      cam:'Camera…', camAsking:'Asking for the camera…', camReady:'Camera ready!', camMouse:'Mouse active', track:'Tracking…', trackReady:'Tracking ready!',
       play:'Play!', allGames:'← All games', points:'POINTS', timeLbl:'Time',
       showHand:'Show your hand!', swipe:'Swipe to pop!', getReady:'Get ready…',
       pauseTitle:'⏸️ BREAK', pauseHint:'Show two open palms to continue',
@@ -44,7 +44,7 @@
       modeLbl:'🎮 Modus', levelLbl:'📊 Level',
       lvlGentle:'Sanft · 2 Blasen', lvlStandard:'Normal · 3 Blasen', lvlChallenge:'Herausforderung · 4 Blasen',
       accessLbl:'Barrierefreiheit', slow:'Langsames Tempo', big:'Größere Elemente', voiceLbl:'Sprachausgabe', spe:'⭐ Förder-Modus',
-      cam:'Kamera…', camReady:'Kamera bereit!', camMouse:'Maus aktiv', track:'Tracking…', trackReady:'Tracking bereit!',
+      cam:'Kamera…', camAsking:'Kamera wird angefragt…', camReady:'Kamera bereit!', camMouse:'Maus aktiv', track:'Tracking…', trackReady:'Tracking bereit!',
       play:'Los geht’s!', allGames:'← Alle Spiele', points:'PUNKTE', timeLbl:'Zeit',
       showHand:'Zeige deine Hand!', swipe:'Wischen zum Treffen!', getReady:'Bereit machen…',
       pauseTitle:'⏸️ PAUSE', pauseHint:'Zeige zwei offene Handflächen zum Weiterspielen',
@@ -62,7 +62,7 @@
       modeLbl:'🎮 Tryb gry', levelLbl:'📊 Poziom',
       lvlGentle:'Łagodny · 2 bańki', lvlStandard:'Normalny · 3 bańki', lvlChallenge:'Wyzwanie · 4 bańki',
       accessLbl:'Dostępność', slow:'Zwolnione tempo', big:'Większe elementy', voiceLbl:'Głos', spe:'⭐ Tryb SPE',
-      cam:'Kamera…', camReady:'Kamera gotowa!', camMouse:'Mysz aktywna', track:'Tracking…', trackReady:'Tracking gotowy!',
+      cam:'Kamera…', camAsking:'Prosimy o kamerę…', camReady:'Kamera gotowa!', camMouse:'Mysz aktywna', track:'Tracking…', trackReady:'Tracking gotowy!',
       play:'Gramy!', allGames:'← Wszystkie gry', points:'PUNKTY', timeLbl:'Czas',
       showHand:'Pokaż rękę!', swipe:'Przesuń palcem!', getReady:'Przygotuj się…',
       pauseTitle:'⏸️ PRZERWA', pauseHint:'Pokaż dwie otwarte dłonie, aby grać dalej',
@@ -80,7 +80,7 @@
       modeLbl:'🎮 Modo', levelLbl:'📊 Nivel',
       lvlGentle:'Suave · 2 burbujas', lvlStandard:'Normal · 3 burbujas', lvlChallenge:'Reto · 4 burbujas',
       accessLbl:'Accesibilidad', slow:'Cámara lenta', big:'Elementos grandes', voiceLbl:'Voz', spe:'⭐ Modo necesidades especiales',
-      cam:'Cámara…', camReady:'¡Cámara lista!', camMouse:'Ratón activo', track:'Seguimiento…', trackReady:'¡Seguimiento listo!',
+      cam:'Cámara…', camAsking:'Pidiendo la cámara…', camReady:'¡Cámara lista!', camMouse:'Ratón activo', track:'Seguimiento…', trackReady:'¡Seguimiento listo!',
       play:'¡A jugar!', allGames:'← Todos los juegos', points:'PUNTOS', timeLbl:'Tiempo',
       showHand:'¡Muestra tu mano!', swipe:'¡Desliza para reventar!', getReady:'Prepárate…',
       pauseTitle:'⏸️ PAUSA', pauseHint:'Muestra dos palmas abiertas para continuar',
@@ -146,6 +146,12 @@
     // Reads the active child's saved settings for this game and wraps
     // cfg.rounds() to filter built-ins, inject custom items, and apply
     // level/count. Fully fail-safe: any problem → original behavior.
+    /* Resolves once this child's saved settings have been fetched (or failed).
+       buildQ() reads them, so pressing Play before the request lands used to
+       drop the lot — the disabled items, the custom words, the difficulty a
+       teacher had set — silently, and only on a slow connection. */
+    var settingsReady = Promise.resolve(null);
+
     (function(){
       var SET=null;                       // loaded settings, or null
       var active=null;
@@ -155,11 +161,11 @@
       // fetch settings early (during setup; well before play starts)
       if(active && active.id && cfg && cfg.id && origRounds){
         var tok=null; try{ tok=localStorage.getItem('ig_token'); }catch(e){}
-        fetch('/api/children/'+active.id+'/settings/'+cfg.id,{
+        settingsReady = fetch('/api/children/'+active.id+'/settings/'+cfg.id,{
           headers: tok?{Authorization:'Bearer '+tok}:{}
         }).then(function(r){ return r.ok?r.json():null; })
-          .then(function(j){ if(j && j.settings) SET=j.settings; })
-          .catch(function(){ /* ignore — play as default */ });
+          .then(function(j){ if(j && j.settings) SET=j.settings; return SET; })
+          .catch(function(){ return null; /* play as default */ });
       }
 
       if(cfg && origRounds){
@@ -295,7 +301,44 @@
     // MediaPipe
     window.MP_OK=window.MP_OK||false;window.MP_FAIL=window.MP_FAIL||false;
     (function(){var s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js";s.crossOrigin="anonymous";s.onload=function(){window.MP_OK=true;};s.onerror=function(){window.MP_FAIL=true;};document.head.appendChild(s);})();
-    function initCam(){navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:"user"},audio:false}).then(function(s){videoStream=s;$("camprev").srcObject=s;$("vid").srcObject=s;$("camprev").play().catch(function(){});$("scam").className="sline ok";$("scam").innerHTML="<span class=sdot></span>"+T.camReady;$("gobtn").disabled=false;loadMP();}).catch(function(){$("scam").className="sline warn";$("scam").innerHTML="<span class=sdot></span>"+T.camMouse;$("gobtn").disabled=false;loadMP();});}
+    /* The camera is asked for when the child presses Play, not when the page
+       loads. A permission dialog that appears before anyone has done anything
+       has no context: a parent sees a children's site demanding the camera on
+       sight, and the usual answer to that is Block — which the browser then
+       remembers for the whole site, hand tracking included. Asked after Play
+       it answers something the child just did, and a request tied to a gesture
+       is treated more kindly by browsers as well.
+       Resolves either way. Without a camera the game falls back to the mouse,
+       which it has always supported. */
+    function initCam(){
+      if(videoStream) return Promise.resolve(true);
+      if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+        $("scam").className="sline warn";$("scam").innerHTML="<span class=sdot></span>"+T.camMouse;
+        return Promise.resolve(false);
+      }
+      $("scam").className="sline";$("scam").innerHTML="<span class=sdot></span>"+T.camAsking;
+      return navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:"user"},audio:false})
+        .then(function(s){
+          videoStream=s;$("camprev").srcObject=s;$("vid").srcObject=s;
+          $("camprev").play().catch(function(){});$("vid").play().catch(function(){});
+          $("scam").className="sline ok";$("scam").innerHTML="<span class=sdot></span>"+T.camReady;
+          return true;
+        })
+        .catch(function(){
+          $("scam").className="sline warn";$("scam").innerHTML="<span class=sdot></span>"+T.camMouse;
+          return false;
+        });
+    }
+
+    /* Let go of the camera the moment the game stops using it. A light that
+       stays on after a child has finished playing is the kind of thing a
+       parent notices and does not forget. Permission has already been granted
+       by then, so picking it up again for the next round shows no dialog. */
+    function stopCam(){
+      if(videoStream){videoStream.getTracks().forEach(function(t){try{t.stop();}catch(e){}});videoStream=null;}
+      try{$("camprev").srcObject=null;$("vid").srcObject=null;}catch(e){}
+    }
+    window.addEventListener("pagehide",stopCam);
     function loadMP(){var w=0,c=setInterval(function(){w++;if(window.MP_OK&&typeof Hands!=="undefined"){clearInterval(c);try{mpHands=new Hands({locateFile:function(f){return "https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/"+f;}});mpHands.setOptions({maxNumHands:2,modelComplexity:0,minDetectionConfidence:.55,minTrackingConfidence:.45});mpHands.onResults(onHands);mpHands.initialize().then(function(){$("smp").className="sline ok";$("smp").innerHTML="<span class=sdot></span>"+T.trackReady;}).catch(function(){});}catch(e){}}if(window.MP_FAIL||w>80){clearInterval(c);}},100);}
     function startMPLoop(){var v=$("vid");function p(){if(!running)return;if(mpHands&&v.readyState>=2)try{mpHands.send({image:v}).catch(function(){});}catch(e){}requestAnimationFrame(p);}requestAnimationFrame(p);}
 
@@ -363,9 +406,31 @@
     function checkBreak(hands){var twoOpen=hands.length>=2&&openPalm(hands[0])&&openPalm(hands[1]);if(twoOpen){if(!twoHoldStart)twoHoldStart=Date.now();else if(Date.now()-twoHoldStart>1200){paused=!paused;$("pauseov").classList.toggle("hidden",!paused);twoHoldStart=0;}}else{twoHoldStart=0;}}
     function onHands(r){hctx.clearRect(0,0,W,H);var allHands=(r.multiHandLandmarks||[]);checkBreak(allHands);var pill=$("pill");if(!r.multiHandLandmarks||!r.multiHandLandmarks.length){handOn=false;indexTip=null;prevTip=null;if(pill&&!pill.classList.contains("hidden")&&!locked){pill.textContent=T.showHand;pill.className="";}return;}handOn=true;var lm=r.multiHandLandmarks[0];prevTip=indexTip;indexTip={x:1-lm[8].x,y:lm[8].y};hctx.save();hctx.lineWidth=2.5;hctx.strokeStyle="rgba(147,197,253,.22)";CONN.forEach(function(ab){hctx.beginPath();hctx.moveTo((1-lm[ab[0]].x)*W,lm[ab[0]].y*H);hctx.lineTo((1-lm[ab[1]].x)*W,lm[ab[1]].y*H);hctx.stroke();});for(var i=0;i<21;i++){var x=(1-lm[i].x)*W,y=lm[i].y*H,tip=i===8;hctx.beginPath();hctx.arc(x,y,tip?18:4.5,0,Math.PI*2);if(tip){hctx.fillStyle="rgba(255,215,0,.92)";hctx.shadowBlur=26;hctx.shadowColor="rgba(255,215,0,.85)";}else{hctx.fillStyle="rgba(147,197,253,.5)";hctx.shadowBlur=0;}hctx.fill();hctx.shadowBlur=0;}hctx.restore();if(pill&&!pill.classList.contains("hidden")&&!locked){pill.textContent=T.swipe;pill.className="on";}}
 
-    function startGame(){lvl=$("lvl").value;slow=$("tslow").classList.contains("on");xl=$("txl").classList.contains("on");voice=$("tvoice").classList.contains("on");$("setupscreen").classList.add("hidden");$("hud").classList.remove("hidden");$("questbar").classList.remove("hidden");$("pill").classList.remove("hidden");$("vid").classList.add("vis");score=0;rnum=0;bubbles=[];parts=[];paused=false;locked=false;running=true;buildQ();updateQuest();setText('qtime','0:00');stars=Array.from({length:50},function(){return{x:Math.random()*2000,y:Math.random()*1200,r:Math.random()*1.8+.3,ph:Math.random()*Math.PI*2};});startLoop();if(videoStream&&mpHands)startMPLoop();initAC();startMus();startTimer();nextRound();}
-    function restart(){$("resultscreen").classList.add("hidden");$("hud").classList.remove("hidden");$("questbar").classList.remove("hidden");$("pill").classList.remove("hidden");$("rewardbox").classList.add("hidden");setText("rwstatus","");$("rwform").style.display="";score=0;rnum=0;bubbles=[];parts=[];paused=false;locked=false;running=true;buildQ();updateQuest();setText('qtime','0:00');startMus();startTimer();nextRound();}
-    function goMenu(){stopMus();stopTimer();running=false;bubbles=[];parts=[];$("resultscreen").classList.add("hidden");$("hud").classList.add("hidden");$("questbar").classList.add("hidden");$("pill").classList.add("hidden");$("vid").classList.remove("vis");$("setupscreen").classList.remove("hidden");}
+    /* Pressing Play does three things in order: ask for the camera (the press
+       is what makes that request make sense), wait for the child's settings,
+       then begin. Neither wait is allowed to hold the game up for long — a
+       slow network should delay a child's turn by a moment, not strand them
+       on a dead button. */
+    var WAIT_MS=2500;
+    function withTimeout(p,ms){
+      return Promise.race([p,new Promise(function(r){setTimeout(function(){r(null);},ms);})]);
+    }
+    function startGame(){
+      var btn=$("gobtn");
+      if(btn.disabled) return;              // a second press must not start two games
+      btn.disabled=true;                    // the status line says what is happening
+      Promise.all([initCam(),withTimeout(settingsReady,WAIT_MS)]).then(function(){
+        btn.disabled=false;
+        beginPlay();
+      });
+    }
+    function beginPlay(){lvl=$("lvl").value;slow=$("tslow").classList.contains("on");xl=$("txl").classList.contains("on");voice=$("tvoice").classList.contains("on");$("setupscreen").classList.add("hidden");$("hud").classList.remove("hidden");$("questbar").classList.remove("hidden");$("pill").classList.remove("hidden");$("vid").classList.add("vis");score=0;rnum=0;bubbles=[];parts=[];paused=false;locked=false;running=true;buildQ();updateQuest();setText('qtime','0:00');stars=Array.from({length:50},function(){return{x:Math.random()*2000,y:Math.random()*1200,r:Math.random()*1.8+.3,ph:Math.random()*Math.PI*2};});startLoop();if(videoStream&&mpHands)startMPLoop();initAC();startMus();startTimer();nextRound();}
+    function restart(){
+      initCam().then(function(){ if(videoStream&&mpHands)startMPLoop(); });
+      replay();
+    }
+    function replay(){$("resultscreen").classList.add("hidden");$("hud").classList.remove("hidden");$("questbar").classList.remove("hidden");$("pill").classList.remove("hidden");$("rewardbox").classList.add("hidden");setText("rwstatus","");$("rwform").style.display="";score=0;rnum=0;bubbles=[];parts=[];paused=false;locked=false;running=true;buildQ();updateQuest();setText('qtime','0:00');startMus();startTimer();nextRound();}
+    function goMenu(){stopMus();stopTimer();running=false;stopCam();bubbles=[];parts=[];$("resultscreen").classList.add("hidden");$("hud").classList.add("hidden");$("questbar").classList.add("hidden");$("pill").classList.add("hidden");$("vid").classList.remove("vis");$("setupscreen").classList.remove("hidden");}
     function endGame(){stopMus();stopTimer();snd("fin");running=false;$("hud").classList.add("hidden");$("questbar").classList.add("hidden");$("pill").classList.add("hidden");ctx.clearRect(0,0,W,H);
       var perfect=(score===total&&total>0);var pct=total?score/total:0;var emoji,title,sub;
       if(perfect){emoji="👑";title=T.wonTitle;sub=T.wonSub;}
@@ -376,6 +441,7 @@
       setText("rs1",score);setText("rs2",total);setText("rs3",fmtTime(elapsedMs()));
       $("rewardbox").classList.toggle("hidden",!perfect);
       $("resultscreen").classList.remove("hidden");
+      stopCam();                    // nothing is being tracked on this screen
       if(voice)say((perfect?T.wonSpeech+" ":"")+title+" "+T.scored(score,total));
       // record progress for the active child (silent, fire-and-forget)
       try{
@@ -405,7 +471,10 @@
     var saved='en';try{saved=localStorage.getItem('ig_lang')||'en';}catch(e){}
     var urlL=new URLSearchParams(location.search).get('lang');if(urlL)saved=urlL;
     setLang(BASE[saved]?saved:'en');
-    initCam();
+    // The hand-tracking model is a large download and needs no permission, so
+    // fetch it now; the camera is requested when Play is pressed.
+    loadMP();
+    $("gobtn").disabled=false;
   }
 
   global.IG_GAME = IG_GAME;

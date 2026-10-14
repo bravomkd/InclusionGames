@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<title>Animal Run — live camera check</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/game-engine.css">
+<link rel="stylesheet" href="/assets/runner-engine.css">
+<style>
+  /* The readout. Deliberately plain and deliberately on top of
+     everything: this page exists to answer "is the camera actually
+     seeing me", and that answer must never be the thing that is
+     hidden behind the game. */
+  /* Low and to the left, clear of the top bar, the language row and
+     the game's own HUD — all of which it used to sit on top of. */
+  #diag{position:fixed;left:6px;bottom:52px;z-index:50;background:rgba(0,0,0,.78);
+    color:#9ae6b4;font:10px/1.45 ui-monospace,monospace;padding:7px 9px;border-radius:9px;
+    white-space:pre;pointer-events:none;max-width:62vw}
+  #diag.off{display:none}
+  #diagbtn{position:fixed;right:6px;bottom:52px;z-index:51;font:700 11px/1 system-ui;
+    padding:9px 11px;border-radius:9px;border:1px solid rgba(255,255,255,.25);
+    background:rgba(0,0,0,.65);color:#fff}
+  /* This game reads left-to-right. A phone held upright gives it about
+     a third of the room to show what is coming. */
+  #turn{position:fixed;left:0;right:0;top:0;z-index:60;padding:7px;text-align:center;
+    background:#b45309;color:#fff;font:700 12px/1.3 system-ui}
+  #turn.off{display:none}
+  #bar{position:fixed;left:0;right:0;bottom:0;z-index:52;display:flex;gap:6px;
+    padding:6px;background:rgba(0,0,0,.6)}
+  #bar a{flex:1;text-align:center;padding:9px 4px;border-radius:9px;text-decoration:none;
+    font:700 12px/1 system-ui;color:#fff;background:rgba(255,255,255,.12)}
+  #bar a.on{background:#2563eb}
+</style>
+</head><body>
+
+<div id="turn" class="off">↻ Turn the phone sideways — the game needs the width</div>
+<button id="diagbtn">readout</button>
+<div id="diag">starting…</div>
+<div id="bar">
+  <a href="?mode=classic" data-m="classic">Animal</a>
+  <a href="?mode=letters" data-m="letters">Letters</a>
+  <a href="?mode=numbers" data-m="numbers">Numbers</a>
+</div>
+
+<script src="/assets/switch-input.js"></script>
+<script src="/assets/runner-core.js"></script>
+<script src="/assets/runner-engine.js"></script>
+<script>
+/* ============================================================
+ * Animal Run — on a real device, with a real camera and a real face.
+ *
+ * Everything else that drives this game feeds it a synthetic face. That
+ * catches logic, and it caught plenty, but it cannot tell you whether a
+ * real mouth in real classroom light crosses a threshold, or how much
+ * of a phone's frame rate MediaPipe leaves for the game.
+ *
+ * So this is the real engine with nothing stubbed. It skips the paywall
+ * only because everything under test/ is refused in production — there
+ * is no login on a device you are holding in one hand while opening
+ * your mouth at it.
+ *
+ * The readout is the point as much as the game is: on a real face,
+ * "your movement is too small" and "the tracker never started" look
+ * identical from the outside, and the first thing to establish is
+ * which one you are looking at.
+ * ============================================================ */
+(function () {
+  'use strict';
+  var mode = (new URLSearchParams(location.search).get('mode') || 'classic');
+  var R = window.IG_RUNNER;
+
+  var TEXT = {
+    classic: { title: 'Animal ', em: 'Run!', desc: 'Catch the fruit, jump the rocks.' },
+    letters: { title: 'Alphabet ', em: 'Run!', desc: 'Catch the letters in order, from A.' },
+    numbers: { title: 'Number ', em: 'Run!', desc: 'Catch the numbers in order, from 1.' },
+  }[mode] || { title: 'Animal ', em: 'Run!', desc: '' };
+
+  Array.prototype.forEach.call(document.querySelectorAll('#bar a'), function (a) {
+    if (a.getAttribute('data-m') === mode) a.className = 'on';
+  });
+
+  IG_RUNNER_GAME({
+    id: mode === 'numbers' ? 'game45' : (mode === 'letters' ? 'game44' : 'game43'),
+    icon: mode === 'numbers' ? '🔢' : (mode === 'letters' ? '🔤' : '🦁'),
+    mode: mode === 'classic' ? 'classic' : 'letters',
+    sequence: mode === 'numbers' ? R.numberSequence(20)
+      : (mode === 'letters' ? R.letterSequence() : null),
+    text: {
+      en: { tag: 'live camera check', title: TEXT.title, titleEm: TEXT.em,
+        desc: TEXT.desc, quest: 'Pick a movement, then Play.', questLbl: '' },
+      de: { tag: 'Kamera-Test', title: TEXT.title, titleEm: TEXT.em,
+        desc: TEXT.desc, quest: 'Bewegung wählen, dann spielen.', questLbl: '' },
+      pl: { tag: 'test kamery', title: TEXT.title, titleEm: TEXT.em,
+        desc: TEXT.desc, quest: 'Wybierz ruch, potem graj.', questLbl: '' },
+      es: { tag: 'prueba de cámara', title: TEXT.title, titleEm: TEXT.em,
+        desc: TEXT.desc, quest: 'Elige un movimiento y juega.', questLbl: '' },
+    },
+  });
+
+  // ── The readout ───────────────────────────────────────────
+  var diag = document.getElementById('diag');
+  document.getElementById('diagbtn').onclick = function () { diag.classList.toggle('off'); };
+
+  var frames = 0, fps = 0, last = performance.now();
+  (function tick() {
+    requestAnimationFrame(tick);
+    frames += 1;
+    var now = performance.now();
+    if (now - last >= 1000) { fps = frames; frames = 0; last = now; }
+  })();
+
+  var turn = document.getElementById('turn');
+  function checkOrientation() {
+    turn.classList.toggle('off', window.innerWidth >= window.innerHeight);
+  }
+  window.addEventListener('resize', checkOrientation);
+  window.addEventListener('orientationchange', function () { setTimeout(checkOrientation, 250); });
+  checkOrientation();
+
+  var lastLog = 0;
+  var errors = [];
+  window.addEventListener('error', function (e) {
+    errors.push((e.message || 'error') + ' @' + (e.lineno || '?'));
+    if (errors.length > 3) errors.shift();
+  });
+
+  function pct(v) { return Math.round(v * 100) + '%'; }
+
+  setInterval(function () {
+    var D = window.IG_RUNNER_DEBUG;
+    if (!D) { diag.textContent = 'engine not loaded'; return; }
+    var s = D.state(), m = D.meter(), g = D.game();
+    var lines = [];
+    lines.push('secure ctx : ' + window.isSecureContext + '   fps ' + fps);
+    lines.push('movement   : ' + s.srcId);
+    lines.push('camera     : ' + (s.hasCam ? 'on' : 'off')
+      + '   tracker ' + (s.mpReady ? 'ready' : 'no'));
+    lines.push('seen       : ' + (m.seenMsAgo > 100000 ? 'never' : m.seenMsAgo + 'ms ago')
+      + (s.pausedByTracking ? '   OUT OF SHOT' : ''));
+    if (m.calPhase) lines.push('calibrating: ' + m.calPhase);
+    if (s.cal) {
+      lines.push('your range : ' + s.cal.base.toFixed(3) + ' .. ' + s.cal.peak.toFixed(3)
+        + (s.cal.weak ? '  TOO SMALL' : ''));
+      lines.push('press at   : ' + s.cal.press.toFixed(3));
+    }
+    lines.push('signal     : ' + pct(m.n) + (m.down ? '  HELD' : '') + '   presses ' + m.presses);
+    if (g) {
+      var st = g.state();
+      lines.push('game       : ' + (s.paused ? 'paused' : (s.running ? 'running' : 'idle'))
+        + '  score ' + st.score + '/' + st.goal + '  lives ' + st.lives);
+      lines.push('window     : ' + Math.round(g.cfg.windowS * 1000) + 'ms'
+        + '   speed ' + g.cfg.speed);
+    }
+    if (errors.length) lines.push('ERRORS: ' + errors.join(' | '));
+    diag.textContent = lines.join('\n');
+
+    /* The same numbers on one line, to the console, so they can be
+       followed over adb while somebody else is holding the phone and
+       opening their mouth at it. Nothing useful can be read off a
+       screenshot at the moment it actually matters. */
+    var nowMs = Date.now();
+    if (nowMs - lastLog >= 1000) {
+      lastLog = nowMs;
+      var st2 = g && g.state();
+      console.log('[LIVE]'
+        + ' fps=' + fps
+        + ' src=' + s.srcId
+        + ' cam=' + (s.hasCam ? 1 : 0)
+        + ' mp=' + (s.mpReady ? 1 : 0)
+        + ' seen=' + (m.seenMsAgo > 100000 ? 'never' : m.seenMsAgo)
+        + (m.calPhase ? ' cal=' + m.calPhase : '')
+        + (s.cal ? ' range=' + s.cal.base.toFixed(3) + '/' + s.cal.peak.toFixed(3)
+            + ' press=' + s.cal.press.toFixed(3) + (s.cal.weak ? ' WEAK' : '') : '')
+        + ' n=' + m.n.toFixed(2)
+        + ' presses=' + m.presses
+        + ' state=' + (s.paused ? (s.pausedByTracking ? 'lostface' : 'paused')
+            : (s.running ? 'running' : 'idle'))
+        + (st2 ? ' score=' + st2.score + '/' + st2.goal + ' lives=' + st2.lives
+            + ' hits=' + st2.hits + ' jumps=' + st2.jumps : '')
+        + (g ? ' win=' + Math.round(g.cfg.windowS * 1000) : '')
+        + (errors.length ? ' ERR=' + errors[errors.length - 1] : ''));
+    }
+  }, 200);
+})();
+</script>
+</body></html>

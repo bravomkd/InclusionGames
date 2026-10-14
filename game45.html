@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Number Run — InclusionGames</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/game-engine.css">
+<link rel="stylesheet" href="assets/runner-engine.css">
+</head><body>
+<script src="assets/switch-input.js"></script>
+<script src="assets/runner-core.js"></script>
+<script src="assets/runner-engine.js"></script>
+<script>
+/* game45 — Number Run. Counting in order, one movement at a time. Same
+   game as #44 with digits instead of letters, which is why it is a
+   separate entry: a teacher looking through Maths for something a
+   particular child can play should find it there. */
+IG_RUNNER_GAME({
+  id:'game45', icon:'🔢', mode:'letters',
+  sequence: IG_RUNNER.numberSequence(20),
+  text:{
+    en:{tag:'Math · Grades 1–2 · Game #45', title:'Number ', titleEm:'Run!', desc:'Catch the numbers in order, from 1 onwards. Jump with your mouth, your hand or your eyebrows.', quest:'🔢 Count your way home! Catch the number you are asked for and jump over the rest.', questLbl:'COUNT THE NUMBERS'},
+    de:{tag:'Mathematik · Kl. 1–2 · Spiel #45', title:'Zahlen-', titleEm:'Lauf!', desc:'Fange die Zahlen der Reihe nach, ab 1. Springe mit dem Mund, der Hand oder den Augenbrauen.', quest:'🔢 Zähle dich nach Hause! Fange die gesuchte Zahl und springe über die anderen.', questLbl:'ZÄHLE DIE ZAHLEN'},
+    pl:{tag:'Matematyka · Kl. 1–2 · Gra #45', title:'Liczbowy ', titleEm:'Bieg!', desc:'Łap liczby po kolei, od 1. Skacz ustami, ręką lub brwiami.', quest:'🔢 Policz drogę do domu! Złap liczbę, o którą prosimy, a nad resztą przeskocz.', questLbl:'LICZ LICZBY'},
+    es:{tag:'Matemáticas · Grados 1–2 · Juego #45', title:'¡Carrera de ', titleEm:'Números!', desc:'Atrapa los números en orden, desde el 1. Salta con la boca, la mano o las cejas.', quest:'🔢 ¡Cuenta hasta llegar a casa! Atrapa el número que te pedimos y salta sobre los demás.', questLbl:'CUENTA LOS NÚMEROS'}
+  }
+});
+</script>
+</body></html>

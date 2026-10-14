@@ -63,7 +63,15 @@ input:focus{border-color:var(--p1);box-shadow:0 0 0 3px rgba(124,58,237,.12);}
 
   <div class="card">
     <h2>Subscription &amp; billing</h2>
-    <p class="note">Your subscription renews automatically until you cancel. To update your payment method or <strong>cancel</strong>, email us at <a href="mailto:info@inclusion-games.com">info@inclusion-games.com</a> (or use the cancellation link in your invoice) and we'll take care of it right away. You keep access until the end of your current paid period.</p>
+    <p class="note">Your subscription renews automatically until you cancel. You keep access until the end of the period you have already paid for. To update your payment method, email us at <a href="mailto:info@inclusion-games.com">info@inclusion-games.com</a>.</p>
+    <!-- Shown only when there is a subscription here we can actually cancel.
+         A CopeCart buyer has none recorded, and is told where to go instead. -->
+    <div id="cancel-box" style="display:none;">
+      <div class="row" id="cancel-until-row" style="display:none;"><span class="k">Access until</span><span class="v" id="cancel-until">—</span></div>
+      <button class="btn btn-d" id="cancel-btn" onclick="cancelSub()">Cancel subscription</button>
+    </div>
+    <p class="note" id="cancel-elsewhere" style="display:none;">Bought through CopeCart? Cancel it there, or email <a href="mailto:info@inclusion-games.com">info@inclusion-games.com</a> and we'll do it for you.</p>
+    <div class="msg" id="cancel-msg"></div>
   </div>
 
   <div class="card">
@@ -106,8 +114,52 @@ var PLAN_NAMES = { trial:'Free trial', starter:'Starter', family:'Family', educa
     if (user.status === 'trialing' && user.trialEnds) {
       document.getElementById('acc-trial').textContent = new Date(user.trialEnds).toLocaleDateString();
     } else { trialRow.style.display = 'none'; }
+    showCancel(user);
   } catch (e) { /* requireAuth handles missing token */ }
 })();
+
+/* The cancel button appears only for a subscription this server can actually
+   cancel. Anyone else is pointed where they can — never shown a button that
+   would fail. */
+function showCancel(user){
+  const box = document.getElementById('cancel-box');
+  const elsewhere = document.getElementById('cancel-elsewhere');
+  const msg = document.getElementById('cancel-msg');
+  const onTrial = user.status === 'trialing';
+
+  if (user.canCancel) {
+    box.style.display = '';
+    if (user.cancelRequestedAt) {
+      document.getElementById('cancel-btn').style.display = 'none';
+      msg.style.color = 'var(--g1)';
+      msg.textContent = '✅ Cancelled. It will not renew.';
+    }
+    if (user.periodEnd) {
+      document.getElementById('cancel-until-row').style.display = '';
+      document.getElementById('cancel-until').textContent = new Date(user.periodEnd).toLocaleDateString();
+    }
+  } else if (!onTrial && user.plan && user.plan !== 'trial') {
+    elsewhere.style.display = '';
+  }
+}
+
+async function cancelSub(){
+  const msg = document.getElementById('cancel-msg'); msg.textContent = '';
+  if (!confirm('Cancel your subscription? You keep access until the end of the period you have already paid for.')) return;
+  const btn = document.getElementById('cancel-btn'); btn.disabled = true;
+  try {
+    const r = await IG.apiFetch('/payments/cancel', { method:'POST' });
+    msg.style.color = 'var(--g1)';
+    msg.textContent = r.accessUntil
+      ? '✅ Cancelled. You keep access until ' + new Date(r.accessUntil).toLocaleDateString() + '.'
+      : '✅ Cancelled. It will not renew.';
+    btn.style.display = 'none';
+  } catch (e) {
+    msg.style.color = 'var(--r1)';
+    msg.textContent = e.message || 'Could not cancel. Please email info@inclusion-games.com.';
+    btn.disabled = false;
+  }
+}
 
 async function changePw(){
   const m = document.getElementById('pw-msg'); m.textContent = '';
@@ -116,8 +168,13 @@ async function changePw(){
   if (nw.length < 8) { m.style.color = 'var(--r1)'; m.textContent = 'New password must be at least 8 characters.'; return; }
   const btn = document.getElementById('pw-btn'); btn.disabled = true;
   try {
-    await IG.apiFetch('/auth/change-password', { method:'POST', body: JSON.stringify({ currentPassword: cur, newPassword: nw }) });
-    m.style.color = 'var(--g1)'; m.textContent = '✅ Password updated.';
+    /* Changing the password ends every session on the account — which is the
+       point of it — and this tab is one of them. The server hands back a
+       replacement; store it, or the customer is signed out by the very thing
+       they just did. */
+    const r = await IG.apiFetch('/auth/change-password', { method:'POST', body: JSON.stringify({ currentPassword: cur, newPassword: nw }) });
+    if (r && r.token) IG.setSession(r.token, r.user || null);
+    m.style.color = 'var(--g1)'; m.textContent = '✅ Password updated. Any other device is now signed out.';
     document.getElementById('cur').value = ''; document.getElementById('new').value = '';
   } catch (e) { m.style.color = 'var(--r1)'; m.textContent = e.message || 'Could not update password.'; }
   btn.disabled = false;

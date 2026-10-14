@@ -19,6 +19,12 @@ const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const nodemailer = require('nodemailer');
 
+/* The browser modules load in Node too, deliberately, so the lists of
+   valid movements and animals are not retyped here to drift out of step
+   with the game that has to honour them. */
+const RUNNER_SOURCES = require('./assets/switch-input.js').sourceIds();
+const RUNNER_ANIMALS = Object.keys(require('./assets/runner-core.js').ANIMALS);
+
 // ── Config ──────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 const APP_URL = (process.env.APP_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
@@ -83,6 +89,7 @@ const PLANS = {
   school:   { name: 'School Plan',      monthly: 99.99, annual: 839.88, stripe: process.env.STRIPE_PRICE_SCHOOL },
 };
 const TRIAL_DAYS = 3;
+const VERIFY_DAYS = 7;          // how long an email-confirmation link stays usable
 const COOKIE_SECURE = APP_URL.startsWith('https');
 
 // Accounts listed here always have full access (e.g. the owner). Comma-separated in .env.
@@ -96,13 +103,43 @@ const COPECART_PRODUCTS = {};
 // ── Storage (simple JSON file — no native modules) ──────────
 // For launch/testing this is plenty. To move to Postgres/MySQL
 // later, only the helpers below need to change.
-const DATA_DIR = path.join(ROOT, 'data');
+// DATA_DIR defaults to ./data, which is what the server has always used and
+// what production runs. It is overridable so the tests can point a throwaway
+// server at a temp directory — without it, running the suite writes into the
+// real account database. The static blocklist below matches on the URL path,
+// not the filesystem, so moving this cannot un-protect anything.
+const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(ROOT, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 const DB_FILE = path.join(DATA_DIR, 'users.json');
 
+/* "There is no database yet" and "the database is damaged" are different
+   situations and must not be handled alike. Treating a truncated or
+   half-written file as an empty one brings the site up with zero accounts —
+   every customer locked out, no error anywhere — and then the first write
+   replaces the real table with a one-row one. Stop instead: it is loud, and
+   nothing is overwritten. The .lkg snapshot written below is the way back. */
+function dbFatal(reason) {
+  console.error(`\n   [db] FATAL: ${reason}`);
+  console.error('   Starting with an empty table would lock every customer out, and the next');
+  console.error('   write would replace the real one, so the server is stopping instead.');
+  console.error('   Restore the last good snapshot and restart:');
+  console.error(`     cp ${DB_FILE}.lkg ${DB_FILE} && pm2 restart inclusion\n`);
+  process.exit(1);
+}
+
 let users = [];
-try { users = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); }
-catch { users = []; }
+if (fs.existsSync(DB_FILE)) {
+  let raw;
+  try { raw = fs.readFileSync(DB_FILE, 'utf8'); }
+  catch (e) { dbFatal(`cannot read ${DB_FILE}: ${e.message}`); }
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new Error('expected a JSON array of users');
+    users = parsed;
+  } catch (e) {
+    dbFatal(`${DB_FILE} is not a readable user table: ${e.message}`);
+  }
+}
 
 /* ── Durable writes ──────────────────────────────────────────
    The whole user table is rewritten on every change. A plain writeFileSync
@@ -201,12 +238,18 @@ function publicUser(u) {
     // Lets the client route a lapsed trial straight to checkout instead of
     // bouncing it off the dashboard gate.
     access: hasAccess(u),
+    /* Whether the account page can offer a cancel button. Only whether one
+       exists — never the subscription id itself. A CopeCart buyer has no
+       subscription recorded here and has to cancel where they bought. */
+    canCancel: !!(u.subscription_id &&
+      (u.billing_provider === 'stripe' || u.billing_provider === 'paypal')),
+    cancelRequestedAt: u.cancel_requested_at || null,
   };
 }
 
 function signToken(u) {
   return jwt.sign(
-    { sub: u.id, email: u.email, plan: u.plan, name: u.name },
+    { sub: u.id, email: u.email, plan: u.plan, name: u.name, pwv: u.pw_version || 0 },
     JWT_SECRET,
     { expiresIn: '30d' }
   );
@@ -242,8 +285,16 @@ function parseCookies(req) {
   return out;
 }
 function userFromSession(req) {
-  try { const t = parseCookies(req).ig_session; if (!t) return null; return getUserById(jwt.verify(t, JWT_SECRET).sub) || null; }
-  catch { return null; }
+  try {
+    const t = parseCookies(req).ig_session;
+    if (!t) return null;
+    const payload = jwt.verify(t, JWT_SECRET);
+    const u = getUserById(payload.sub);
+    if (!u) return null;
+    // The cookie is a session too, so a password change has to close it.
+    if (tokenIsStale(payload, u)) return null;
+    return u;
+  } catch { return null; }
 }
 function setSession(res, u) {
   res.cookie('ig_session', signToken(u), { httpOnly: true, secure: COOKIE_SECURE, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000, path: '/' });
@@ -282,6 +333,23 @@ async function sendMail(to, subject, html, opts) {
   }
 }
 
+/* Sessions are stateless JWTs, so changing a password cannot invalidate them
+   on its own — which makes "change your password" useless against the very
+   thing a customer reaches for it to stop: somebody else already signed in,
+   on a shared laptop or with a stolen token.
+
+   So every token carries the password version it was minted under, and only
+   the current one is accepted. A counter, not a timestamp: `iat` is in whole
+   seconds, and the stolen session and the replacement are very often minted
+   in the same second, which a time comparison cannot tell apart — the first
+   attempt at this failed exactly there.
+
+   Tokens issued before this shipped carry no version, and accounts have none
+   either; both read as 0, so nobody is signed out by the deploy. */
+function tokenIsStale(payload, u) {
+  return (payload.pwv || 0) !== (u.pw_version || 0);
+}
+
 function authMiddleware(req, res, next) {
   const h = req.headers.authorization || '';
   const t = h.startsWith('Bearer ') ? h.slice(7) : null;
@@ -290,6 +358,8 @@ function authMiddleware(req, res, next) {
     const payload = jwt.verify(t, JWT_SECRET);
     const u = getUserById(payload.sub);
     if (!u) return res.status(401).json({ error: 'Account not found' });
+    if (tokenIsStale(payload, u))
+      return res.status(401).json({ error: 'Session expired' });
     req.user = u;
     next();
   } catch {
@@ -568,8 +638,30 @@ app.post('/api/webhooks/copecart', express.raw({ type: '*/*' }), (req, res) => {
   const email = String(d.email || d.buyer_email || d.customer_email || (d.buyer && d.buyer.email) || '').toLowerCase().trim();
   const event = String(d.event || d.event_type || d.type || d.payment_status || d.status || '').toLowerCase();
   const productId = String(d.product_id || d.productId || (d.product && (d.product.id || d.product)) || '');
-  const plan = COPECART_PRODUCTS[productId] || (d.plan && PLANS[d.plan] ? d.plan : 'family');
-  const billing = /year|annual|jähr/i.test(body) ? 'annual' : 'monthly';
+  /* COPECART_PRODUCT_* maps a product to the plan it sells. Nothing fills that
+     map unless those are set in .env, and an unmapped product then falls back
+     to whatever COPECART_DEFAULT_PLAN says — Family, as it always has, so no
+     existing arrangement changes by upgrading to this.
+
+     Worth knowing: while the map is empty, a 9.99 Starter sale and a 99.99
+     School sale both provision the same fallback plan. Set the product ids,
+     and this line stops mattering. The warning below names the id to map. */
+  const mapped = COPECART_PRODUCTS[productId];
+  const fallback = PLANS[process.env.COPECART_DEFAULT_PLAN] ? process.env.COPECART_DEFAULT_PLAN : 'family';
+  const plan = mapped || (d.plan && PLANS[d.plan] ? d.plan : fallback);
+  if (!mapped) {
+    console.warn(`   [billing] copecart: product "${productId}" is not mapped to a plan — ` +
+      `granting "${plan}". Set COPECART_PRODUCT_<PLAN>=${productId} in .env to bill it correctly.`);
+  }
+  /* Monthly or annual is read from the fields that say so, not from the whole
+     payload: a search across the raw body matched "year" anywhere in it — a
+     date field, or a buyer living on Yearsley Road — and quietly turned a
+     monthly sale into an annual one. */
+  const billingHint = String(
+    d.billing || d.billing_cycle || d.billingCycle || d.interval ||
+    d.payment_plan || d.paymentPlan || d.period || d.subscription_interval || ''
+  );
+  const billing = /year|annual|jähr|annually/i.test(billingHint) ? 'annual' : 'monthly';
 
   res.json({ ok: true }); // acknowledge immediately; provision in the background
   if (!email) return;
@@ -652,8 +744,25 @@ async function provisionFromCopecart(email, plan, billing) {
     users.push(u);
     console.log('copecart: created account for', email, '→', plan);
   } else {
+    /* An account that was signed up for but never verified is nobody's yet —
+       the address has not been proven, and anyone can create one for an
+       address they do not own, choosing the password. Marking it verified
+       here because a payment arrived would hand whoever did that the account
+       the real customer just paid for. So the stranger's password goes: only
+       the set-password link below, which goes to the address that was
+       actually billed, opens the account.
+
+       An already-verified account is left alone — that customer proved the
+       address is theirs, and an upgrade must not lock them out. */
+    const unproven = !u.email_verified;
+    if (unproven) {
+      u.password_hash = await bcrypt.hash(token(24), 10);
+      console.log('copecart: account for', email, 'was never verified — password reset, set-password link sent');
+    }
     u.plan = plan; u.billing = billing || 'monthly'; u.status = 'active'; u.email_verified = 1; u.updated_at = t;
-    setTok = u.reset_token || token();
+    // A fresh link for an unproven account, so a token a stranger may already
+    // be holding from their own sign-up cannot be the one that sets it.
+    setTok = (unproven ? null : u.reset_token) || token();
     u.reset_token = setTok; u.reset_expires = t + days(7);
     console.log('copecart: upgraded', email, '→', plan);
   }
@@ -691,6 +800,7 @@ auth.post('/register', async (req, res) => {
       user.name = name || user.name;
       user.password_hash = hash;
       user.verify_token = token();
+      user.verify_expires = t + days(VERIFY_DAYS);
       user.updated_at = t;
     } else {
       user = {
@@ -699,6 +809,7 @@ auth.post('/register', async (req, res) => {
         password_hash: hash,
         email_verified: 0,
         verify_token: token(),
+        verify_expires: t + days(VERIFY_DAYS),
         reset_token: null, reset_expires: null,
         plan: 'trial', billing: null, status: 'trialing',
         trial_ends: t + days(TRIAL_DAYS),
@@ -731,22 +842,83 @@ auth.get('/verify', (req, res) => {
   if (!t) return res.status(400).json({ ok: false, error: 'Missing token.' });
   const u = getUserByField('verify_token', t);
   if (!u) return res.status(400).json({ ok: false, error: 'Invalid or expired verification link.' });
+  // A link that never expires stays usable for ever out of an old inbox.
+  // Accounts created before this shipped have no expiry recorded and are
+  // left alone rather than being locked out retrospectively.
+  if (u.verify_expires && u.verify_expires < now()) {
+    return res.status(400).json({ ok: false, error: 'This verification link has expired. Please sign up again to get a new one.' });
+  }
   u.email_verified = 1;
   u.verify_token = null;
+  u.verify_expires = null;
   u.updated_at = now();
   saveNow();
   return res.json({ ok: true, message: 'Email verified. You can now sign in.' });
 });
 
+/* Per-account sign-in throttle.
+   authLimiter above caps requests per IP, which does nothing against many
+   addresses all guessing at one account — which is exactly what credential
+   stuffing looks like, and this site is now taking money. Counting per email
+   closes that.
+   Unknown addresses are counted too, so a locked account cannot be told apart
+   from a wrong password and this cannot be used to discover who has an
+   account here. */
+const loginFails = new Map();   // email -> { count, until }
+const LOGIN_MAX_FAILS = 8;
+const LOGIN_LOCK_MS = 15 * 60 * 1000;
+
+/* A real bcrypt hash of a value nobody can supply, compared against when the
+   address is unknown so that path costs the same as a real one. Generated at
+   boot, with the same cost factor as a stored password. */
+const DUMMY_HASH = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), 10);
+
+function loginLockedUntil(email) {
+  const rec = loginFails.get(email);
+  if (!rec) return 0;
+  if (!rec.until) return 0;                 // still counting, not locked yet
+  if (rec.until > now()) return rec.until;  // locked
+  loginFails.delete(email);                 // lock has run out, start fresh
+  return 0;
+}
+
+function noteLoginFail(email) {
+  const rec = loginFails.get(email) || { count: 0, until: 0 };
+  rec.count += 1;
+  if (rec.count >= LOGIN_MAX_FAILS) { rec.until = now() + LOGIN_LOCK_MS; rec.count = 0; }
+  loginFails.set(email, rec);
+  // Keep the map from growing without bound on a long-running process.
+  if (loginFails.size > 5000) {
+    for (const [k, v] of loginFails) { if (!v.until || v.until <= now()) loginFails.delete(k); }
+  }
+}
+
 auth.post('/login', async (req, res) => {
   const email = (req.body.email || '').toLowerCase().trim();
   const password = req.body.password || '';
+
+  const until = loginLockedUntil(email);
+  if (until) {
+    const mins = Math.max(1, Math.ceil((until - now()) / 60000));
+    return res.status(429).json({ error: `Too many failed sign-in attempts. Please try again in ${mins} minute${mins === 1 ? '' : 's'}, or reset your password.` });
+  }
+
   const u = getUserByEmail(email);
-  if (!u) return res.status(401).json({ error: 'Invalid login credentials' });
+  if (!u) {
+    /* Hash anyway. Returning here without one answers in a millisecond while a
+       real address takes the ~100ms bcrypt costs, and that gap is readable
+       over the network — it tells anyone who asks which addresses have an
+       account here. The message and the status were already identical; the
+       timing was not. */
+    await bcrypt.compare(password, DUMMY_HASH);
+    noteLoginFail(email);
+    return res.status(401).json({ error: 'Invalid login credentials' });
+  }
   const ok = await bcrypt.compare(password, u.password_hash);
-  if (!ok) return res.status(401).json({ error: 'Invalid login credentials' });
+  if (!ok) { noteLoginFail(email); return res.status(401).json({ error: 'Invalid login credentials' }); }
   if (!u.email_verified && !ADMIN_EMAILS.includes(email))
     return res.status(403).json({ error: 'Please verify your email first — check your inbox for the confirmation link.' });
+  loginFails.delete(email);   // a correct password clears the count
   setSession(res, u);
   return res.json({ token: signToken(u), user: publicUser(u) });
 });
@@ -780,6 +952,9 @@ auth.post('/reset', async (req, res) => {
   u.password_hash = await bcrypt.hash(password, 10);
   u.reset_token = null;
   u.reset_expires = null;
+  // A reset is how someone takes their account back. Whoever was already
+  // signed in — which may be the reason they are resetting — loses it.
+  u.pw_version = (u.pw_version || 0) + 1;
   u.updated_at = now();
   saveNow();
   return res.json({ ok: true, message: 'Password updated. You can now sign in.' });
@@ -796,17 +971,82 @@ auth.post('/change-password', authMiddleware, async (req, res) => {
   const ok = await bcrypt.compare(cur, req.user.password_hash);
   if (!ok) return res.status(403).json({ error: 'Your current password is incorrect.' });
   req.user.password_hash = await bcrypt.hash(next, 10);
+  req.user.pw_version = (req.user.pw_version || 0) + 1;   // every older session ends here
   req.user.updated_at = now();
   saveNow();
-  res.json({ ok: true, message: 'Password updated.' });
+  // The caller is not the one being signed out: hand back a session minted
+  // after the stamp, and refresh the cookie for the same reason.
+  setSession(res, req.user);
+  res.json({ ok: true, message: 'Password updated.', token: signToken(req.user), user: publicUser(req.user) });
 });
 
 // GDPR: permanently delete the account and all its data.
+/* Stop charging a card we are about to forget the owner of.
+   Deleting the account removed the row and nothing else, so the subscription
+   at Stripe or PayPal kept renewing — the customer went on paying, with no
+   account to show for it and no record here to match the renewal webhooks
+   against. Returns a short reason when it could not be done, so the caller
+   can decide what to do about it. */
+async function cancelProviderSubscription(u) {
+  const subId = u.subscription_id;
+  if (!subId) return { ok: true, note: 'no subscription on file' };
+  const provider = u.billing_provider;
+  try {
+    if (provider === 'stripe') {
+      if (!stripe) return { ok: false, reason: 'stripe not configured on this server' };
+      // Named cancel() in current SDKs, del() in older ones.
+      const subs = stripe.subscriptions;
+      if (typeof subs.cancel === 'function') await subs.cancel(subId);
+      else await subs.del(subId);
+      return { ok: true };
+    }
+    if (provider === 'paypal') {
+      if (!paypalEnabled) return { ok: false, reason: 'paypal not configured on this server' };
+      await paypalFetch(`/v1/billing/subscriptions/${encodeURIComponent(subId)}/cancel`, {
+        method: 'POST', body: JSON.stringify({ reason: 'Account deleted by the customer' }),
+      });
+      return { ok: true };
+    }
+    return { ok: false, reason: `unknown billing provider "${provider || 'none'}"` };
+  } catch (e) {
+    return { ok: false, reason: (e && e.message) || String(e) };
+  }
+}
+
 auth.post('/delete-account', authMiddleware, async (req, res) => {
   const pw = req.body.password || '';
   const ok = await bcrypt.compare(pw, req.user.password_hash);
   if (!ok) return res.status(403).json({ error: 'Password is incorrect.' });
-  const idx = users.findIndex(u => u.id === req.user.id);
+
+  /* Cancel first, delete second. If the cancellation fails the account is
+     still deleted — erasure is the customer's to ask for, and refusing it
+     would leave them both billed AND stuck — but somebody has to know, or the
+     charges continue with nothing here to trace them to. */
+  const u = req.user;
+  const billingNote = { email: u.email, subscriptionId: u.subscription_id || null,
+    provider: u.billing_provider || null, plan: u.plan, status: u.status };
+  const cancelled = await cancelProviderSubscription(u);
+  if (!cancelled.ok) {
+    console.error('   [billing] COULD NOT CANCEL on account deletion —', JSON.stringify(billingNote),
+      '— reason:', cancelled.reason, '— cancel this by hand or the customer keeps paying.');
+    try {
+      await sendMail(CONTACT_TO, '⚠️ Cancel a subscription by hand — account deleted',
+        `<p>An account was deleted while a subscription was still live, and the
+            cancellation could not be completed automatically. <b>The customer will
+            keep being charged until this is cancelled manually.</b></p>
+         <ul>
+           <li>Email: ${esc(billingNote.email)}</li>
+           <li>Provider: ${esc(billingNote.provider || 'unknown')}</li>
+           <li>Subscription: ${esc(billingNote.subscriptionId || 'none recorded')}</li>
+           <li>Plan: ${esc(billingNote.plan)} (${esc(billingNote.status)})</li>
+         </ul>
+         <p>Reason: ${esc(cancelled.reason)}</p>`);
+    } catch (e) { console.error('   [billing] could not send the manual-cancel warning:', e.message); }
+  } else if (billingNote.subscriptionId) {
+    console.log('   [billing] cancelled', billingNote.provider, billingNote.subscriptionId, 'for a deleted account');
+  }
+
+  const idx = users.findIndex(x => x.id === u.id);
   if (idx > -1) { users.splice(idx, 1); saveNow(); }
   clearSession(res);
   res.json({ ok: true, message: 'Your account and data have been deleted.' });
@@ -947,6 +1187,34 @@ function sanitizeSettings(body) {
   } else {
     s.mathRange = null;
   }
+
+  /* Animal Run. The dial that matters for it is not a level but the
+     reaction window: how late a child's movement may be and still
+     work, in milliseconds. That is a thing a teacher can actually
+     observe and decide about, and it is what the physics is solved
+     backwards from.
+
+     The rest is what a child should not have to re-choose every
+     session: which movement they use, which animal, and whether the
+     marker showing when to jump is on. */
+  if (body.runner && typeof body.runner === 'object') {
+    const r = body.runner;
+    const windowMs = Number.isFinite(+r.windowMs)
+      ? Math.max(150, Math.min(1200, Math.round(+r.windowMs)))
+      : null;
+    const runner = {
+      windowMs,
+      source: RUNNER_SOURCES.includes(r.source) ? r.source : null,
+      animal: RUNNER_ANIMALS.includes(r.animal) ? r.animal : null,
+      hint: typeof r.hint === 'boolean' ? r.hint : null,
+    };
+    const blank = runner.windowMs == null && runner.source == null
+      && runner.animal == null && runner.hint == null;
+    s.runner = blank ? null : runner;
+  } else {
+    s.runner = null;
+  }
+
   return s;
 }
 
@@ -970,7 +1238,8 @@ children.put('/:id/settings/:game', authMiddleware, (req, res) => {
   const clean = sanitizeSettings(req.body || {});
   // If everything is empty/default, remove the override entirely (keeps data tidy).
   const isEmpty = clean.disabled.length === 0 && clean.custom.length === 0 &&
-                  clean.level == null && clean.count == null && !clean.mathRange && clean.mathLevel == null;
+                  clean.level == null && clean.count == null && !clean.mathRange &&
+                  clean.mathLevel == null && !clean.runner;
   if (isEmpty) { delete c.settings[req.params.game]; }
   else { c.settings[req.params.game] = clean; }
   c.updated_at = now();
@@ -994,15 +1263,38 @@ app.get('/api/complete-item', authMiddleware, completeLimiter, async (req, res) 
   const q = String(req.query.q || '').toLowerCase().trim();
   if (!q) return res.status(400).json({ error: 'Query required.' });
   if (q.length > 60) return res.status(400).json({ error: 'Query too long.' });
+  /* The library first, and unconditionally. It is free, it is already full of
+     keys this server wrote over months, and some of them may well not match
+     the stricter rule below — refusing those would break lookups that work
+     today, on the live site, for words nobody is going to re-add. Anything
+     already known is answered before any rule applies to it. */
   const hit = ITEM_LIB[q];
   if (hit) return res.json({ found: true, source: 'library', item: hit });
+
+  /* Only now does the word reach a prompt, so only now does it have to be a
+     word. Quotes close the one the prompt puts it in, and newlines let what
+     follows read as fresh instructions — between them a lookup could choose
+     what the model returns, and the answer is cached and then served to other
+     people's children. Letters, digits, spaces, apostrophes and hyphens are
+     all a learning game needs; anything else is refused rather than escaped. */
+  if (!/^[\p{L}\p{N} '\-]+$/u.test(q)) {
+    return res.status(400).json({ error: 'That is not a word I can look up.' });
+  }
+
+  /* Past this point the lookup costs us money at Anthropic. The library above
+     is free and stays open to any signed-in account, so nothing that already
+     works stops working; it is only the paid call that now needs a live
+     subscription. Without this, an account whose plan lapsed — which can no
+     longer open a single game page — could still spend the owner's credit. */
+  if (!hasAccess(req.user)) return res.json({ found: false, source: 'none', item: null });
 
   // Library miss — ask Claude Haiku for the item, then cache it.
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.json({ found: false, source: 'none', item: null });
 
   try {
-    const prompt = 'Give the single best representative emoji and the translations for this word, for a children\'s learning game. Word: "' + req.query.q + '". Respond with ONLY a JSON object, no other text, no markdown, in exactly this shape: {"emoji":"","en":"","de":"","pl":"","es":""}. The emoji must be a single emoji that visually represents the word. Each language field is the word translated into that language (en=English, de=German, pl=Polish, es=Spanish).';
+    // The checked word, not the raw parameter the caller sent.
+    const prompt = 'Give the single best representative emoji and the translations for this word, for a children\'s learning game. Word: "' + q + '". Respond with ONLY a JSON object, no other text, no markdown, in exactly this shape: {"emoji":"","en":"","de":"","pl":"","es":""}. The emoji must be a single emoji that visually represents the word. Each language field is the word translated into that language (en=English, de=German, pl=Polish, es=Spanish).';
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 8000);
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1037,8 +1329,15 @@ app.get('/api/complete-item', authMiddleware, completeLimiter, async (req, res) 
     if (!item.emoji || !(item.en || item.de || item.pl || item.es)) {
       return res.json({ found: false, source: 'ai_invalid', item: null });
     }
-    // cache: index by every language name, persist to disk
-    [item.en, item.de, item.pl, item.es].forEach(k => { if (k) ITEM_LIB[k.toLowerCase().trim()] = item; });
+    /* Cache under the word that was asked for, and under the translations
+       only when they look like words themselves. The library is shared and on
+       disk: every key written here is served to every other account, so a
+       lookup must not be able to put an entry under a key of its choosing. */
+    const WORD = /^[\p{L}\p{N} '\-]{1,60}$/u;
+    const keys = [q].concat([item.en, item.de, item.pl, item.es]
+      .map(k => String(k || '').toLowerCase().trim())
+      .filter(k => k && WORD.test(k)));
+    keys.forEach(k => { ITEM_LIB[k] = item; });
     // Same atomic swap — this file self-grows via the AI cache and a torn write
     // would take the whole library with it.
     try { writeJsonAtomic(path.join(DATA_DIR, 'item-library.json'), ITEM_LIB); } catch (e) {}
@@ -1267,7 +1566,12 @@ pay.post('/create-checkout-session', authMiddleware, async (req, res) => {
   }
 
   // DEMO MODE: no Stripe key — simulate a successful checkout return.
+  // Guarded the same way verify-session is. Production has keys today, so this
+  // branch does not fire there; but if one were ever missing or mis-rotated,
+  // a paying customer would be handed a URL that looks like a completed
+  // purchase and then fails at verification. Refuse plainly instead.
   if (!stripe) {
+    if (IS_PRODUCTION) return res.status(503).json({ error: PAYMENTS_UNCONFIGURED });
     return res.json({
       url: `${APP_URL}/payment-success.html?demo=1&plan=${plan}&billing=${billing}&session_id=demo_${token(8)}`,
       demo: true,
@@ -1552,6 +1856,60 @@ pay.post('/paypal/confirm', authMiddleware, async (req, res) => {
   }
 });
 
+/* Cancel a subscription, from the site.
+   Until now the only way out was to email us — which a customer may not do,
+   and which § 312k BGB does not accept for a contract concluded online.
+
+   Two rules make this safe to run on live money:
+
+     1. It never takes away access that has been paid for. Stripe is told to
+        stop at the end of the period, not now. PayPal has no such option, so
+        it is cancelled there and access here runs to current_period_end, which
+        hasAccess() already honours for a cancelled plan.
+     2. It does not touch u.status. Setting 'canceled' here would read as "no
+        access" for any account whose current_period_end was never recorded —
+        cutting off the customer the moment they asked to leave, which is the
+        opposite of what this is for. The provider's own webhook moves the
+        status, as it does today. */
+pay.post('/cancel', authMiddleware, async (req, res) => {
+  const u = req.user;
+  const subId = u.subscription_id;
+  const provider = u.billing_provider;
+
+  if (!subId || (provider !== 'stripe' && provider !== 'paypal')) {
+    return res.status(400).json({
+      ok: false,
+      error: 'There is no subscription on this account that we can cancel for you. If you bought through CopeCart, cancel it there; otherwise email info@inclusion-games.com and we will do it.',
+    });
+  }
+
+  try {
+    if (provider === 'stripe') {
+      if (!stripe) return res.status(503).json({ ok: false, error: PAYMENTS_UNCONFIGURED });
+      const sub = await stripe.subscriptions.update(subId, { cancel_at_period_end: true });
+      const end = periodEndOfSub(sub) || u.current_period_end || null;
+      if (end) u.current_period_end = end;
+    } else {
+      if (!paypalEnabled) return res.status(503).json({ ok: false, error: PAYMENTS_UNCONFIGURED });
+      await paypalFetch(`/v1/billing/subscriptions/${encodeURIComponent(subId)}/cancel`, {
+        method: 'POST', body: JSON.stringify({ reason: 'Cancelled by the customer' }),
+      });
+    }
+    u.cancel_requested_at = now();
+    u.updated_at = now();
+    saveNow();
+    console.log('   [billing]', u.email, 'asked to cancel', provider, subId,
+      u.current_period_end ? '— access until ' + new Date(u.current_period_end).toISOString() : '');
+    return res.json({ ok: true, accessUntil: u.current_period_end || null, user: publicUser(u) });
+  } catch (e) {
+    console.error('   [billing] cancel failed for', u.email, e.message);
+    return res.status(502).json({
+      ok: false,
+      error: 'We could not cancel it automatically. Please email info@inclusion-games.com and we will cancel it for you right away.',
+    });
+  }
+});
+
 app.use('/api/payments', pay);
 
 // ── Reward submission ───────────────────────────────────────
@@ -1564,12 +1922,16 @@ app.post('/api/reward', rewardLimiter, async (req, res) => {
   const to = process.env.REWARD_TO || process.env.SMTP_USER || 'info@inclusion-games.com';
   const secs = Math.max(0, Math.round((Number(timeMs) || 0) / 1000));
   const tstr = Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0');
+  /* Escaped, for the same reason the contact form below is: this endpoint is
+     open to anyone, and what it writes lands in our own inbox. Unescaped, a
+     visitor could put markup and links into a mail that appears to come from
+     our own system. The numbers are already numbers; the free text is not. */
   try {
-    await sendMail(to, `🎉 Game result — ${game || 'InclusionGames'}`,
-      `<p>A player completed <b>${game || 'a game'}</b> (${lang || ''}).</p>
+    await sendMail(to, `🎉 Game result — ${esc(String(game || 'InclusionGames').slice(0, 60))}`,
+      `<p>A player completed <b>${esc(String(game || 'a game').slice(0, 60))}</b> (${esc(String(lang || '').slice(0, 10))}).</p>
        <ul><li>Score: ${Number(score) || 0} / ${Number(total) || 0}</li><li>Time: ${tstr}</li></ul>
-       <p>Reply-to (parent/teacher): ${parentEmail}</p>
-       <p>Message: ${(note || '—').toString().slice(0, 500)}</p>`);
+       <p>Reply-to (parent/teacher): ${esc(parentEmail)}</p>
+       <p>Message: ${esc(String(note || '—').slice(0, 500))}</p>`);
     return res.json({ ok: true });
   } catch (e) {
     console.error('reward', e);
@@ -1678,18 +2040,36 @@ const BLOCKED = [
   /^\/data(\/|$)/i,
   /^\/scripts(\/|$)/i,
   /^\/lib(\/|$)/i,                        // server-side report + analytics logic
-  /^\/test(\/|$)/i,
   /^\/node_modules(\/|$)/i,
   /^\/server\.js$/i,
   /^\/package(-lock)?\.json$/i,
   /^\/\./,                                   // any dotfile or dotdir
   /\.(bak|log|sh|md|sql|zip|tar|gz|env)$/i,
   /\.bak-[\w.-]*$/i,                         // server.js.bak-1788… and friends
-];
+]
+  // test/ holds browser harnesses that stub the camera and the tracker so the
+  // game and rehab engines can be driven without a webcam. They are useful on
+  // a developer's machine and have no business on the live site, so they are
+  // served only off production — same rule, just not applied to localhost.
+  .concat(IS_PRODUCTION ? [/^\/test(\/|$)/i] : []);
+/* The patterns above are anchored at "/", so they only ever saw one spelling
+   of a path. express.static sees another: it collapses repeated slashes and
+   backslashes before resolving the file, so "//data//users.json" slipped past
+   every rule here and was then served — the whole account table, bcrypt
+   hashes and live reset tokens included. Normalise to the single spelling
+   express.static will actually resolve, and test that as well as the raw
+   path. */
+function normalisePath(urlPath) {
+  let p = urlPath;
+  try { p = decodeURIComponent(p); } catch { /* malformed: keep the raw path */ }
+  p = p.replace(/\\/g, '/').replace(/\/{2,}/g, '/');
+  return p.startsWith('/') ? p : '/' + p;
+}
+
 app.use((req, res, next) => {
-  let p = req.path;
-  try { p = decodeURIComponent(p); } catch { /* keep the raw path */ }
-  if (BLOCKED.some(re => re.test(p))) {
+  const raw = req.path;
+  const p = normalisePath(raw);
+  if (BLOCKED.some(re => re.test(p) || re.test(raw))) {
     console.warn('   [static] blocked ' + p + ' from ' + (req.ip || '?'));
     return res.status(404).type('txt').send('Not found');
   }

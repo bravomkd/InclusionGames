@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Game harness — settings race</title>
+<link rel="stylesheet" href="/assets/game-engine.css"/>
+<style>
+  #out{position:fixed;left:0;right:0;bottom:0;z-index:99999;max-height:42vh;overflow:auto;
+       background:rgba(0,0,0,.9);border-top:2px solid #2b3350;padding:12px;
+       font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#dbe2ff;white-space:pre-wrap;}
+  #out .ok{color:#6ee7b7;} #out .bad{color:#fca5a5;}
+</style>
+</head>
+<body>
+<pre id="out">harness idle</pre>
+
+<!-- ============================================================
+     Does pressing Play wait for the child's saved settings?
+
+     The engine fetches them when the page loads and builds the first
+     round from whatever has arrived by the time Play is pressed. On a
+     fast connection the fetch always wins, so the bug is invisible in
+     development and shows up for a child on a slow phone: the words a
+     teacher chose, the items they disabled and the round count are all
+     quietly ignored for that session.
+
+     This page slows the settings response down to make the race
+     certain, then presses Play immediately and checks which round
+     count was used.
+
+     Needs: signed in on this origin, a child selected, and a saved
+     `count` override for the game id below.
+
+       /test/harness/game-settings-race.html?id=game02&expect=3&delay=1500
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  if (!/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(location.hostname)) {
+    document.getElementById('out').textContent = 'Harness refuses to run off localhost.';
+    window.HARNESS_RESULT = { error: 'not localhost' };
+    throw new Error('localhost only');
+  }
+
+  var Q = new URLSearchParams(location.search);
+  var CFG = {
+    id: Q.get('id') || 'game02',
+    expect: Number(Q.get('expect') || 3),
+    delay: Number(Q.get('delay') || 1500),
+  };
+
+  var out = document.getElementById('out');
+  var log = [];
+  function say(m, cls) {
+    log.push(m);
+    out.innerHTML += '\n' + (cls ? '<span class="' + cls + '">' + m + '</span>' : m);
+  }
+
+  /* Hold the settings response back. Everything else goes through
+     untouched, so the engine is running against a real server. */
+  var realFetch = window.fetch.bind(window);
+  var settingsAt = null, settingsDoneAt = null;
+  window.fetch = function (input, init) {
+    var url = typeof input === 'string' ? input : (input && input.url) || '';
+    if (/\/settings\//.test(url)) {
+      settingsAt = performance.now();
+      say('settings request held for ' + CFG.delay + 'ms');
+      return new Promise(function (resolve, reject) {
+        setTimeout(function () {
+          realFetch(input, init).then(function (r) {
+            settingsDoneAt = performance.now();
+            say('settings arrived at +' + Math.round(settingsDoneAt - settingsAt + CFG.delay) + 'ms');
+            resolve(r);
+          }, reject);
+        }, CFG.delay);
+      });
+    }
+    return realFetch(input, init);
+  };
+
+  function finish(ok, detail) {
+    window.HARNESS_RESULT = Object.assign({ ok: ok, cfg: CFG, log: log }, detail);
+    say('\nRESULT ' + JSON.stringify(window.HARNESS_RESULT, null, 1), ok ? 'ok' : 'bad');
+  }
+
+  var TEXT = {
+    tag: 'harness', title: 'Harness ', titleEm: 'Run', desc: 'settings race check',
+    quest: 'Checking that Play waits for the saved settings.', questLbl: 'HARNESS',
+  };
+
+  function run() {
+    var pressedAt = null;
+    window.IG_GAME({
+      id: CFG.id, icon: '🧪', hero: '🧒', villain: '🧌', castle: '🏰',
+      text: { en: TEXT, de: TEXT, pl: TEXT, es: TEXT },
+      rounds: function (lang, level, mode, count) {
+        var r = [];
+        for (var i = 0; i < count; i += 1) {
+          r.push({
+            hud: 'HARNESS', big: '🧪', word: 'item' + i, speech: '',
+            praise: 'ok', correct: String(i % 4), distractors: ['a', 'b', 'c'],
+          });
+        }
+        return r;
+      },
+    });
+
+    // Press Play the moment it is pressable — which is what a child does,
+    // and what makes the race happen.
+    var tries = 0;
+    (function press() {
+      var b = document.getElementById('gobtn');
+      if (b && !b.disabled) {
+        pressedAt = performance.now();
+        say('pressed Play at +' + Math.round(pressedAt) + 'ms (settings still in flight: '
+          + (settingsDoneAt === null) + ')');
+        b.click();
+        return watch();
+      }
+      if (tries++ > 200) return finish(false, { error: 'Play never became pressable' });
+      setTimeout(press, 10);
+    })();
+
+    function watch() {
+      var waited = 0;
+      (function look() {
+        var hr = document.getElementById('hr');
+        var hud = document.getElementById('hud');
+        if (hr && hud && !hud.classList.contains('hidden') && /\d+\s*\/\s*\d+/.test(hr.textContent)) {
+          var total = Number(hr.textContent.split('/')[1].trim());
+          var pressedBeforeSettings = settingsDoneAt === null || pressedAt < settingsDoneAt;
+          var ok = total === CFG.expect;
+          say((ok ? 'PASS' : 'FAIL') + ' — rounds = ' + total + ', expected ' + CFG.expect, ok ? 'ok' : 'bad');
+          return finish(ok, {
+            rounds: total,
+            expected: CFG.expect,
+            pressedBeforeSettingsArrived: pressedBeforeSettings,
+            note: ok
+              ? 'Play waited for the saved settings before building the first round.'
+              : 'The round count came from the game default, so the saved settings were dropped.',
+          });
+        }
+        if ((waited += 50) > 20000) return finish(false, { error: 'the game never started' });
+        setTimeout(look, 50);
+      })();
+    }
+  }
+
+  var s = document.createElement('script');
+  s.src = '/assets/game-engine.js';
+  s.onload = run;
+  s.onerror = function () { finish(false, { error: 'engine failed to load' }); };
+  document.head.appendChild(s);
+})();
+</script>
+</body>
+</html>
